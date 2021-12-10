@@ -1,6 +1,10 @@
 package com.github.ppotseluev.algorate
 
-object Main extends App {
+import cats.effect.{ExitCode, IO, IOApp}
 
-  println("Hello world!")
+object Main extends Algorate[IO] with IOApp {
+  def run(args: List[String]): IO[ExitCode] =
+    for {
+      _ <- run(args.head)
+    } yield ExitCode.Success
 }
