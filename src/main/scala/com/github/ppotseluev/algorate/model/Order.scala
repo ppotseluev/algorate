@@ -6,8 +6,11 @@ case class Order(
     instrumentId: InstrumentId,
     lots: Int,
     operationType: OperationType,
-    details: Order.Details
+    details: Order.Details,
+    info: Order.Info
 ) {
+  def estimatedCost: Double = details.estimatedPrice * lots
+
   require(lots > 0, "lots must be positive")
 }
 
@@ -23,15 +26,23 @@ object Order {
 
   sealed trait Details {
     def `type`: Order.Type
+
+    def estimatedPrice: Price
   }
 
   object Details {
-    case class Limit(price: Double) extends Order.Details {
+    case class Limit(price: Price) extends Order.Details {
       override def `type`: Type = Order.Type.Limit
+
+      override def estimatedPrice: Price = price
     }
 
-    case object Market extends Order.Details {
+    case class Market(estimatedPrice: Price) extends Order.Details {
       override def `type`: Type = Order.Type.Market
     }
   }
+
+  case class Info(
+      closingOrderType: Option[ClosePositionOrder.Type]
+  )
 }

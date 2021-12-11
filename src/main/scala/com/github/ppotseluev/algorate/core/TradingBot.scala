@@ -1,65 +1,96 @@
 package com.github.ppotseluev.algorate.core
 
-import cats.effect.kernel.Async
-import cats.syntax.option._
+import cats.data.OptionT
+import cats.effect.Async
 import cats.syntax.functor._
-import com.github.ppotseluev.algorate.core.TradingBot.Action
-import com.github.ppotseluev.algorate.core.TradingSignal.Decision
-import com.github.ppotseluev.algorate.model.Order.Details
-import com.github.ppotseluev.algorate.model.{InstrumentId, Order, Price}
+import cats.syntax.option._
+import com.github.ppotseluev.algorate.core.TradingAnalyzer.Action
+import com.github.ppotseluev.algorate.core.TradingBot.PositionInfo
+import com.github.ppotseluev.algorate.model.ClosePositionOrder.Type
+import com.github.ppotseluev.algorate.model.Order.{Details, Info}
+import com.github.ppotseluev.algorate.model._
+import com.typesafe.scalalogging.LazyLogging
 import fs2.Stream
 
 class TradingBot[F[_]](
     instrumentId: InstrumentId,
     source: Stream[F, Point],
     signal: TradingSignal,
-    orderLimit: Price
-)(implicit F: Async[F]) {
+    orderLimit: Price,
+    broker: Broker[F]
+)(implicit F: Async[F])
+    extends LazyLogging {
 
-  val run: Stream[F, TradingBot.Action] =
-    source.evalMapFilter(handle)
+  @volatile private var position: Option[PositionInfo] = None
 
-  private def handle(point: Point): F[Option[TradingBot.Action]] =
-    F.delay {
-      signal.push(point)
-      signal()
-    }.map(buildAction(point.value))
+  private val preparedSource: Stream[F, Point] = source.evalMap { point =>
+    handle(point).as(point)
+  }
 
-  private def buildAction(currentPrice: Price)(decision: Decision): Option[TradingBot.Action] =
-    decision match {
-      case Decision.Trade(operationType, confidence, takeProfit, stopLoss) =>
-        val lots: Int =
-          (orderLimit * confidence / currentPrice).toInt //todo handle not enough money
-        if (lots > 0) {
-          val order = Order(
-            instrumentId = instrumentId,
-            lots = lots,
-            operationType = operationType,
-            details = Details.Market //todo support Limit
+  private def handle(point: Point): F[Unit] =
+    position
+      .flatMap { pos =>
+        Some(pos.stopLoss)
+          .filter(_.isFired(point.value))
+          .orElse(
+            Some(pos.takeProfit).filter(_.isFired(point.value))
           )
-          Action
-            .PlaceOrder(
-              order = order,
-              takeProfit = Some(takeProfit),
-              stopLoss = Some(stopLoss)
-            )
-            .some
-        } else {
-          None
-        }
-      case Decision.Wait =>
-        None
-    }
+      }
+      .map(_.buildMarketOrder(point.value))
+      .fold(F.unit) {
+        broker.placeOrder(_).map(_ => position = None)
+      }
+
+  private val analyzer = new TradingAnalyzer(
+    instrumentId = instrumentId,
+    source = preparedSource,
+    signal = signal,
+    orderLimit = orderLimit
+  )
+
+  val run: F[Unit] = analyzer.run.evalMap(execute).compile.drain
+
+  private def execute(action: Action): F[Unit] = action match {
+    case Action.PlaceOrder(order, takeProfit, stopLoss) =>
+      if (position.isDefined) F.delay {
+        logger.warn(
+          s"Already have opened position for ${analyzer.instrumentId}. Ignore PlaceOrder action"
+        )
+      }
+      else
+        broker
+          .placeOrder(order)
+          .map { orderId =>
+            position = PositionInfo(
+              originalOrder = order,
+              originalOrderId = orderId,
+              stopLoss = ClosePositionOrder(order, stopLoss, Type.StopLoss),
+              takeProfit = ClosePositionOrder(order, takeProfit, Type.TakeProfit)
+            ).some
+          }
+          .void
+  }
+
+  def closePosition(currentPrice: Price): F[Unit] = {
+    for {
+      pos <- OptionT.fromOption(position)
+      order = Order(
+        instrumentId = pos.originalOrder.instrumentId,
+        lots = pos.originalOrder.lots,
+        operationType = pos.originalOrder.operationType.reverse,
+        details = Details.Market(currentPrice),
+        info = Info(None)
+      )
+      _ <- OptionT.liftF(broker.placeOrder(order))
+    } yield ()
+  }.value.void
 }
 
 object TradingBot {
-  sealed trait Action
-
-  object Action {
-    case class PlaceOrder(
-        order: Order,
-        takeProfit: Option[Price],
-        stopLoss: Option[Price]
-    ) extends Action
-  }
+  case class PositionInfo(
+      originalOrder: Order,
+      originalOrderId: OrderId,
+      stopLoss: ClosePositionOrder,
+      takeProfit: ClosePositionOrder
+  )
 }

@@ -1,6 +1,7 @@
 package com.github.ppotseluev.algorate.model
 
 import com.github.ppotseluev.algorate.model.ClosePositionOrder.Type
+import com.github.ppotseluev.algorate.model.Order.Info
 import enumeratum.{Enum, EnumEntry}
 
 case class ClosePositionOrder(
@@ -15,18 +16,14 @@ case class ClosePositionOrder(
       currentPrice <= targetPrice
   }
 
-  def buildMarketOrder: Order = {
-    val operationType = originalOrder.operationType match {
-      case OperationType.Buy  => OperationType.Sell
-      case OperationType.Sell => OperationType.Buy
-    }
+  def buildMarketOrder(currentPrice: Price): Order =
     Order(
       instrumentId = originalOrder.instrumentId,
       lots = originalOrder.lots,
-      operationType = operationType,
-      details = Order.Details.Market
+      operationType = originalOrder.operationType.reverse,
+      details = Order.Details.Market(currentPrice),
+      info = Info(Some(`type`))
     )
-  }
 }
 
 object ClosePositionOrder {

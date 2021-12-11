@@ -20,11 +20,11 @@ class DummyTradingSignal(keepPointsCount: Int = 5) extends TradingSignal with La
   override def apply(): Decision = {
 //    logger.info(s"Decide based on $buffer")
     val x = math.random()
-    if (x > 0.2) {
+    if (x > 0.1) {
       Decision.Trade(
         confidence = math.random(),
-        takeProfit = (buffer.last.value * 1.05).taggedWith[Tags.Price],
-        stopLoss = (buffer.last.value * 0.95).taggedWith[Tags.Price],
+        takeProfit = (buffer.last.value * 1.001).taggedWith[Tags.Price],
+        stopLoss = (buffer.last.value * 0.7).taggedWith[Tags.Price],
         operationType = Buy
       )
     } else {
