@@ -53,6 +53,7 @@ abstract class Algorate[F[_]](implicit F: Async[F]) {
       )
       result <- bot.run.take(100).compile.drain
       _ = println(broker.getStatistics(instrumentId).summary)
+      _ = api.close()
     } yield result
   }
 }
