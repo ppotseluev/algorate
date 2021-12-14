@@ -4,7 +4,7 @@ import cats.data.OptionT
 import cats.effect.kernel.Async
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import com.github.ppotseluev.algorate.core.{DummyTradingSignal, TradingAnalyzer, TradingBot}
+import com.github.ppotseluev.algorate.core.{DummyTradingSignal, TradingBot}
 import com.github.ppotseluev.algorate.model.Tags
 import com.github.ppotseluev.algorate.test.TestBroker
 import com.github.ppotseluev.algorate.tinkoff.TinkoffBroker
@@ -51,9 +51,9 @@ abstract class Algorate[F[_]](implicit F: Async[F]) {
         orderLimit = 100_000d.taggedWith[Tags.Price],
         broker = broker
       )
-      result <- bot.run
+      result <- bot.run.take(10).compile.drain
       lastPrice <- source.last.compile.toList
-      _ <- bot.closePosition(lastPrice.flatten.head.value)
+//      _ <- bot.closePosition(lastPrice.flatten.head.value)
       _ = println(broker.getStatistics(instrumentId))
     } yield result
   }

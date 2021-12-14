@@ -35,7 +35,11 @@ class TestBroker[F[_]](realBroker: Broker[F])(implicit F: Async[F]) extends Brok
   def getStatistics(instrumentId: InstrumentId): TradingStatistics = {
     val orders: List[Order] = journal.getOrElse(instrumentId, List.empty)
     orders.foldRight(TradingStatistics.Empty) { case (order, state) =>
-      val newState = state.copy(ordersHistory = state.ordersHistory :+ order)
+      val ordersHistory = state.ordersHistory :+ order
+      val newState = state.copy(
+        triggerCount = ordersHistory.count(!_.isClosing),
+        ordersHistory = ordersHistory
+      )
       order.operationType match {
         case OperationType.Buy =>
           if (state.positionLots >= 0) //докупаем
@@ -73,6 +77,7 @@ object TestBroker {
   )
 
   case class TradingStatistics(
+      triggerCount: Int,
       ordersHistory: Seq[Order],
       positionLots: Int,
       balanceDelta: Double
@@ -80,6 +85,7 @@ object TestBroker {
 
   object TradingStatistics {
     val Empty: TradingStatistics = TradingStatistics(
+      triggerCount = 0,
       ordersHistory = Seq.empty,
       positionLots = 0,
       balanceDelta = 0

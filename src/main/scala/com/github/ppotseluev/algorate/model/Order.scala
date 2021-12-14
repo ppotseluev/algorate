@@ -9,6 +9,8 @@ case class Order(
     details: Order.Details,
     info: Order.Info
 ) {
+  def isClosing: Boolean = info.closingOrderType.isDefined
+
   def estimatedCost: Double = details.estimatedPrice * lots
 
   require(lots > 0, "lots must be positive")
