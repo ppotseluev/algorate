@@ -51,10 +51,8 @@ abstract class Algorate[F[_]](implicit F: Async[F]) {
         orderLimit = 100_000d.taggedWith[Tags.Price],
         broker = broker
       )
-      result <- bot.run.take(10).compile.drain
-      lastPrice <- source.last.compile.toList
-//      _ <- bot.closePosition(lastPrice.flatten.head.value)
-      _ = println(broker.getStatistics(instrumentId))
+      result <- bot.run.take(100).compile.drain
+      _ = println(broker.getStatistics(instrumentId).summary)
     } yield result
   }
 }

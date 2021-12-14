@@ -24,7 +24,7 @@ class DummyTradingSignal(keepPointsCount: Int = 5) extends TradingSignal with La
       Decision.Trade(
         confidence = math.random(),
         takeProfit = (buffer.last.value * 1.0005).taggedWith[Tags.Price],
-        stopLoss = (buffer.last.value * 0.7).taggedWith[Tags.Price],
+        stopLoss = (buffer.last.value * 0.9995).taggedWith[Tags.Price],
         operationType = Buy
       )
     } else {

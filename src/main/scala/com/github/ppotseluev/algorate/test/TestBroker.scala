@@ -2,6 +2,7 @@ package com.github.ppotseluev.algorate.test
 
 import cats.effect.Async
 import com.github.ppotseluev.algorate.core.{Broker, Point}
+import com.github.ppotseluev.algorate.model.ClosePositionOrder.Type
 import com.github.ppotseluev.algorate.model.{InstrumentId, OperationType, Order, OrderId, Tags}
 import com.github.ppotseluev.algorate.test.TestBroker.TradingStatistics
 import com.github.ppotseluev.algorate.util.Interval
@@ -37,7 +38,9 @@ class TestBroker[F[_]](realBroker: Broker[F])(implicit F: Async[F]) extends Brok
     orders.foldRight(TradingStatistics.Empty) { case (order, state) =>
       val ordersHistory = state.ordersHistory :+ order
       val newState = state.copy(
-        triggerCount = ordersHistory.count(!_.isClosing),
+        triggerCount = state.triggerCount + (if (order.isClosing) 0 else 1),
+        successCount = state.successCount + (if (order.info.closingOrderType.contains(Type.TakeProfit)) 1 else 0),
+        failureCount = state.failureCount + (if (order.info.closingOrderType.contains(Type.StopLoss)) 1 else 0),
         ordersHistory = ordersHistory
       )
       order.operationType match {
@@ -78,14 +81,29 @@ object TestBroker {
 
   case class TradingStatistics(
       triggerCount: Int,
+      successCount: Int,
+      failureCount: Int,
       ordersHistory: Seq[Order],
       positionLots: Int,
       balanceDelta: Double
-  )
+  ) {
+    def summary: String =
+      s"""
+        |TradingStatistics {
+        | triggerCount = $triggerCount,
+        | successCount = $successCount,
+        | failureCount = $failureCount,
+        | positionLots = $positionLots,
+        | balanceDelta = $balanceDelta
+        |}
+        |""".stripMargin
+  }
 
   object TradingStatistics {
     val Empty: TradingStatistics = TradingStatistics(
       triggerCount = 0,
+      successCount = 0,
+      failureCount = 0,
       ordersHistory = Seq.empty,
       positionLots = 0,
       balanceDelta = 0
