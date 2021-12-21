@@ -7,4 +7,5 @@ package object model {
   type BrokerAccountId = String @@ Tags.BrokerAccountId
   type OrderId = String @@ Tags.OrderId
   type Price = Double @@ Tags.Price
+  type Ticker = String @@ Tags.Ticker
 }

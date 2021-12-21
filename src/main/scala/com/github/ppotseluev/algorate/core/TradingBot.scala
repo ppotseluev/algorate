@@ -45,24 +45,25 @@ class TradingBot[F[_]](
           .orElse(
             Some(pos.takeProfit).filter(_.isFired(point.value))
           )
-          .map(_.buildMarketOrder(point.value))
+          .map(_.buildMarketOrder(point))
           .map(Action(_, afterPlacement = _ => clearPosition))
           .pure
       case None =>
         F.delay {
           signal.push(point)
-          signal()
-        }.flatMap(buildAction(point.value))
+          signal(point)
+        }.flatMap(buildAction(point))
     }
 
   private def buildAction(
-      currentPrice: Price
+      point: Point
   )(decision: Decision): F[Option[Action[F]]] = //todo refactor
     decision match {
       case Decision.Trade(operationType, confidence, takeProfit, stopLoss) =>
-        val lots: Int =
-          (orderLimit * confidence / currentPrice).toInt //todo handle not enough money
-        if (lots > 0) {
+        val lots = 1
+//        lazy val lots: Int = FIXME
+//          (orderLimit * confidence / currentPrice).toInt //todo handle not enough money
+        if (confidence > 0.8 && lots > 0) { // todo parametrize this 0.6
           if (position.isDefined) {
             F.delay {
               logger.warn(
@@ -74,8 +75,8 @@ class TradingBot[F[_]](
               instrumentId = instrumentId,
               lots = lots,
               operationType = operationType,
-              details = Details.Market(currentPrice), //todo support Limit
-              info = Info(None)
+              details = Details.Market, //todo support Limit
+              info = Info(point, None)
             )
             val registerPosition: PlacedOrder => F[Unit] = placedOrder =>
               F.delay {
@@ -91,19 +92,17 @@ class TradingBot[F[_]](
         } else {
           None.pure.widen
         }
-      case Decision.Wait =>
-        None.pure.widen
     }
 
-  def closePosition(currentPrice: Price): F[Unit] = { //TODO remove?
+  def closePosition(currentPoint: Point): F[Unit] = { //TODO remove?
     for {
       pos <- OptionT.fromOption(position)
       order = Order(
         instrumentId = pos.originalOrder.instrumentId,
         lots = pos.originalOrder.lots,
         operationType = pos.originalOrder.operationType.reverse,
-        details = Details.Market(currentPrice),
-        info = Info(None)
+        details = Details.Market,
+        info = Info(currentPoint, None)
       )
       _ <- OptionT.liftF(broker.placeOrder(order))
     } yield ()

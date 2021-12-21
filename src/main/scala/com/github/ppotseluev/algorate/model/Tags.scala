@@ -5,4 +5,5 @@ object Tags {
   trait BrokerAccountId
   trait OrderId
   trait Price
+  trait Ticker
 }

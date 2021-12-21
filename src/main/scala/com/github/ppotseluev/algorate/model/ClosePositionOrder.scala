@@ -1,5 +1,6 @@
 package com.github.ppotseluev.algorate.model
 
+import com.github.ppotseluev.algorate.core.Point
 import com.github.ppotseluev.algorate.model.ClosePositionOrder.Type
 import com.github.ppotseluev.algorate.model.Order.Info
 import enumeratum.{Enum, EnumEntry}
@@ -16,13 +17,13 @@ case class ClosePositionOrder(
       currentPrice <= targetPrice
   }
 
-  def buildMarketOrder(currentPrice: Price): Order =
+  def buildMarketOrder(currentPoint: Point): Order =
     Order(
       instrumentId = originalOrder.instrumentId,
       lots = originalOrder.lots,
       operationType = originalOrder.operationType.reverse,
-      details = Order.Details.Market(currentPrice),
-      info = Info(Some(`type`))
+      details = Order.Details.Market,
+      info = Info(currentPoint, Some(`type`))
     )
 }
 

@@ -1,14 +1,15 @@
 package com.github.ppotseluev.algorate.core
 
+import cats.data.NonEmptyList
 import com.github.ppotseluev.algorate.core.TradingSignal.Decision
 import com.github.ppotseluev.algorate.model.{OperationType, Price}
 
 trait TradingSignal {
-  def push(newPoints: Seq[Point]): Unit
+  def push(newPoints: NonEmptyList[Point]): Unit
 
-  final def push(point: Point): Unit = push(Seq(point))
+  final def push(point: Point): Unit = push(NonEmptyList.one(point))
 
-  def apply(): Decision
+  def apply(actualPoint: Point): Decision
 }
 
 object TradingSignal {
@@ -25,8 +26,6 @@ object TradingSignal {
         takeProfit: Price,
         stopLoss: Price
     ) extends Decision
-
-    case object Wait extends Decision
   }
 
 }

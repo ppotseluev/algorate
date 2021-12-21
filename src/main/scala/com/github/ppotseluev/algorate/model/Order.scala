@@ -1,5 +1,7 @@
 package com.github.ppotseluev.algorate.model
 
+import com.github.ppotseluev.algorate.core.Point
+import com.github.ppotseluev.algorate.model.Order.Details
 import enumeratum._
 
 case class Order(
@@ -11,7 +13,13 @@ case class Order(
 ) {
   def isClosing: Boolean = info.closingOrderType.isDefined
 
-  def estimatedCost: Double = details.estimatedPrice * lots
+  def estimatedCost: Double = {
+    val price = details match {
+      case Details.Limit(orderPrice) => orderPrice
+      case Details.Market            => info.point.value
+    }
+    price * lots
+  }
 
   require(lots > 0, "lots must be positive")
 }
@@ -28,23 +36,20 @@ object Order {
 
   sealed trait Details {
     def `type`: Order.Type
-
-    def estimatedPrice: Price
   }
 
   object Details {
     case class Limit(price: Price) extends Order.Details {
       override def `type`: Type = Order.Type.Limit
-
-      override def estimatedPrice: Price = price
     }
 
-    case class Market(estimatedPrice: Price) extends Order.Details {
+    case object Market extends Order.Details {
       override def `type`: Type = Order.Type.Market
     }
   }
 
   case class Info(
+      point: Point,
       closingOrderType: Option[ClosePositionOrder.Type]
   )
 }

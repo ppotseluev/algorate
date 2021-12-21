@@ -1,59 +1,64 @@
 package com.github.ppotseluev.algorate
 
-import cats.data.OptionT
-import cats.effect.kernel.Async
-import cats.syntax.flatMap._
+import cats.Id
+import cats.effect.kernel.{Async, Sync}
 import cats.syntax.functor._
-import com.github.ppotseluev.algorate.core.{DummyTradingSignal, TradingBot}
-import com.github.ppotseluev.algorate.model.Tags
-import com.github.ppotseluev.algorate.test.TestBroker
-import com.github.ppotseluev.algorate.tinkoff.TinkoffBroker
-import com.github.ppotseluev.algorate.util.{Interval, fromJavaFuture}
+import com.github.ppotseluev.algorate.ai.{NeuroTradeFitness, NeuroTradingSignal}
+import com.github.ppotseluev.algorate.core.{Point, TradingSignal}
+import com.github.ppotseluev.algorate.model.{Price, Tags}
+import com.github.ppotseluev.algorate.test.{TradingSignalTester, TradingSignalTesterImpl}
+import com.github.ppotseluev.algorate.util.{Awaitable, Interval}
+import com.github.ppotseluev.eann.evolutional.Evolution
+import com.github.ppotseluev.eann.neural.Net
 import com.softwaremill.tagging.Tagger
-import ru.tinkoff.invest.openapi.OpenApi
-import ru.tinkoff.invest.openapi.model.rest.SandboxRegisterRequest
-import ru.tinkoff.invest.openapi.okhttp.OkHttpOpenApi
 
 import java.time.OffsetDateTime
+import java.util.concurrent.Executors
 
-abstract class Algorate[F[_]](implicit F: Async[F]) {
-  private def init(api: OpenApi): F[Unit] =
-    OptionT
-      .whenF(api.isSandboxMode) {
-        fromJavaFuture(api.getSandboxContext.performRegistration(new SandboxRegisterRequest))
-      }
-      .value
-      .void
-
-  private val tradingSignal = new DummyTradingSignal()
-
-  def run(token: String): F[Unit] = {
-    val api: OpenApi = new OkHttpOpenApi(token, true)
-    val broker = new TestBroker(
-      new TinkoffBroker(api, "fake_acc_id".taggedWith[Tags.BrokerAccountId])
+final class Algorate[F[_]: Async: Awaitable](
+    token: String,
+    interval: Interval[OffsetDateTime] = Interval(
+      OffsetDateTime.parse("2021-12-06T10:15:30+03:00"),
+      OffsetDateTime.parse("2021-12-06T22:15:30+03:00")
     )
-    for {
-      _ <- init(api)
-      instruments <- fromJavaFuture(
-        api.getMarketContext.searchMarketInstrumentsByTicker("YNDX")
-      )
-      instrument = instruments.getInstruments.get(0) //todo require size=1
-      instrumentId = instrument.getFigi.taggedWith[Tags.InstrumentId]
-      interval = Interval(
-        OffsetDateTime.parse("2021-12-10T10:15:30+03:00"),
-        OffsetDateTime.parse("2021-12-10T22:15:30+03:00")
-      )
-      source <- broker.getData(instrumentId, Some(interval))
-      bot = new TradingBot(
-        instrumentId = instrumentId,
-        source = source,
-        signal = tradingSignal,
-        orderLimit = 100_000d.taggedWith[Tags.Price],
-        broker = broker
-      )
-      result <- bot.run.take(100).compile.drain
-      _ = println(broker.getStatistics(instrumentId).summary)
-      _ = api.close()
-    } yield result
+) {
+  val tester = new TradingSignalTesterImpl(
+    token = token,
+    ticker = "YNDX".taggedWith[Tags.Ticker],
+    interval = interval
+  )
+  val syncTester: TradingSignalTester[Id] = (signal: TradingSignal) =>
+    Awaitable[F].await(tester.test(signal))
+
+  val priceList: List[Point] = Awaitable[F].await(tester.testData.source.compile.toList)
+//  val avg = priceList.map(_.value.asInstanceOf[Double]).sum / priceList.size
+  val normalizer: Price => Double = price => {
+    price / priceList.head.value - 1
+  }
+
+  val signalConstructor: Net => TradingSignal = net =>
+    new NeuroTradingSignal(
+      net = net,
+//    operationType = OperationType.Sell,
+      normalizer = normalizer,
+      takeProfitPercent = 0.5,
+      stopLossPercent = 0.5
+    )
+
+  val fitnessFunc = new NeuroTradeFitness(syncTester, signalConstructor)
+
+  private def evolve(): F[Net] = {
+    val evolution = new Evolution(
+      "evolution/parameters.yaml",
+      fitnessFunc,
+      Executors.newFixedThreadPool(8)
+    )
+    Sync[F].delay {
+      evolution.evolve()
+    }
+  }
+
+  val run: F[Unit] = {
+    evolve().void
   }
 }

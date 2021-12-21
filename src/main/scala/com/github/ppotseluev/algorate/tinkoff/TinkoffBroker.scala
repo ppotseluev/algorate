@@ -40,7 +40,7 @@ class TinkoffBroker[F[_]](
             brokerAccountId
           )
         ).map(_.getOrderId.taggedWith[Tags.OrderId])
-      case Order.Details.Market(_) =>
+      case Order.Details.Market =>
         val request = new MarketOrderRequest()
         request.setLots(order.lots)
         request.setOperation(operationType)

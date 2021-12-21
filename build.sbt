@@ -9,10 +9,14 @@ scalacOptions := Seq(
   "-deprecation"
 )
 
+ThisBuild / resolvers += Resolver.mavenLocal
+
 lazy val root = (project in file("."))
   .settings(
     name := "algorate"
   )
+
+useCoursier := false
 
 libraryDependencies ++= Seq(
   "ru.tinkoff.invest" % "openapi-java-sdk-core" % Versions.tinkoffInvestApi,
@@ -21,5 +25,9 @@ libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % Versions.logback,
   "com.typesafe.scala-logging" %% "scala-logging" % Versions.scalaLogging,
   "com.softwaremill.common" %% "tagging" % Versions.tagging,
-  "com.beachape" %% "enumeratum" % Versions.enumeratum
+  "com.beachape" %% "enumeratum" % Versions.enumeratum,
+  "com.github.ppotseluev" % "eann" % Versions.eann intransitive(),
+  "org.openjfx" % "javafx-controls" % Versions.javafx classifier "mac",
+  "org.openjfx" % "javafx-graphics" % Versions.javafx classifier "mac",
+  "org.openjfx" % "javafx-base" % Versions.javafx classifier "mac"
 )
