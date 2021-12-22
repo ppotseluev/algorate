@@ -15,10 +15,11 @@ class NeuroTradeFitness(
     val signal = signalConstructor(net)
     val statistics = signalTester.test(signal)
 //    statistics.balanceDelta
-    if (statistics.totalTriggerCount == 0) {
+    val totalClosed = statistics.successCount + statistics.failureCount
+    if (totalClosed == 0) {
       0
     } else {
-      statistics.successCount.toDouble / statistics.totalTriggerCount + 0.01 * statistics.totalTriggerCount
+      statistics.successCount.toDouble / totalClosed // + 0.01 * totalClosed
     }
   }
 }

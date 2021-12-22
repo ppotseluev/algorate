@@ -13,7 +13,9 @@ trait TradingSignal {
 }
 
 object TradingSignal {
-  sealed trait Decision
+  sealed trait Decision {
+    def rawSignal: Double
+  }
 
   object Decision {
 
@@ -24,7 +26,8 @@ object TradingSignal {
         operationType: OperationType,
         confidence: Double,
         takeProfit: Price,
-        stopLoss: Price
+        stopLoss: Price,
+        rawSignal: Double
     ) extends Decision
   }
 

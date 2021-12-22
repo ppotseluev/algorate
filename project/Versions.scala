@@ -5,7 +5,8 @@ object Versions {
   val scalaLogging = "3.9.4"
   val tagging = "2.3.2"
   val enumeratum = "1.7.0"
-  val eann = "1.0-SNAPSHOT"
+  val eann = "1.0.0"
   val javafx = "17.0.0.1"
   val sext = "0.2.6"
+  val ta4j = "0.14"
 }

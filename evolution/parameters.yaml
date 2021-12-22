@@ -1,4 +1,4 @@
-number of input neurons: 10
+number of input neurons: 1
 number of output neurons: 1
 size of population: 100
 number of generations: 500
@@ -14,4 +14,4 @@ dispersion of delay time: 10
 mean delay time: 100
 model of neuron (EDC/EC/DC/simple): simple
 networks can be recurrent: true
-load population from file: true
+load population from file: false

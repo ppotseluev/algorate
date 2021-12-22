@@ -27,19 +27,27 @@ class ShowResults extends Application {
     val ordersPlot = new XYChart.Series[Double, Double]()
     val stopLossPlot = new XYChart.Series[Double, Double]()
     val takeProfitPlot = new XYChart.Series[Double, Double]()
+    val signalPlot = new XYChart.Series[Double, Double]()
 
-    algorate.priceList//.take(100)
+    val neuroSignal = algorate.signalConstructor(net)
+
+    algorate.priceList //.take(100)
       .foreach { point =>
+        neuroSignal.push(point)
+        val decision = neuroSignal(point)
         val price = algorate.normalizer(point.value)
         val ts = timeNormalizer(point.timestamp)
         pricePlot.getData.add(new XYChart.Data(ts, price))
+        signalPlot.getData.add(new XYChart.Data(ts, decision.rawSignal))
       }
+    val newNet = new Net(net)
     pricePlot.setName("price")
     ordersPlot.setName("orders")
     takeProfitPlot.setName("take")
     stopLossPlot.setName("stop")
+    signalPlot.setName("signal")
 
-    val stats = algorate.syncTester.test(algorate.signalConstructor(net))
+    val stats = algorate.syncTester.test(algorate.signalConstructor(newNet))
     println(stats.summary)
     stats.ordersHistory
       .foreach { order =>
@@ -55,7 +63,13 @@ class ShowResults extends Application {
           case None => ordersPlot.getData.add(new XYChart.Data(ts, price))
         }
       }
-    lineChart.getData.addAll(pricePlot, ordersPlot, takeProfitPlot, stopLossPlot)
+    lineChart.getData.addAll(
+      pricePlot,
+      ordersPlot,
+      takeProfitPlot,
+      stopLossPlot,
+      signalPlot
+    )
     lineChart.setAnimated(false)
     lineChart.setCreateSymbols(true)
 
@@ -81,10 +95,10 @@ class ShowResults extends Application {
     val token = getParameters.getRaw.asScala.head
     implicit val algorate: Algorate[IO] = new Algorate[IO](
       token = token,
-      interval = Interval(
-        OffsetDateTime.parse("2021-11-09T10:15:30+03:00"),
-        OffsetDateTime.parse("2021-11-09T22:15:30+03:00")
-      )
+//      interval = Interval(
+//        OffsetDateTime.parse("2021-11-09T10:15:30+03:00"),
+//        OffsetDateTime.parse("2021-11-09T22:15:30+03:00")
+//      )
 //      interval = Interval(
 //        OffsetDateTime.parse("2020-12-18T10:15:30+03:00"),
 //        OffsetDateTime.parse("2020-12-18T21:30:30+03:00")

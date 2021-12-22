@@ -29,5 +29,6 @@ libraryDependencies ++= Seq(
   "com.github.ppotseluev" % "eann" % Versions.eann intransitive(),
   "org.openjfx" % "javafx-controls" % Versions.javafx classifier "mac",
   "org.openjfx" % "javafx-graphics" % Versions.javafx classifier "mac",
-  "org.openjfx" % "javafx-base" % Versions.javafx classifier "mac"
+  "org.openjfx" % "javafx-base" % Versions.javafx classifier "mac",
+  "org.ta4j" % "ta4j-core" % Versions.ta4j
 )

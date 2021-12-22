@@ -59,32 +59,33 @@ class TestBroker[F[_]](realBroker: Broker[F])(implicit F: Async[F]) extends Brok
           state.failureCount + (if (order.info.closingOrderType.contains(Type.StopLoss)) 1 else 0),
         ordersHistory = ordersHistory
       )
-      order.operationType match {
-        case OperationType.Buy =>
-          if (state.positionLots >= 0) //докупаем
-            newState.copy(
-              positionLots = state.positionLots + order.lots,
-              balanceDelta = state.balanceDelta - order.estimatedCost
-            )
-          else if (state.positionLots == -order.lots) //закрываем короткую позицию
-            newState.copy(
-              positionLots = 0,
-              balanceDelta = state.balanceDelta - order.estimatedCost
-            )
-          else ???
-        case OperationType.Sell =>
-          if (state.positionLots == order.lots) //закрываем длинную позицию
-            newState.copy(
-              positionLots = 0,
-              balanceDelta = state.balanceDelta + order.estimatedCost
-            )
-          else if (state.positionLots <= 0) //увеличиваем шорт
-            newState.copy(
-              positionLots = state.positionLots - order.lots,
-              balanceDelta = state.balanceDelta + order.estimatedCost
-            )
-          else ???
-      }
+      newState
+//      order.operationType match {
+//        case OperationType.Buy =>
+//          if (state.positionLots >= 0) //докупаем
+//            newState.copy(
+//              positionLots = state.positionLots + order.lots,
+//              balanceDelta = state.balanceDelta - order.estimatedCost
+//            )
+//          else if (state.positionLots == -order.lots) //закрываем короткую позицию
+//            newState.copy(
+//              positionLots = 0,
+//              balanceDelta = state.balanceDelta - order.estimatedCost
+//            )
+//          else ???
+//        case OperationType.Sell =>
+//          if (state.positionLots == order.lots) //закрываем длинную позицию
+//            newState.copy(
+//              positionLots = 0,
+//              balanceDelta = state.balanceDelta + order.estimatedCost
+//            )
+//          else if (state.positionLots <= 0) //увеличиваем шорт
+//            newState.copy(
+//              positionLots = state.positionLots - order.lots,
+//              balanceDelta = state.balanceDelta + order.estimatedCost
+//            )
+//          else ???
+//      }
     }
   }
 }
