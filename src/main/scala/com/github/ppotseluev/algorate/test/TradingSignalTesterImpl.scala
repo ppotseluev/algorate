@@ -1,5 +1,6 @@
 package com.github.ppotseluev.algorate.test
 
+import cats.Parallel
 import cats.data.OptionT
 import cats.effect.Concurrent
 import cats.effect.kernel.Async
@@ -19,10 +20,10 @@ import ru.tinkoff.invest.openapi.okhttp.OkHttpOpenApi
 import java.time.OffsetDateTime
 import scala.jdk.CollectionConverters._
 
-final class TradingSignalTesterImpl[F[_]: Concurrent: Async: Awaitable](
+final class TradingSignalTesterImpl[F[_]: Concurrent: Async: Awaitable: Parallel](
     token: String,
     ticker: Ticker,
-    interval: Interval[OffsetDateTime]
+    interval: Interval.Time
 ) extends TradingSignalTester[F]
     with AutoCloseable {
 
@@ -42,7 +43,8 @@ final class TradingSignalTesterImpl[F[_]: Concurrent: Async: Awaitable](
       )
       Seq(instrument) = instruments.getInstruments.asScala.toSeq
       instrumentId = instrument.getFigi.taggedWith[Tags.InstrumentId]
-      source <- realBroker.getData(instrumentId, Some(interval))
+      bars <- realBroker.getData(instrumentId, interval)
+      source = Stream.emits(bars.map(bar => Point(bar.endTime, bar.closePrice)))
       _ = println(s"Use instrument ${instrument.getFigi}")
     } yield TestData(instrumentId, source)
     Awaitable[F].await(f)

@@ -30,5 +30,7 @@ libraryDependencies ++= Seq(
   "org.openjfx" % "javafx-controls" % Versions.javafx classifier "mac",
   "org.openjfx" % "javafx-graphics" % Versions.javafx classifier "mac",
   "org.openjfx" % "javafx-base" % Versions.javafx classifier "mac",
-  "org.ta4j" % "ta4j-core" % Versions.ta4j
+  "org.ta4j" % "ta4j-core" % Versions.ta4j,
+  "org.ta4j" % "ta4j-examples" % Versions.ta4j,
+  "org.typelevel" %% "kittens" % Versions.kittens
 )

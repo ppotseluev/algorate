@@ -1,9 +1,9 @@
 package com.github.ppotseluev.algorate.test
 
 import cats.effect.Async
-import com.github.ppotseluev.algorate.core.{Broker, Point}
+import com.github.ppotseluev.algorate.core.{Bar, Broker}
 import com.github.ppotseluev.algorate.model.ClosePositionOrder.Type
-import com.github.ppotseluev.algorate.model.{InstrumentId, OperationType, Order, OrderId, Tags}
+import com.github.ppotseluev.algorate.model._
 import com.github.ppotseluev.algorate.test.TestBroker.TradingStatistics
 import com.github.ppotseluev.algorate.util.Interval
 import com.softwaremill.tagging._
@@ -29,8 +29,8 @@ class TestBroker[F[_]](realBroker: Broker[F])(implicit F: Async[F]) extends Brok
 
   override def getData(
       instrumentId: InstrumentId,
-      interval: Option[Interval[OffsetDateTime]]
-  ): F[fs2.Stream[F, Point]] =
+      interval: Interval.Time
+  ): F[Seq[Bar]] =
     realBroker.getData(instrumentId, interval)
 
   def getStatistics(

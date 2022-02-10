@@ -68,7 +68,7 @@ class ShowResults extends Application {
       ordersPlot,
       takeProfitPlot,
       stopLossPlot,
-      signalPlot
+//      signalPlot
     )
     lineChart.setAnimated(false)
     lineChart.setCreateSymbols(true)
