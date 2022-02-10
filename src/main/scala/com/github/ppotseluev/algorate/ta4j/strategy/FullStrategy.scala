@@ -1,4 +1,4 @@
-package com.github.ppotseluev.algorate.ta4j
+package com.github.ppotseluev.algorate.ta4j.strategy
 
 import org.ta4j.core.num.Num
 import org.ta4j.core.{Indicator, Strategy}

@@ -1,4 +1,4 @@
-package com.github.ppotseluev.algorate.ta4j
+package com.github.ppotseluev.algorate.ta4j.indicator
 
 import org.ta4j.core.Indicator
 import org.ta4j.core.indicators.CachedIndicator

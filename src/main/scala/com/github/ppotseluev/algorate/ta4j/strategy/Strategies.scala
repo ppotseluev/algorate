@@ -1,15 +1,17 @@
-package com.github.ppotseluev.algorate.ta4j
+package com.github.ppotseluev.algorate.ta4j.strategy
 
-import cats.syntax.functor._
+import com.github.ppotseluev.algorate.ta4j.indicator.HasDataIndicator
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator
 import org.ta4j.core.indicators.{AbstractIndicator, DateTimeIndicator, EMAIndicator, RSIIndicator}
 import org.ta4j.core.rules.TimeRangeRule.TimeRange
 import org.ta4j.core.rules.helper.ChainLink
 import org.ta4j.core.rules._
+import cats.syntax.functor._
 import org.ta4j.core.{BarSeries, BaseStrategy, Strategy}
+import scala.jdk.CollectionConverters._
+import com.github.ppotseluev.algorate.ta4j._
 
 import java.time.{LocalTime, ZonedDateTime}
-import scala.jdk.CollectionConverters._
 
 object Strategies {
   val doNothing: Strategy = new BaseStrategy(
@@ -51,7 +53,7 @@ object Strategies {
         new ChainLink(new CrossedDownIndicatorRule(emaFast, emaSlow), 0),
         new ChainLink(new CrossedDownIndicatorRule(rsi, 60), 5)
       )
-    val sellingStrategy = new BaseStrategy(entryShortRule, exitRule, 40)
+    val sellingStrategy = new BaseStrategy(entryShortRule, exitRule)
     FullStrategy(
       longStrategy = buyingStrategy,
       shortStrategy = sellingStrategy,

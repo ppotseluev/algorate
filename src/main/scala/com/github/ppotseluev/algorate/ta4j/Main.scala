@@ -3,6 +3,7 @@ package com.github.ppotseluev.algorate.ta4j
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import com.github.ppotseluev.algorate.model.Tags
+import com.github.ppotseluev.algorate.ta4j.strategy.Strategies
 import com.github.ppotseluev.algorate.util.Interval
 import com.softwaremill.tagging.Tagger
 

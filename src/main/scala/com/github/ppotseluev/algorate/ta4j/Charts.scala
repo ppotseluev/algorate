@@ -1,6 +1,7 @@
 package com.github.ppotseluev.algorate.ta4j
 
 import com.github.ppotseluev.algorate.ta4j.StrategyTester.TradingStats
+import com.github.ppotseluev.algorate.ta4j.strategy.FullStrategy
 import org.jfree.chart.axis.{DateAxis, NumberAxis}
 import org.jfree.chart.panel.CrosshairOverlay
 import org.jfree.chart.plot._

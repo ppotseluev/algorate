@@ -3,6 +3,7 @@ package com.github.ppotseluev.algorate.ta4j
 import cats.Monoid
 import cats.derived.semiauto
 import com.github.ppotseluev.algorate.ta4j.StrategyTester.{Stats, TradingStats}
+import com.github.ppotseluev.algorate.ta4j.strategy.FullStrategy
 import org.ta4j.core.Trade.TradeType
 import org.ta4j.core.{BarSeries, BarSeriesManager, Position, TradingRecord}
 
