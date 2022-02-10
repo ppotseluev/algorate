@@ -1,6 +1,6 @@
 package com.github.ppotseluev.algorate
 
-import cats.Id
+import cats.{Id, Parallel}
 import cats.effect.kernel.{Async, Sync}
 import cats.syntax.functor._
 import com.github.ppotseluev.algorate.ai.{NeuroTradeFitness, NeuroTradingSignal}
@@ -15,9 +15,9 @@ import com.softwaremill.tagging.Tagger
 import java.time.OffsetDateTime
 import java.util.concurrent.Executors
 
-final class Algorate[F[_]: Async: Awaitable](
+final class Algorate[F[_]: Async: Awaitable: Parallel](
     token: String,
-    interval: Interval[OffsetDateTime] = Interval(
+    interval: Interval.Time = Interval.minutes(
       OffsetDateTime.parse("2021-12-06T10:15:30+03:00"),
       OffsetDateTime.parse("2021-12-06T22:15:30+03:00")
     )

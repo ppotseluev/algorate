@@ -1,13 +1,14 @@
 package com.github.ppotseluev.algorate.tinkoff
 
+import cats.Parallel
 import cats.effect.kernel.Async
 import cats.syntax.applicative._
-import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
-import com.github.ppotseluev.algorate.core.{Broker, Point}
+import cats.syntax.parallel._
+import com.github.ppotseluev.algorate.core.{Bar, Broker, Point}
 import com.github.ppotseluev.algorate.model._
-import com.github.ppotseluev.algorate.util.{Interval, fromJavaFuture}
+import com.github.ppotseluev.algorate.util.{Interval, fromJavaFuture, split}
 import com.softwaremill.tagging._
 import fs2.Stream
 import fs2.interop.reactivestreams
@@ -16,10 +17,11 @@ import ru.tinkoff.invest.openapi.model.rest.{CandleResolution, Candles, LimitOrd
 import ru.tinkoff.invest.openapi.model.streaming.{CandleInterval, StreamingEvent, StreamingRequest}
 
 import java.time.OffsetDateTime
+import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration}
 import scala.jdk.CollectionConverters._
 
 //TODO hard-coded candles interval 1min
-class TinkoffBroker[F[_]](
+class TinkoffBroker[F[_]: Parallel](
     tinkoffClient: OpenApi,
     brokerAccountId: BrokerAccountId
 )(implicit F: Async[F])
@@ -60,29 +62,39 @@ class TinkoffBroker[F[_]](
       case OperationType.Sell => TinkoffOperationType.SELL
     }
 
+  private def convert(candles: Candles): Seq[Bar] =
+    candles.getCandles.asScala.map { candle =>
+      Bar(
+        openPrice = candle.getO.doubleValue.taggedWith[Tags.Price],
+        closePrice = candle.getC.doubleValue.taggedWith[Tags.Price],
+        lowPrice = candle.getL.doubleValue.taggedWith[Tags.Price],
+        highPrice = candle.getH.doubleValue.taggedWith[Tags.Price],
+        volume = candle.getV,
+        endTime = candle.getTime,
+        duration = Duration(candle.getInterval.getValue).asInstanceOf[FiniteDuration]
+      )
+    }.toSeq
+
   override def getData(
       instrumentId: InstrumentId,
-      interval: Option[Interval[OffsetDateTime]]
-  ): F[Stream[F, Point]] = interval match {
-    case Some(value) =>
-      getHistoricalData(instrumentId, value)
-    case None =>
-      subscribe(instrumentId)
-  }
-
-  private def getHistoricalData(
-      instrumentId: InstrumentId,
-      interval: Interval[OffsetDateTime]
-  ): F[Stream[F, Point]] =
-    fromJavaFuture(
+      interval: Interval.Time
+  ): F[Seq[Bar]] = {
+    def get(subInterval: Interval.Time): F[Seq[Bar]] = fromJavaFuture(
       tinkoffClient.getMarketContext.getMarketCandles(
         instrumentId,
-        interval.from,
-        interval.to,
+        subInterval.from,
+        subInterval.to,
         CandleResolution._1MIN
       )
     ).map(o => Option(o.orElse(null)))
-      .flatMap(makeStream(instrumentId))
+      .map(_.toSeq.flatMap(convert))
+    val intervals = split[OffsetDateTime, Long](
+      interval = interval,
+      range = 1.day.toMinutes,
+      offset = 1
+    )
+    intervals.parTraverse(get).map(_.flatten)
+  }
 
   private def makeStream(
       instrumentId: InstrumentId
@@ -90,7 +102,10 @@ class TinkoffBroker[F[_]](
     maybeCandles match {
       case Some(value) =>
         val candles = value.getCandles.asScala.map { candle =>
-          Point(candle.getTime, candle.getO.doubleValue.taggedWith[Tags.Price])
+          Point(
+            candle.getTime,
+            candle.getO.doubleValue.taggedWith[Tags.Price]
+          ) //todo check time <-> o/c price
         }
         Stream.emits(candles).evalMap(_.pure).pure
       case None =>
