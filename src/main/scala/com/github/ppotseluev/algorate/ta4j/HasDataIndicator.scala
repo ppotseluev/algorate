@@ -17,8 +17,6 @@ class HasDataIndicator(
       false
     } else {
       val bars = barSeries.getSubSeries(start, index).getBarData.asScala
-      val last = bars.last
-      val ts = ZonedDateTime.parse("2021-02-16T10:28:00+03:00")
       val res = bars.sliding(2).forall { x =>
         require(x.size == 2)
         val a = x.head
