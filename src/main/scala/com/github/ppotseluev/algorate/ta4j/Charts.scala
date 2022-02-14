@@ -2,10 +2,11 @@ package com.github.ppotseluev.algorate.ta4j
 
 import com.github.ppotseluev.algorate.ta4j.StrategyTester.TradingStats
 import com.github.ppotseluev.algorate.ta4j.strategy.FullStrategy
+import com.github.ppotseluev.algorate.ta4j.strategy.FullStrategy.{IndicatorInfo, Representation}
 import org.jfree.chart.axis.{DateAxis, NumberAxis}
 import org.jfree.chart.panel.CrosshairOverlay
 import org.jfree.chart.plot._
-import org.jfree.chart.renderer.xy.StandardXYItemRenderer
+import org.jfree.chart.renderer.xy.{StandardXYItemRenderer, XYDotRenderer, XYShapeRenderer}
 import org.jfree.chart.{ChartMouseEvent, ChartMouseListener, ChartPanel, JFreeChart}
 import org.jfree.data.time.{Minute, TimeSeries, TimeSeriesCollection}
 import org.jfree.ui.{ApplicationFrame, RectangleEdge, RefineryUtilities}
@@ -147,23 +148,27 @@ object Charts {
     def addIndicators(
         series: BarSeries,
         dataset: TimeSeriesCollection,
-        indicators: Map[String, Indicator[Num]]
+        indicators: Map[String, IndicatorInfo]
     ): Unit = {
-      indicators.foreach { case (name, indicator) =>
+      indicators.foreach { case (name, IndicatorInfo(indicator, representation)) =>
         dataset.addSeries(
           buildChartTimeSeries(series, indicator, name)
         )
       }
     }
     val mainDataset = new TimeSeriesCollection
+    val mainPointsDataset = new TimeSeriesCollection
     val indicatorsDataset = new TimeSeriesCollection
     val strategy = strategyBuilder(series)
-    addIndicators(series, mainDataset, strategy.priceIndicators)
+    addIndicators(series, mainDataset, strategy.priceIndicators.filter(_._2.representation.isInstanceOf[Representation.Line.type]))
+    addIndicators(series, mainPointsDataset, strategy.priceIndicators.filter(_._2.representation.isInstanceOf[Representation.Points.type]))
     addIndicators(series, indicatorsDataset, strategy.oscillators)
     val xAxis = new DateAxis("Time")
     xAxis.setDateFormatOverride(new SimpleDateFormat("MM-dd HH:mm"))
     val pricePlot: XYPlot =
       new XYPlot(mainDataset, xAxis, new NumberAxis("Price"), new StandardXYItemRenderer())
+    pricePlot.setDataset(1, mainPointsDataset)
+    pricePlot.setRenderer(1, new XYShapeRenderer)
     pricePlot.getRangeAxis.setAutoRange(true)
     pricePlot.getRangeAxis.asInstanceOf[NumberAxis].setAutoRangeIncludesZero(false)
     val indicatorPlot: XYPlot =
