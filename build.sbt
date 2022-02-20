@@ -32,5 +32,6 @@ libraryDependencies ++= Seq(
   "org.openjfx" % "javafx-base" % Versions.javafx classifier "mac",
   "org.ta4j" % "ta4j-core" % Versions.ta4j,
   "org.ta4j" % "ta4j-examples" % Versions.ta4j,
-  "org.typelevel" %% "kittens" % Versions.kittens
+  "org.typelevel" %% "kittens" % Versions.kittens,
+  "org.apache.commons" % "commons-math3" % Versions.apacheMath
 )
