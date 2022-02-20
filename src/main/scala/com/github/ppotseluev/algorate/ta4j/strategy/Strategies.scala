@@ -107,28 +107,7 @@ object Strategies {
     val time: AbstractIndicator[ZonedDateTime] = new DateTimeIndicator(series)
     val hasData: AbstractIndicator[Boolean] = new HasDataIndicator(40, series)
     val closePrice = new ClosePriceIndicator(series)
-
-//    val kM = new KeltnerChannelMiddleIndicator(closePrice, 20)
-//    val kL = new KeltnerChannelLowerIndicator(kM, 2, 20)
-//    val kU = new KeltnerChannelUpperIndicator(kM, 2, 20)
-
-//    val dpo = new DPOIndicator(closePrice, 20)
-//    val fisher = new FisherIndicator(series)
-    val parabolic = new ParabolicSarIndicator(series)
-
-    val exitRule =
-      new StopLossRule(closePrice, 0.5).or(
-        new StopGainRule(closePrice, 0.5)
-      )
-    val coreLongRule = new BooleanRule(false)
-    val timeRule =
-      new TimeRangeRule(Seq(tradeTimeRange).asJava, time.asInstanceOf[DateTimeIndicator])
-    val entryLongRule =
-      new BooleanIndicatorRule(hasData.map(boolean2Boolean)) &
-        timeRule &
-        coreLongRule
-    val buyingStrategy = new BaseStrategy(entryLongRule, exitRule)
-    val extremumWindowSize = 60
+    val extremumWindowSize = 40
     val extremum: AbstractIndicator[Option[Extremum]] =
       LocalExtremumIndicator(closePrice, extremumWindowSize)
     val minExtr = extremum.map(_.collect { case extr: Extremum.Min => extr })
@@ -137,17 +116,44 @@ object Strategies {
       extremumIndicator = extremum,
       approximator = Approximator.Linear,
       numOfPoints = 3,
-      maxError = 5
+      maxError = 6
     )
-//    val visualChannel: AbstractIndicator[Option[Channel]] = new VisualChannelIndicator(channel)
-    val parChannel: AbstractIndicator[Option[Channel]] =
-      new ParallelChannel(channel, maxDelta = 0.3)
-    val lowerBoundIndicator = parChannel.map(_.map(_.section.lowerBound).getOrElse(NaN.NaN))
-    val upperBoundIndicator = parChannel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
+      .filter(ChannelUtils.isParallel(maxDelta = 0.5))
+    //TODO was (6, 0.5). (2, 0.2) - better?
+
+    //      .filter(ChannelUtils.isWide(minPercent = 0.1))
+    val visualChannel: AbstractIndicator[Option[Channel]] =
+//      new VisualChannelIndicator(channel)
+      channel
+    val lowerBoundIndicator = visualChannel.map(_.map(_.section.lowerBound).getOrElse(NaN.NaN))
+    val upperBoundIndicator = visualChannel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
+    val exitRule = //todo consider channel width
+      new StopLossRule(closePrice, 0.2).or(
+        new StopGainRule(closePrice, 0.2)
+      )
+//      new CrossedDownIndicatorRule
+//        .or(
+//        new CrossedUpIndicatorRule(closePrice, upperBoundIndicator)
+//      )
+    val coreLongRule = new CrossedUpIndicatorRule(closePrice, lowerBoundIndicator)
+    val coreShortRule = new CrossedDownIndicatorRule(closePrice, upperBoundIndicator)
+    val timeRule =
+      new TimeRangeRule(Seq(tradeTimeRange).asJava, time.asInstanceOf[DateTimeIndicator])
+    val entryLongRule =
+      new BooleanIndicatorRule(hasData.map(boolean2Boolean)) &
+        timeRule &
+        coreLongRule
+    val entryShortRule =
+      new BooleanIndicatorRule(hasData.map(boolean2Boolean)) &
+        timeRule &
+        coreShortRule
+    val buyingStrategy = new BaseStrategy(entryLongRule, exitRule)
+    val sellingStrategy = new BaseStrategy(entryShortRule, exitRule)
     FullStrategy(
       longStrategy = buyingStrategy,
-      shortStrategy = doNothing,
+      shortStrategy = sellingStrategy,
       priceIndicators = Map(
+//        "ema" -> IndicatorInfo(ema),
         "close price" -> IndicatorInfo(closePrice),
         "extrMin" -> IndicatorInfo(
           minExtr.map {

@@ -4,13 +4,14 @@ import cats.data.NonEmptyList
 import com.github.ppotseluev.algorate.ta4j.indicator.ChannelIndicator.{Channel, Section}
 import com.github.ppotseluev.algorate.ta4j.indicator.LocalExtremumIndicator.Extremum
 import com.github.ppotseluev.algorate.util.Approximator
-import com.github.ppotseluev.algorate.util.Approximator.Approximation
+import com.github.ppotseluev.algorate.util.Approximator.{Approximation, polynomial}
 import org.apache.commons.math3.fitting.WeightedObservedPoint
 import org.ta4j.core.indicators.{AbstractIndicator, CachedIndicator}
 import org.ta4j.core.num.Num
 
 import scala.collection.mutable
 import scala.reflect.ClassTag
+import scala.util.Try
 
 class ChannelIndicator(
     extremumIndicator: AbstractIndicator[Option[Extremum]],
@@ -71,6 +72,12 @@ class ChannelIndicator(
     cost <= maxError
   }
 
+  private def isInsideChannel(channel: Channel, point: (Int, Extremum)): Boolean = {
+    val value = point._2.value.doubleValue
+    value <= channel.uppperBoundApproximation.func.value(point._1) &&
+    value >= channel.lowerBoundApproximation.func.value(point._1)
+  }
+
   private def calcNewChannel(index: Int): Option[Channel] =
     for {
       (lowerBound, lowerAppr) <- calc[Extremum.Min](index)
@@ -79,16 +86,17 @@ class ChannelIndicator(
     } yield Channel(section, lowerAppr, upperAppr)
 
   override def calculate(index: Int): Option[Channel] = {
-    val prevChannel =
-      if (index >= 1) {
-        channelCache(index - 1)
-      } else {
+    val prevChannel = Try(channelCache(index - 1))
+      .recover { case _: IndexOutOfBoundsException =>
         None
       }
+      .toOption
+      .flatten
     def isChannelFit(channel: Channel): Boolean = {
-      val lastMin = collectExtremums[Extremum.Min](index, 1)
-      val lastMax = collectExtremums[Extremum.Max](index, 1)
-      isFit(channel, lastMin.head) && isFit(channel, lastMax.head)
+      val lastMin = collectExtremums[Extremum.Min](index, 1).head
+      val lastMax = collectExtremums[Extremum.Max](index, 1).head
+      isInsideChannel(channel, lastMin) && isInsideChannel(channel, lastMax) ||
+      isFit(channel, lastMin) && isFit(channel, lastMax)
     }
     val newChannel = prevChannel match {
       case Some(channel) if isChannelFit(channel) =>
