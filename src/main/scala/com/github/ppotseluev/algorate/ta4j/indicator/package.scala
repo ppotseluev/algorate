@@ -1,20 +1,21 @@
 package com.github.ppotseluev.algorate.ta4j
 
 import cats.Functor
-import org.ta4j.core.Indicator
+import cats.syntax.functor._
 import org.ta4j.core.indicators.AbstractIndicator
 
 import scala.util.Try
 
 package object indicator {
-  implicit val IndicatorFunctor: Functor[AbstractIndicator] = new Functor[AbstractIndicator] {
-    override def map[A, B](fa: AbstractIndicator[A])(f: A => B): AbstractIndicator[B] =
-      new AbstractIndicator[B](fa.getBarSeries) {
-        override def getValue(index: Int): B = f(fa.getValue(index))
-      }
-  }
+  implicit def indicatorFunctor[I <: AbstractIndicator[_]]: Functor[AbstractIndicator] =
+    new Functor[AbstractIndicator] {
+      override def map[A, B](fa: AbstractIndicator[A])(f: A => B): AbstractIndicator[B] =
+        new AbstractIndicator[B](fa.getBarSeries) {
+          override def getValue(index: Int): B = f(fa.getValue(index))
+        }
+    }
 
-  implicit class IndicatorSyntax[T](val indicator: Indicator[T]) extends AnyVal {
+  implicit class IndicatorSyntax[T](val indicator: AbstractIndicator[T]) extends AnyVal {
     def shifted(shift: Int, defaultValue: T): AbstractIndicator[T] =
       new AbstractIndicator[T](indicator.getBarSeries) {
         override def getValue(index: Int): T =
@@ -25,5 +26,9 @@ package object indicator {
           }.get
       }
 
+    def filter[A](predicate: A => Boolean)(implicit
+        ev: T <:< Option[A]
+    ): AbstractIndicator[Option[A]] =
+      indicator.map(_.filter(predicate))
   }
 }

@@ -20,9 +20,11 @@ import org.ta4j.core.{BarSeries, BaseStrategy, Strategy}
 
 import scala.jdk.CollectionConverters._
 import com.github.ppotseluev.algorate.ta4j._
+import com.github.ppotseluev.algorate.ta4j.indicator.ChannelIndicator.Channel
 import com.github.ppotseluev.algorate.ta4j.indicator._
 import com.github.ppotseluev.algorate.ta4j.indicator.LocalExtremumIndicator.Extremum
 import com.github.ppotseluev.algorate.ta4j.strategy.FullStrategy.{IndicatorInfo, Representation}
+import com.github.ppotseluev.algorate.util.Approximator
 import org.ta4j.core.indicators.keltner.{
   KeltnerChannelLowerIndicator,
   KeltnerChannelMiddleIndicator,
@@ -105,48 +107,72 @@ object Strategies {
     val time: AbstractIndicator[ZonedDateTime] = new DateTimeIndicator(series)
     val hasData: AbstractIndicator[Boolean] = new HasDataIndicator(40, series)
     val closePrice = new ClosePriceIndicator(series)
+    val extremumWindowSize = 40
+    val extremum: AbstractIndicator[Option[Extremum]] =
+      LocalExtremumIndicator(closePrice, extremumWindowSize)
+    val minExtr = extremum.map(_.collect { case extr: Extremum.Min => extr })
+    val maxExtr = extremum.map(_.collect { case extr: Extremum.Max => extr })
+    val channel: AbstractIndicator[Option[Channel]] = new ChannelIndicator(
+      extremumIndicator = extremum,
+      approximator = Approximator.Linear,
+      numOfPoints = 3,
+      maxError = 6
+    )
+      .filter(ChannelUtils.isParallel(maxDelta = 0.5))
+    //TODO was (6, 0.5). (2, 0.2) - better?
 
-//    val kM = new KeltnerChannelMiddleIndicator(closePrice, 20)
-//    val kL = new KeltnerChannelLowerIndicator(kM, 2, 20)
-//    val kU = new KeltnerChannelUpperIndicator(kM, 2, 20)
-
-//    val dpo = new DPOIndicator(closePrice, 20)
-//    val fisher = new FisherIndicator(series)
-    val parabolic = new ParabolicSarIndicator(series)
-
-    val exitRule =
-      new StopLossRule(closePrice, 0.5).or(
-        new StopGainRule(closePrice, 0.5)
+    //      .filter(ChannelUtils.isWide(minPercent = 0.1))
+    val visualChannel: AbstractIndicator[Option[Channel]] =
+//      new VisualChannelIndicator(channel)
+      channel
+    val lowerBoundIndicator = visualChannel.map(_.map(_.section.lowerBound).getOrElse(NaN.NaN))
+    val upperBoundIndicator = visualChannel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
+    val exitRule = //todo consider channel width
+      new StopLossRule(closePrice, 0.2).or(
+        new StopGainRule(closePrice, 0.2)
       )
-    val coreLongRule = new BooleanRule(false)
+//      new CrossedDownIndicatorRule
+//        .or(
+//        new CrossedUpIndicatorRule(closePrice, upperBoundIndicator)
+//      )
+    val coreLongRule = new CrossedUpIndicatorRule(closePrice, lowerBoundIndicator)
+    val coreShortRule = new CrossedDownIndicatorRule(closePrice, upperBoundIndicator)
     val timeRule =
       new TimeRangeRule(Seq(tradeTimeRange).asJava, time.asInstanceOf[DateTimeIndicator])
     val entryLongRule =
       new BooleanIndicatorRule(hasData.map(boolean2Boolean)) &
         timeRule &
         coreLongRule
+    val entryShortRule =
+      new BooleanIndicatorRule(hasData.map(boolean2Boolean)) &
+        timeRule &
+        coreShortRule
     val buyingStrategy = new BaseStrategy(entryLongRule, exitRule)
-    val extremumWindowSize = 40
-    val extremum: AbstractIndicator[Num] =
-      LocalExtremumIndicator.num(closePrice, extremumWindowSize)
+    val sellingStrategy = new BaseStrategy(entryShortRule, exitRule)
     FullStrategy(
       longStrategy = buyingStrategy,
-      shortStrategy = doNothing,
+      shortStrategy = sellingStrategy,
       priceIndicators = Map(
+//        "ema" -> IndicatorInfo(ema),
         "close price" -> IndicatorInfo(closePrice),
-        "extremum" -> IndicatorInfo(extremum, Representation.Points)
+        "extrMin" -> IndicatorInfo(
+          minExtr.map {
+            case Some(extr) => extr.value
+            case None       => NaN.NaN
+          },
+          Representation.Points
+        ),
+        "extrMax" -> IndicatorInfo(
+          maxExtr.map {
+            case Some(extr) => extr.value
+            case None       => NaN.NaN
+          },
+          Representation.Points
+        ),
+        "lowerBound" -> IndicatorInfo(lowerBoundIndicator),
+        "upperBound" -> IndicatorInfo(upperBoundIndicator)
       ),
-      oscillators = Map(
-//        "stable" -> hasData.map {
-//          if (_) series.numOf(50) else series.numOf(0)
-//        },
-//        "time" -> time
-//          .map(_.toLocalTime)
-//          .map(t => !t.isBefore(tradeTimeRange.getFrom) && !t.isAfter(tradeTimeRange.getTo))
-//          .map {
-//            if (_) series.numOf(25) else series.numOf(0)
-//          },
-      )
+      oscillators = Map.empty
     )
   }
 

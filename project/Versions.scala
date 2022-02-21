@@ -10,4 +10,5 @@ object Versions {
   val javafx = "17.0.0.1"
   val sext = "0.2.6"
   val ta4j = "0.14"
+  val apacheMath = "3.6.1"
 }
