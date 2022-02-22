@@ -5,7 +5,7 @@
 //
 //class LastNPointsIndicator[T](indicator: Indicator[Option[T]])
 //extends CachedIndicator[Seq[(Int, T)]](indicator) {
-//  override def calculate(index: Int): Seq[(Int, T)] =
+//  override protected def calculate(index: Int): Seq[(Int, T)] =
 //    LazyList
 //      .from(index, -1)
 //      .takeWhile(_ >= 0)

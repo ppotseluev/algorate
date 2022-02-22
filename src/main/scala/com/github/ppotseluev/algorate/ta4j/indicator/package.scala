@@ -7,7 +7,7 @@ import org.ta4j.core.indicators.AbstractIndicator
 import scala.util.Try
 
 package object indicator {
-  implicit def indicatorFunctor[I <: AbstractIndicator[_]]: Functor[AbstractIndicator] =
+  implicit val IndicatorFunctor: Functor[AbstractIndicator] =
     new Functor[AbstractIndicator] {
       override def map[A, B](fa: AbstractIndicator[A])(f: A => B): AbstractIndicator[B] =
         new AbstractIndicator[B](fa.getBarSeries) {

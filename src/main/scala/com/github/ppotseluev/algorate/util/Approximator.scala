@@ -19,8 +19,11 @@ class Approximator(
 
   private val optimizer = new LevenbergMarquardtOptimizer()
 
-  def approximate(points: NonEmptyList[WeightedObservedPoint]): Approximation = {
-    val fittingResult = optimizer.optimize(getProblem(points.toList.asJava))
+  private def asObservedPoint(point: WeightedPoint): WeightedObservedPoint =
+    new WeightedObservedPoint(point.weight, point.x, point.y)
+
+  def approximate(points: NonEmptyList[WeightedPoint]): Approximation = {
+    val fittingResult = optimizer.optimize(getProblem(points.toList.map(asObservedPoint).asJava))
     val coefs = fittingResult.getPoint.toArray
     val res = Approximation(
       func = funcBuilder(coefs),
@@ -30,9 +33,9 @@ class Approximator(
     res
   }
 
-  def cost(approximation: Approximation, additionalPoint: WeightedObservedPoint): Double = {
+  def cost(approximation: Approximation, additionalPoint: WeightedPoint): Double = {
     val diffs = (approximation.points.toList :+ additionalPoint).map { point =>
-      approximation.func.value(point.getX) - point.getY
+      approximation.func.value(point.x) - point.y
     }
     val r = new ArrayRealVector(diffs.toArray)
     val cost = FastMath.sqrt(r.dotProduct(r))
@@ -50,7 +53,7 @@ class Approximator(
 
 object Approximator {
   case class Approximation(
-      points: NonEmptyList[WeightedObservedPoint],
+      points: NonEmptyList[WeightedPoint],
       func: UnivariateFunction,
       cost: Double
   )

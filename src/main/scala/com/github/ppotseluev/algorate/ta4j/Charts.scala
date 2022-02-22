@@ -140,10 +140,10 @@ object Charts {
   }
 
   def display(
-               strategyBuilder: BarSeries => FullStrategy,
-               series: BarSeries,
-               tradingStats: TradingStats,
-               title: String
+      strategyBuilder: BarSeries => FullStrategy,
+      series: BarSeries,
+      tradingStats: Option[TradingStats],
+      title: String
   ): Unit = {
     def addIndicators(
         series: BarSeries,
@@ -160,8 +160,16 @@ object Charts {
     val mainPointsDataset = new TimeSeriesCollection
     val indicatorsDataset = new TimeSeriesCollection
     val strategy = strategyBuilder(series)
-    addIndicators(series, mainDataset, strategy.priceIndicators.filter(_._2.representation.isInstanceOf[Representation.Line.type]))
-    addIndicators(series, mainPointsDataset, strategy.priceIndicators.filter(_._2.representation.isInstanceOf[Representation.Points.type]))
+    addIndicators(
+      series,
+      mainDataset,
+      strategy.priceIndicators.filter(_._2.representation.isInstanceOf[Representation.Line.type])
+    )
+    addIndicators(
+      series,
+      mainPointsDataset,
+      strategy.priceIndicators.filter(_._2.representation.isInstanceOf[Representation.Points.type])
+    )
     addIndicators(series, indicatorsDataset, strategy.oscillators)
     val xAxis = new DateAxis("Time")
     xAxis.setDateFormatOverride(new SimpleDateFormat("MM-dd HH:mm"))
@@ -192,8 +200,10 @@ object Charts {
     combinedPlot.add(pricePlot, 70)
     combinedPlot.add(indicatorPlot, 30)
 
-    Charts.addBuySellSignals(series, tradingStats.long.positions, pricePlot, indicatorPlot)
-    Charts.addBuySellSignals(series, tradingStats.short.positions, pricePlot, indicatorPlot)
+    tradingStats.foreach { stats =>
+      Charts.addBuySellSignals(series, stats.long.positions, pricePlot, indicatorPlot)
+      Charts.addBuySellSignals(series, stats.short.positions, pricePlot, indicatorPlot)
+    }
 
     /*
      * Creating the chart

@@ -4,26 +4,20 @@ import com.github.ppotseluev.algorate.ta4j.indicator.ChannelIndicator.{Channel, 
 import org.ta4j.core.Indicator
 import org.ta4j.core.indicators.CachedIndicator
 
-import scala.util.Try
-
 class VisualChannelIndicator(channelIndicator: Indicator[Option[Channel]])
     extends CachedIndicator[Option[Channel]](channelIndicator) {
 
-  override def calculate(index: Int): Option[Channel] = {
-    val channel = Try {
-      LazyList
-        .from(index)
-        .takeWhile(_ < getBarSeries.getBarCount)
-        .flatMap(channelIndicator.getValue)
-        .headOption
-    }.recover { case _: IndexOutOfBoundsException =>
-      None
-    }.toOption
-      .flatten
-    channel
+  private val channels: Seq[(Int, Channel)] =
+    (0 to getBarSeries.getEndIndex).flatMap { i =>
+      channelIndicator.getValue(i).map(i -> _)
+    }
+
+  override protected def calculate(index: Int): Option[Channel] = {
+    channels
+      .collectFirst { case (ind, channel) if ind >= index => channel }
       .filter { c =>
-        c.uppperBoundApproximation.points.head.getX <= index ||
-        c.lowerBoundApproximation.points.head.getX <= index
+        c.uppperBoundApproximation.points.head.x <= index ||
+        c.lowerBoundApproximation.points.head.x <= index
       }
       .map { c =>
         c.copy(

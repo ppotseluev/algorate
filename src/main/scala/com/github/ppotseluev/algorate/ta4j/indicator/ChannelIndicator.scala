@@ -2,48 +2,42 @@ package com.github.ppotseluev.algorate.ta4j.indicator
 
 import cats.data.NonEmptyList
 import com.github.ppotseluev.algorate.ta4j.indicator.ChannelIndicator.{Channel, Section}
-import com.github.ppotseluev.algorate.ta4j.indicator.LocalExtremumIndicator.Extremum
-import com.github.ppotseluev.algorate.util.Approximator
-import com.github.ppotseluev.algorate.util.Approximator.{Approximation, polynomial}
-import org.apache.commons.math3.fitting.WeightedObservedPoint
-import org.ta4j.core.indicators.{AbstractIndicator, CachedIndicator}
+import com.github.ppotseluev.algorate.ta4j.indicator.LastLocalExtremumIndicator.Extremum
+import com.github.ppotseluev.algorate.util.Approximator.Approximation
+import com.github.ppotseluev.algorate.util.{Approximator, WeightedPoint}
+import org.ta4j.core.indicators.{AbstractIndicator, RecursiveCachedIndicator}
 import org.ta4j.core.num.Num
 
-import scala.collection.mutable
 import scala.reflect.ClassTag
-import scala.util.Try
 
 class ChannelIndicator(
     extremumIndicator: AbstractIndicator[Option[Extremum]],
     approximator: Approximator,
     numOfPoints: Int,
-    maxError: Double
-) extends CachedIndicator[Option[Channel]](extremumIndicator) {
-
-  private val channelCache: mutable.ArrayBuffer[Option[Channel]] =
-    mutable.ArrayBuffer.empty
+    maxError: Double //TODO normalize it in some way...
+) extends RecursiveCachedIndicator[Option[Channel]](extremumIndicator.getBarSeries) {
 
   private def collectExtremums[T <: Extremum](
       index: Int,
       count: Int
-  )(implicit tag: ClassTag[T]): List[(Int, T)] = {
+  )(implicit tag: ClassTag[T]): List[T] = {
     LazyList
       .from(index, -1)
       .takeWhile(_ >= 0)
       .flatMap { idx =>
         extremumIndicator.getValue(idx) match {
-          case Some(tag(value)) => Some(idx -> value)
+          case Some(tag(value)) => Some(value)
           case _                => None
         }
       }
       .take(count)
-      .reverse
       .toList
+      .reverse
   }
 
-  private def approximate[T <: Extremum](points: List[(Int, T)]): Option[Approximation] = {
-    val weightedPoints = points.map { case (idx, extremum) =>
-      new WeightedObservedPoint(1, idx, extremum.value.doubleValue)
+  private def approximate[T <: Extremum](points: List[T]): Option[Approximation] = {
+    val weightedPoints = points.map { extremum =>
+      WeightedPoint(1, extremum.index, extremum.value.doubleValue)
     }
     NonEmptyList
       .fromList(weightedPoints)
@@ -61,21 +55,21 @@ class ChannelIndicator(
 
   private def isFit(
       channel: Channel,
-      point: (Int, Extremum)
+      point: Extremum
   ): Boolean = {
-    val appr = point._2 match {
+    val appr = point match {
       case _: Extremum.Min => channel.lowerBoundApproximation
       case _: Extremum.Max => channel.uppperBoundApproximation
     }
-    val p = new WeightedObservedPoint(1, point._1, point._2.value.doubleValue)
+    val p = WeightedPoint(1, point.index, point.value.doubleValue) //todo use weight?
     val cost = approximator.cost(appr, p)
     cost <= maxError
   }
 
-  private def isInsideChannel(channel: Channel, point: (Int, Extremum)): Boolean = {
-    val value = point._2.value.doubleValue
-    value <= channel.uppperBoundApproximation.func.value(point._1) &&
-    value >= channel.lowerBoundApproximation.func.value(point._1)
+  private def isInsideChannel(channel: Channel, point: Extremum): Boolean = { //todo
+    val value = point.value.doubleValue
+    value <= channel.uppperBoundApproximation.func.value(point.index) &&
+    value >= channel.lowerBoundApproximation.func.value(point.index)
   }
 
   private def calcNewChannel(index: Int): Option[Channel] =
@@ -85,33 +79,30 @@ class ChannelIndicator(
       section = Section(lowerBound, upperBound)
     } yield Channel(section, lowerAppr, upperAppr)
 
-  override def calculate(index: Int): Option[Channel] = {
-    val prevChannel = Try(channelCache(index - 1))
-      .recover { case _: IndexOutOfBoundsException =>
-        None
-      }
-      .toOption
-      .flatten
+  override protected def calculate(index: Int): Option[Channel] = {
     def isChannelFit(channel: Channel): Boolean = {
       val lastMin = collectExtremums[Extremum.Min](index, 1).head
       val lastMax = collectExtremums[Extremum.Max](index, 1).head
-      isInsideChannel(channel, lastMin) && isInsideChannel(channel, lastMax) ||
+//      isInsideChannel(channel, lastMin) && isInsideChannel(channel, lastMax) || TODO
       isFit(channel, lastMin) && isFit(channel, lastMax)
     }
-    val newChannel = prevChannel match {
-      case Some(channel) if isChannelFit(channel) =>
-        val updated = channel.copy(
-          section = Section(
-            lowerBound = numOf(channel.lowerBoundApproximation.func.value(index)),
-            upperBound = numOf(channel.uppperBoundApproximation.func.value(index))
+    if (index == 0) {
+      None
+    } else {
+      val prevChannel: Option[Channel] = getValue(index - 1)
+      prevChannel match {
+        case Some(channel) if isChannelFit(channel) =>
+          val updated = channel.copy(
+            section = Section(
+              lowerBound = numOf(channel.lowerBoundApproximation.func.value(index)),
+              upperBound = numOf(channel.uppperBoundApproximation.func.value(index))
+            )
           )
-        )
-        Some(updated)
-      case _ =>
-        calcNewChannel(index)
+          Some(updated)
+        case _ =>
+          calcNewChannel(index)
+      }
     }
-    channelCache += newChannel
-    newChannel
   }
 }
 

@@ -25,7 +25,7 @@ object Main extends App {
   Charts.display(
     strategy,
     series,
-    result,
+    Some(result),
     "results"
   )
 }
