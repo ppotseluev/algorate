@@ -1,7 +1,13 @@
 package com.github.ppotseluev.algorate.ta4j.strategy
 
-import com.github.ppotseluev.algorate.ta4j.indicator.{HasDataIndicator, LocalExtremumIndicator}
-import org.ta4j.core.indicators.helpers.ClosePriceIndicator
+import com.github.ppotseluev.algorate.ta4j.indicator.{HasDataIndicator, LastLocalExtremumIndicator}
+import org.ta4j.core.indicators.helpers.{
+  ClosePriceIndicator,
+  ConstantIndicator,
+  DifferenceIndicator,
+  FixedDecimalIndicator,
+  SumIndicator
+}
 import org.ta4j.core.indicators.{
   AbstractIndicator,
   DPOIndicator,
@@ -22,9 +28,10 @@ import scala.jdk.CollectionConverters._
 import com.github.ppotseluev.algorate.ta4j._
 import com.github.ppotseluev.algorate.ta4j.indicator.ChannelIndicator.Channel
 import com.github.ppotseluev.algorate.ta4j.indicator._
-import com.github.ppotseluev.algorate.ta4j.indicator.LocalExtremumIndicator.Extremum
+import com.github.ppotseluev.algorate.ta4j.indicator.LastLocalExtremumIndicator.{Extremum, num}
 import com.github.ppotseluev.algorate.ta4j.strategy.FullStrategy.{IndicatorInfo, Representation}
 import com.github.ppotseluev.algorate.util.Approximator
+import com.github.ppotseluev.algorate.util.Approximator.Approximation
 import org.ta4j.core.indicators.keltner.{
   KeltnerChannelLowerIndicator,
   KeltnerChannelMiddleIndicator,
@@ -109,33 +116,57 @@ object Strategies {
     val closePrice = new ClosePriceIndicator(series)
     val extremumWindowSize = 40
     val extremum: AbstractIndicator[Option[Extremum]] =
-      LocalExtremumIndicator(closePrice, extremumWindowSize)
-    val minExtr = extremum.map(_.collect { case extr: Extremum.Min => extr })
-    val maxExtr = extremum.map(_.collect { case extr: Extremum.Max => extr })
+      LastLocalExtremumIndicator(closePrice, extremumWindowSize)
+    val visualExtremum: AbstractIndicator[Option[Extremum]] =
+      extremum.shifted(extremumWindowSize / 2, None)
+    val visualMinExtr = visualExtremum.map(_.collect { case extr: Extremum.Min => extr })
+    val visualMaxExtr = visualExtremum.map(_.collect { case extr: Extremum.Max => extr })
     val channel: AbstractIndicator[Option[Channel]] = new ChannelIndicator(
       extremumIndicator = extremum,
       approximator = Approximator.Linear,
       numOfPoints = 3,
-      maxError = 6
-    )
-      .filter(ChannelUtils.isParallel(maxDelta = 0.5))
-    //TODO was (6, 0.5). (2, 0.2) - better?
+      maxError = 3
+    ).filter(ChannelUtils.isParallel(maxDelta = 0.6)) //todo?
 
-    //      .filter(ChannelUtils.isWide(minPercent = 0.1))
+    //TODO was (6, 0.5). (2, 0.2) - better?
+//      .filter(ChannelUtils.isWide(minPercent = 0.1))
+
+    val lowerBoundIndicator = channel.map(_.map(_.section.lowerBound).getOrElse(NaN.NaN))
+    val upperBoundIndicator = channel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
+
     val visualChannel: AbstractIndicator[Option[Channel]] =
-//      new VisualChannelIndicator(channel)
-      channel
-    val lowerBoundIndicator = visualChannel.map(_.map(_.section.lowerBound).getOrElse(NaN.NaN))
-    val upperBoundIndicator = visualChannel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
-    val exitRule = //todo consider channel width
-      new StopLossRule(closePrice, 0.2).or(
-        new StopGainRule(closePrice, 0.2)
+      new VisualChannelIndicator(channel)
+    val visualLowerBoundIndicator =
+      visualChannel.map(_.map(_.section.lowerBound).getOrElse(NaN.NaN))
+    val visualUpperBoundIndicator =
+      visualChannel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
+
+    val halfChannel =
+      new DivideIndicator(
+        new DifferenceIndicator(upperBoundIndicator, lowerBoundIndicator),
+        new ConstantIndicator[Num](series, series.numOf(2))
       )
-//      new CrossedDownIndicatorRule
-//        .or(
-//        new CrossedUpIndicatorRule(closePrice, upperBoundIndicator)
-//      )
-    val coreLongRule = new CrossedUpIndicatorRule(closePrice, lowerBoundIndicator)
+    val exitLongRule = //todo consider channel width
+      new StopLossRule(closePrice, 1)
+        .or(
+          new StopGainRule(closePrice, 1)
+        )
+        .or(
+          new CrossedUpIndicatorRule(
+            closePrice,
+            new SumIndicator(lowerBoundIndicator, halfChannel)
+          )
+        )
+        .or(
+          new CrossedDownIndicatorRule(
+            closePrice,
+            new DifferenceIndicator(lowerBoundIndicator, halfChannel)
+          )
+        )
+
+    val coreLongRule =
+      new BooleanIndicatorRule(lowerBoundIndicator.map(!_.isNaN)) & // TODO
+        new CrossedUpIndicatorRule(closePrice, lowerBoundIndicator)
     val coreShortRule = new CrossedDownIndicatorRule(closePrice, upperBoundIndicator)
     val timeRule =
       new TimeRangeRule(Seq(tradeTimeRange).asJava, time.asInstanceOf[DateTimeIndicator])
@@ -147,30 +178,30 @@ object Strategies {
       new BooleanIndicatorRule(hasData.map(boolean2Boolean)) &
         timeRule &
         coreShortRule
-    val buyingStrategy = new BaseStrategy(entryLongRule, exitRule)
-    val sellingStrategy = new BaseStrategy(entryShortRule, exitRule)
+    val buyingStrategy = new BaseStrategy(entryLongRule, exitLongRule)
+//    val sellingStrategy = new BaseStrategy(entryShortRule, exitRule)
     FullStrategy(
       longStrategy = buyingStrategy,
-      shortStrategy = sellingStrategy,
+      shortStrategy = doNothing,
       priceIndicators = Map(
 //        "ema" -> IndicatorInfo(ema),
         "close price" -> IndicatorInfo(closePrice),
         "extrMin" -> IndicatorInfo(
-          minExtr.map {
+          visualMinExtr.map {
             case Some(extr) => extr.value
             case None       => NaN.NaN
           },
           Representation.Points
         ),
         "extrMax" -> IndicatorInfo(
-          maxExtr.map {
+          visualMaxExtr.map {
             case Some(extr) => extr.value
             case None       => NaN.NaN
           },
           Representation.Points
         ),
-        "lowerBound" -> IndicatorInfo(lowerBoundIndicator),
-        "upperBound" -> IndicatorInfo(upperBoundIndicator)
+        "lowerBound" -> IndicatorInfo(visualLowerBoundIndicator),
+        "upperBound" -> IndicatorInfo(visualUpperBoundIndicator)
       ),
       oscillators = Map.empty
     )
