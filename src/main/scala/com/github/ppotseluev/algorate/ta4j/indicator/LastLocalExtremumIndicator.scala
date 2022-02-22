@@ -18,7 +18,7 @@ object LastLocalExtremumIndicator { //TODO refactor. It's not last extremum now.
   private class Impl(indicator: Indicator[Num], windowSize: Int)
       extends CachedIndicator[Option[Extremum]](indicator) {
 
-    override def calculate(index: Int): Option[Extremum] = {
+    override protected def calculate(index: Int): Option[Extremum] = {
       val ind = index - windowSize / 2
       val currentValue = indicator.getValue(ind)
       val values =

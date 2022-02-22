@@ -12,7 +12,7 @@ class VisualChannelIndicator(channelIndicator: Indicator[Option[Channel]])
       channelIndicator.getValue(i).map(i -> _)
     }
 
-  override def calculate(index: Int): Option[Channel] = {
+  override protected def calculate(index: Int): Option[Channel] = {
     channels
       .collectFirst { case (ind, channel) if ind >= index => channel }
       .filter { c =>

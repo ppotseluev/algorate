@@ -28,7 +28,7 @@ import scala.jdk.CollectionConverters._
 import com.github.ppotseluev.algorate.ta4j._
 import com.github.ppotseluev.algorate.ta4j.indicator.ChannelIndicator.Channel
 import com.github.ppotseluev.algorate.ta4j.indicator._
-import com.github.ppotseluev.algorate.ta4j.indicator.LastLocalExtremumIndicator.{Extremum, num}
+import com.github.ppotseluev.algorate.ta4j.indicator.LastLocalExtremumIndicator.Extremum
 import com.github.ppotseluev.algorate.ta4j.strategy.FullStrategy.{IndicatorInfo, Representation}
 import com.github.ppotseluev.algorate.util.Approximator
 import com.github.ppotseluev.algorate.util.Approximator.Approximation

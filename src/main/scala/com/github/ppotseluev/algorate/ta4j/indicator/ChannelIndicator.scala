@@ -79,7 +79,7 @@ class ChannelIndicator(
       section = Section(lowerBound, upperBound)
     } yield Channel(section, lowerAppr, upperAppr)
 
-  override def calculate(index: Int): Option[Channel] = {
+  override protected def calculate(index: Int): Option[Channel] = {
     def isChannelFit(channel: Channel): Boolean = {
       val lastMin = collectExtremums[Extremum.Min](index, 1).head
       val lastMax = collectExtremums[Extremum.Max](index, 1).head
@@ -90,7 +90,7 @@ class ChannelIndicator(
       None
     } else {
       val prevChannel: Option[Channel] = getValue(index - 1)
-      val newChannel = prevChannel match {
+      prevChannel match {
         case Some(channel) if isChannelFit(channel) =>
           val updated = channel.copy(
             section = Section(
@@ -102,7 +102,6 @@ class ChannelIndicator(
         case _ =>
           calcNewChannel(index)
       }
-      newChannel
     }
   }
 }

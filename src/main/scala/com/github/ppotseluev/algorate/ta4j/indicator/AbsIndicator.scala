@@ -6,7 +6,7 @@ import org.ta4j.core.num.Num
 
 class AbsIndicator(indicator: Indicator[Num]) extends CachedIndicator[Num](indicator) {
 
-  override def calculate(index: Int): Num = {
+  override protected def calculate(index: Int): Num = {
     indicator.getValue(index).abs()
   }
 }
