@@ -1,23 +1,8 @@
 package com.github.ppotseluev.algorate.ta4j.strategy
 
 import com.github.ppotseluev.algorate.ta4j.indicator.{HasDataIndicator, LastLocalExtremumIndicator}
-import org.ta4j.core.indicators.helpers.{
-  ClosePriceIndicator,
-  ConstantIndicator,
-  DifferenceIndicator,
-  FixedDecimalIndicator,
-  SumIndicator
-}
-import org.ta4j.core.indicators.{
-  AbstractIndicator,
-  DPOIndicator,
-  DateTimeIndicator,
-  EMAIndicator,
-  FisherIndicator,
-  KSTIndicator,
-  ParabolicSarIndicator,
-  RSIIndicator
-}
+import org.ta4j.core.indicators.helpers.{ClosePriceIndicator, ConstantIndicator, DifferenceIndicator, FixedDecimalIndicator, SumIndicator}
+import org.ta4j.core.indicators.{AbstractIndicator, DPOIndicator, DateTimeIndicator, EMAIndicator, FisherIndicator, KSTIndicator, ParabolicSarIndicator, RSIIndicator}
 import org.ta4j.core.rules.TimeRangeRule.TimeRange
 import org.ta4j.core.rules.helper.ChainLink
 import org.ta4j.core.rules._
@@ -32,11 +17,8 @@ import com.github.ppotseluev.algorate.ta4j.indicator.LastLocalExtremumIndicator.
 import com.github.ppotseluev.algorate.ta4j.strategy.FullStrategy.{IndicatorInfo, Representation}
 import com.github.ppotseluev.algorate.util.Approximator
 import com.github.ppotseluev.algorate.util.Approximator.Approximation
-import org.ta4j.core.indicators.keltner.{
-  KeltnerChannelLowerIndicator,
-  KeltnerChannelMiddleIndicator,
-  KeltnerChannelUpperIndicator
-}
+import org.apache.commons.math3.analysis.polynomials.PolynomialFunction
+import org.ta4j.core.indicators.keltner.{KeltnerChannelLowerIndicator, KeltnerChannelMiddleIndicator, KeltnerChannelUpperIndicator}
 import org.ta4j.core.num.{NaN, Num}
 
 import java.time.{LocalTime, ZonedDateTime}
@@ -112,9 +94,9 @@ object Strategies {
       LocalTime.of(16, 0)
     )
     val time: AbstractIndicator[ZonedDateTime] = new DateTimeIndicator(series)
-    val hasData: AbstractIndicator[Boolean] = new HasDataIndicator(40, series)
     val closePrice = new ClosePriceIndicator(series)
     val extremumWindowSize = 40
+    val hasData: AbstractIndicator[Boolean] = new HasDataIndicator(extremumWindowSize, series)
     val extremum: AbstractIndicator[Option[Extremum]] =
       LastLocalExtremumIndicator(closePrice, extremumWindowSize)
     val visualExtremum: AbstractIndicator[Option[Extremum]] =
@@ -125,11 +107,11 @@ object Strategies {
       extremumIndicator = extremum,
       approximator = Approximator.Linear,
       numOfPoints = 3,
-      maxError = 3
-    ).filter(ChannelUtils.isParallel(maxDelta = 0.6)) //todo?
+      maxError = 8
+    ).filter(ChannelUtils.isParallel(maxDelta = 0.8)) //todo?
+//      .filter(ChannelUtils.isWide(minPercent = 0.2))
 
     //TODO was (6, 0.5). (2, 0.2) - better?
-//      .filter(ChannelUtils.isWide(minPercent = 0.1))
 
     val lowerBoundIndicator = channel.map(_.map(_.section.lowerBound).getOrElse(NaN.NaN))
     val upperBoundIndicator = channel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
@@ -146,7 +128,9 @@ object Strategies {
         new DifferenceIndicator(upperBoundIndicator, lowerBoundIndicator),
         new ConstantIndicator[Num](series, series.numOf(2))
       )
-    val exitLongRule = //todo consider channel width
+    val exitLongRule =
+      //todo consider channel width
+      //todo exit on Nan channel ?
       new StopLossRule(closePrice, 1)
         .or(
           new StopGainRule(closePrice, 1)
@@ -166,6 +150,9 @@ object Strategies {
 
     val coreLongRule =
       new BooleanIndicatorRule(lowerBoundIndicator.map(!_.isNaN)) & // TODO
+    new BooleanIndicatorRule(channel.map(_.exists(
+      _.lowerBoundApproximation.func.asInstanceOf[PolynomialFunction].getCoefficients.last < 0 //todo 🤔🤔🤔
+    ))) &
         new CrossedUpIndicatorRule(closePrice, lowerBoundIndicator)
     val coreShortRule = new CrossedDownIndicatorRule(closePrice, upperBoundIndicator)
     val timeRule =

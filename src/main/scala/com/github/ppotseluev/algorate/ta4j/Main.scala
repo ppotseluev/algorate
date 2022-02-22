@@ -13,8 +13,8 @@ object Main extends App {
   val seriesProvider = new BarSeriesProvider[IO](args.head)
   val ticker = "YNDX".taggedWith[Tags.Ticker]
   val interval = Interval.minutes(
-    OffsetDateTime.parse("2021-07-09T10:30+03:00"),
-    OffsetDateTime.parse("2021-10-09T23:30+03:00")
+    OffsetDateTime.parse("2020-01-09T10:30+03:00"),
+    OffsetDateTime.parse("2020-12-22T23:30+03:00")
   )
     //.map(_.plusDays(8))
   val series = seriesProvider.getBarSeries(ticker, interval)
