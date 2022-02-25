@@ -12,18 +12,21 @@ class VisualChannelIndicator(channelIndicator: Indicator[Option[Channel]])
       channelIndicator.getValue(i).map(i -> _)
     }
 
+  private val approximations = channels.map(_._2.lowerBoundApproximation).toSet
+  println(s"${approximations.size} channels found")
+
   override protected def calculate(index: Int): Option[Channel] = {
     channels
       .collectFirst { case (ind, channel) if ind >= index => channel }
       .filter { c =>
-        c.uppperBoundApproximation.points.head.x <= index ||
+        c.upperBoundApproximation.points.head.x <= index ||
         c.lowerBoundApproximation.points.head.x <= index
       }
       .map { c =>
         c.copy(
           section = Section(
             lowerBound = numOf(c.lowerBoundApproximation.func.value(index)),
-            upperBound = numOf(c.uppperBoundApproximation.func.value(index))
+            upperBound = numOf(c.upperBoundApproximation.func.value(index))
           )
         )
       }

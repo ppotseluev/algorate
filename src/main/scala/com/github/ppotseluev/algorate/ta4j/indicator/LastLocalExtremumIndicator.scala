@@ -45,4 +45,6 @@ object LastLocalExtremumIndicator { //TODO refactor. It's not last extremum now.
     case class Min(value: Num, index: Int) extends Extremum
     case class Max(value: Num, index: Int) extends Extremum
   }
+
+//todo ignore/merge if two points are too close
 }

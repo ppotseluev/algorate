@@ -1,8 +1,23 @@
 package com.github.ppotseluev.algorate.ta4j.strategy
 
 import com.github.ppotseluev.algorate.ta4j.indicator.{HasDataIndicator, LastLocalExtremumIndicator}
-import org.ta4j.core.indicators.helpers.{ClosePriceIndicator, ConstantIndicator, DifferenceIndicator, FixedDecimalIndicator, SumIndicator}
-import org.ta4j.core.indicators.{AbstractIndicator, DPOIndicator, DateTimeIndicator, EMAIndicator, FisherIndicator, KSTIndicator, ParabolicSarIndicator, RSIIndicator}
+import org.ta4j.core.indicators.helpers.{
+  ClosePriceIndicator,
+  ConstantIndicator,
+  DifferenceIndicator,
+  FixedDecimalIndicator,
+  SumIndicator
+}
+import org.ta4j.core.indicators.{
+  AbstractIndicator,
+  DPOIndicator,
+  DateTimeIndicator,
+  EMAIndicator,
+  FisherIndicator,
+  KSTIndicator,
+  ParabolicSarIndicator,
+  RSIIndicator
+}
 import org.ta4j.core.rules.TimeRangeRule.TimeRange
 import org.ta4j.core.rules.helper.ChainLink
 import org.ta4j.core.rules._
@@ -18,7 +33,11 @@ import com.github.ppotseluev.algorate.ta4j.strategy.FullStrategy.{IndicatorInfo,
 import com.github.ppotseluev.algorate.util.Approximator
 import com.github.ppotseluev.algorate.util.Approximator.Approximation
 import org.apache.commons.math3.analysis.polynomials.PolynomialFunction
-import org.ta4j.core.indicators.keltner.{KeltnerChannelLowerIndicator, KeltnerChannelMiddleIndicator, KeltnerChannelUpperIndicator}
+import org.ta4j.core.indicators.keltner.{
+  KeltnerChannelLowerIndicator,
+  KeltnerChannelMiddleIndicator,
+  KeltnerChannelUpperIndicator
+}
 import org.ta4j.core.num.{NaN, Num}
 
 import java.time.{LocalTime, ZonedDateTime}
@@ -103,13 +122,17 @@ object Strategies {
       extremum.shifted(extremumWindowSize / 2, None)
     val visualMinExtr = visualExtremum.map(_.collect { case extr: Extremum.Min => extr })
     val visualMaxExtr = visualExtremum.map(_.collect { case extr: Extremum.Max => extr })
-    val channel: AbstractIndicator[Option[Channel]] = new ChannelIndicator(
+    val channel: AbstractIndicator[Option[Channel]] = ChannelIndicator(
+      baseIndicator = closePrice,
       extremumIndicator = extremum,
       approximator = Approximator.Linear,
       numOfPoints = 3,
-      maxError = 8
-    ).filter(ChannelUtils.isParallel(maxDelta = 0.8)) //todo?
-//      .filter(ChannelUtils.isWide(minPercent = 0.2))
+//      maxError = 3
+      maxError = 0.0009 //0.0007
+    ).filter(ChannelUtils.isParallel(maxDelta = 0.6)) //todo?
+//      .filter(ChannelUtils.isWide(minPercent = 0.1))
+
+    val rsi = new RSIIndicator(closePrice, 14)
 
     //TODO was (6, 0.5). (2, 0.2) - better?
 
@@ -128,6 +151,7 @@ object Strategies {
         new DifferenceIndicator(upperBoundIndicator, lowerBoundIndicator),
         new ConstantIndicator[Num](series, series.numOf(2))
       )
+    val channelIsDefinedRule = new BooleanIndicatorRule(channel.map(_.isDefined))
     val exitLongRule =
       //todo consider channel width
       //todo exit on Nan channel ?
@@ -147,12 +171,23 @@ object Strategies {
             new DifferenceIndicator(lowerBoundIndicator, halfChannel)
           )
         )
+        .or(
+          channelIsDefinedRule.negation
+        )
 
     val coreLongRule =
+      channelIsDefinedRule &
       new BooleanIndicatorRule(lowerBoundIndicator.map(!_.isNaN)) & // TODO
-    new BooleanIndicatorRule(channel.map(_.exists(
-      _.lowerBoundApproximation.func.asInstanceOf[PolynomialFunction].getCoefficients.last < 0 //todo 🤔🤔🤔
-    ))) &
+        new BooleanIndicatorRule(
+          channel.map(
+            _.exists(
+              _.lowerBoundApproximation.func
+                .asInstanceOf[PolynomialFunction]
+                .getCoefficients
+                .last < 0 //todo 🤔🤔🤔
+            )
+          )
+        ) &
         new CrossedUpIndicatorRule(closePrice, lowerBoundIndicator)
     val coreShortRule = new CrossedDownIndicatorRule(closePrice, upperBoundIndicator)
     val timeRule =
@@ -190,7 +225,10 @@ object Strategies {
         "lowerBound" -> IndicatorInfo(visualLowerBoundIndicator),
         "upperBound" -> IndicatorInfo(visualUpperBoundIndicator)
       ),
-      oscillators = Map.empty
+      oscillators = Map(
+        "rsi" -> IndicatorInfo(rsi),
+        "hasData" -> IndicatorInfo(hasData.map(if(_) series.numOf(50) else series.numOf(0)))
+      )
     )
   }
 
