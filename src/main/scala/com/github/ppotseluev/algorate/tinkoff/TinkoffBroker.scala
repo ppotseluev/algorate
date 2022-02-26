@@ -94,8 +94,8 @@ class TinkoffBroker[F[_]: Parallel](
       range = 1.day.toMinutes,
       offset = 1
     )
-    intervals.parTraverse(get).map(_.flatten)
-//    intervals.traverse(get).map(_.flatten)
+//   TODO intervals.parTraverse(get).map(_.flatten)
+    intervals.traverse(get).map(_.flatten)
   }
 
   private def makeStream(

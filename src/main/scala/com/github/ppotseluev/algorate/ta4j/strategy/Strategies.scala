@@ -6,7 +6,8 @@ import org.ta4j.core.indicators.helpers.{
   ConstantIndicator,
   DifferenceIndicator,
   FixedDecimalIndicator,
-  SumIndicator
+  SumIndicator,
+  VolumeIndicator
 }
 import org.ta4j.core.indicators.{
   AbstractIndicator,
@@ -22,6 +23,7 @@ import org.ta4j.core.rules.TimeRangeRule.TimeRange
 import org.ta4j.core.rules.helper.ChainLink
 import org.ta4j.core.rules._
 import cats.syntax.functor._
+import cats.syntax.flatMap._
 import org.ta4j.core.{BarSeries, BaseStrategy, Strategy}
 
 import scala.jdk.CollectionConverters._
@@ -38,9 +40,11 @@ import org.ta4j.core.indicators.keltner.{
   KeltnerChannelMiddleIndicator,
   KeltnerChannelUpperIndicator
 }
+import org.ta4j.core.indicators.volume.ChaikinOscillatorIndicator
 import org.ta4j.core.num.{NaN, Num}
 
 import java.time.{LocalTime, ZonedDateTime}
+import scala.language.implicitConversions
 
 object Strategies {
   val doNothing: Strategy = new BaseStrategy(
@@ -48,65 +52,10 @@ object Strategies {
     BooleanRule.FALSE
   )
 
-  val emaCrossAndRsiStrategy: BarSeries => FullStrategy = series => {
-    //todo consider time zone here...
-    val tradeTimeRange = new TimeRange(
-      LocalTime.of(7, 0),
-      LocalTime.of(16, 0)
-    )
-    val time: AbstractIndicator[ZonedDateTime] = new DateTimeIndicator(series)
-    val hasData: AbstractIndicator[Boolean] = new HasDataIndicator(40, series)
-    val closePrice = new ClosePriceIndicator(series)
-    val rsi = new RSIIndicator(closePrice, 14)
-    val emaFast = new EMAIndicator(closePrice, 15)
-    val emaSlow = new EMAIndicator(closePrice, 40)
-    val exitRule =
-      new StopLossRule(closePrice, 0.5).or(
-        new StopGainRule(closePrice, 0.5)
-      )
-    val coreLongRule = new ChainRule(
-      new BooleanRule(true),
-      new ChainLink(new CrossedUpIndicatorRule(emaFast, emaSlow), 0),
-      new ChainLink(new CrossedUpIndicatorRule(rsi, 40), 5)
-    )
-    val timeRule =
-      new TimeRangeRule(Seq(tradeTimeRange).asJava, time.asInstanceOf[DateTimeIndicator])
-    val entryLongRule =
-      new BooleanIndicatorRule(hasData.map(boolean2Boolean)) &
-        timeRule &
-        coreLongRule
-    val buyingStrategy = new BaseStrategy(entryLongRule, exitRule, 40)
-    val entryShortRule =
-      new ChainRule(
-        new BooleanRule(true),
-        new ChainLink(new CrossedDownIndicatorRule(emaFast, emaSlow), 0),
-        new ChainLink(new CrossedDownIndicatorRule(rsi, 60), 5)
-      )
-    val sellingStrategy = new BaseStrategy(entryShortRule, exitRule)
-    FullStrategy(
-      longStrategy = buyingStrategy,
-      shortStrategy = sellingStrategy,
-      priceIndicators = Map(
-        "close price" -> IndicatorInfo(closePrice),
-        "ema fast" -> IndicatorInfo(emaFast),
-        "ema slow" -> IndicatorInfo(emaSlow)
-      ),
-      oscillators = Map(
-//        "rsi" -> rsi,
-//        "stable" -> hasData.map {
-//          if (_) series.numOf(50) else series.numOf(0)
-//        },
-//        "time" -> time
-//          .map(_.toLocalTime)
-//          .map(t => !t.isBefore(tradeTimeRange.getFrom) && !t.isAfter(tradeTimeRange.getTo))
-//          .map {
-//            if (_) series.numOf(25) else series.numOf(0)
-//          }
-      )
-    )
-  }
-
   val test: BarSeries => FullStrategy = series => {
+    def num(number: Number): Num =
+      series.numOf(number)
+
     //todo consider time zone here...
     val tradeTimeRange = new TimeRange(
       LocalTime.of(7, 0),
@@ -114,6 +63,7 @@ object Strategies {
     )
     val time: AbstractIndicator[ZonedDateTime] = new DateTimeIndicator(series)
     val closePrice = new ClosePriceIndicator(series)
+    val volumeIndicator: AbstractIndicator[Num] = new VolumeIndicator(series)
     val extremumWindowSize = 30
     val hasData: AbstractIndicator[Boolean] = new HasDataIndicator(extremumWindowSize, series)
     val _extremum: AbstractIndicator[Option[Extremum]] =
@@ -128,6 +78,7 @@ object Strategies {
       extremum.shifted(extremumWindowSize / 2, None)
     val visualMinExtr = visualExtremum.map(_.collect { case extr: Extremum.Min => extr })
     val visualMaxExtr = visualExtremum.map(_.collect { case extr: Extremum.Max => extr })
+    val minRelativeWidth = num(0.002)//todo...
     val channel: AbstractIndicator[Option[Channel]] = ChannelIndicator(
       baseIndicator = closePrice,
       extremumIndicator = extremum,
@@ -137,7 +88,7 @@ object Strategies {
       maxError = 0.0009 //0.0007
     ).filter(ChannelUtils.isParallel(maxDelta = 0.6)) //todo?
 //      .filter(ChannelUtils.isWide(minPercent = 0.05))
-
+//todo check we are close to lower bound
     val rsi = new RSIIndicator(closePrice, 14)
 
     //TODO was (6, 0.5). (2, 0.2) - better?
@@ -152,11 +103,10 @@ object Strategies {
     val visualUpperBoundIndicator =
       visualChannel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
 
-    val halfChannel =
-      new DivideIndicator(
-        new DifferenceIndicator(upperBoundIndicator, lowerBoundIndicator),
-        new ConstantIndicator[Num](series, series.numOf(2))
-      )
+    val channelDiffIndicator: AbstractIndicator[Num] =
+      new DifferenceIndicator(upperBoundIndicator, lowerBoundIndicator)
+    val halfChannel = channelDiffIndicator.map(_.dividedBy(num(2)))
+
     val channelIsDefinedRule = new BooleanIndicatorRule(channel.map(_.isDefined))
     val exitLongRule =
       //todo consider channel width
@@ -181,6 +131,19 @@ object Strategies {
           channelIsDefinedRule.negation
         )
 
+    val relativeWidthIndicator: AbstractIndicator[Num] =
+      for {
+        l <- lowerBoundIndicator
+        u <- upperBoundIndicator
+      } yield u.minus(l).dividedBy(u)
+
+    val priceIsNotTooHigh: AbstractIndicator[java.lang.Boolean] =
+      for {
+        price <- closePrice: AbstractIndicator[Num]
+        bound <-
+          lowerBoundIndicator \+\ halfChannel //channelDiffIndicator.map(_.dividedBy(num(10)))
+      } yield price.isLessThan(bound)
+
     val coreLongRule =
       channelIsDefinedRule &
         new BooleanIndicatorRule(
@@ -193,7 +156,10 @@ object Strategies {
             )
           )
         ) &
-        new CrossedUpIndicatorRule(closePrice, lowerBoundIndicator)
+        new CrossedUpIndicatorRule(closePrice, lowerBoundIndicator) &
+        new BooleanIndicatorRule(priceIsNotTooHigh) &
+        new BooleanIndicatorRule(volumeIndicator.map(_.isGreaterThan(num(500)))) & //TODO research... maybe use some derived ind?
+        new BooleanIndicatorRule(relativeWidthIndicator.map(_.isGreaterThan(minRelativeWidth)))
     val coreShortRule = new CrossedDownIndicatorRule(closePrice, upperBoundIndicator)
     val timeRule =
       new TimeRangeRule(Seq(tradeTimeRange).asJava, time.asInstanceOf[DateTimeIndicator])
@@ -232,8 +198,10 @@ object Strategies {
         "upperBound" -> IndicatorInfo(visualUpperBoundIndicator)
       ),
       oscillators = Map(
-        "rsi" -> IndicatorInfo(rsi),
-        "hasData" -> IndicatorInfo(hasData.map(if (_) series.numOf(50) else series.numOf(0)))
+//        "rsi" -> IndicatorInfo(rsi),
+//        "hasData" -> IndicatorInfo(hasData.map(if (_) num(50) else series.num(0))),
+//        "width" -> IndicatorInfo(relativeWidthIndicator),
+        "volume" -> IndicatorInfo(volumeIndicator)
       )
     )
   }
