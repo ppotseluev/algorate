@@ -114,10 +114,16 @@ object Strategies {
     )
     val time: AbstractIndicator[ZonedDateTime] = new DateTimeIndicator(series)
     val closePrice = new ClosePriceIndicator(series)
-    val extremumWindowSize = 40
+    val extremumWindowSize = 30
     val hasData: AbstractIndicator[Boolean] = new HasDataIndicator(extremumWindowSize, series)
-    val extremum: AbstractIndicator[Option[Extremum]] =
+    val _extremum: AbstractIndicator[Option[Extremum]] =
       LastLocalExtremumIndicator(closePrice, extremumWindowSize)
+    val extremum: AbstractIndicator[Option[Extremum]] = _extremum
+//      new FilteredExtremumIndicator(
+//        extremumIndicator = _extremum,
+//        minIndexDelta = 10,
+//        minPercent = 0.01
+//      )
     val visualExtremum: AbstractIndicator[Option[Extremum]] =
       extremum.shifted(extremumWindowSize / 2, None)
     val visualMinExtr = visualExtremum.map(_.collect { case extr: Extremum.Min => extr })
@@ -130,7 +136,7 @@ object Strategies {
 //      maxError = 3
       maxError = 0.0009 //0.0007
     ).filter(ChannelUtils.isParallel(maxDelta = 0.6)) //todo?
-//      .filter(ChannelUtils.isWide(minPercent = 0.1))
+//      .filter(ChannelUtils.isWide(minPercent = 0.05))
 
     val rsi = new RSIIndicator(closePrice, 14)
 
@@ -177,7 +183,6 @@ object Strategies {
 
     val coreLongRule =
       channelIsDefinedRule &
-      new BooleanIndicatorRule(lowerBoundIndicator.map(!_.isNaN)) & // TODO
         new BooleanIndicatorRule(
           channel.map(
             _.exists(
@@ -202,6 +207,7 @@ object Strategies {
         coreShortRule
     val buyingStrategy = new BaseStrategy(entryLongRule, exitLongRule)
 //    val sellingStrategy = new BaseStrategy(entryShortRule, exitRule)
+//    val ema = new EMAIndicator(closePrice, 3 * extremumWindowSize)
     FullStrategy(
       longStrategy = buyingStrategy,
       shortStrategy = doNothing,
@@ -227,7 +233,7 @@ object Strategies {
       ),
       oscillators = Map(
         "rsi" -> IndicatorInfo(rsi),
-        "hasData" -> IndicatorInfo(hasData.map(if(_) series.numOf(50) else series.numOf(0)))
+        "hasData" -> IndicatorInfo(hasData.map(if (_) series.numOf(50) else series.numOf(0)))
       )
     )
   }

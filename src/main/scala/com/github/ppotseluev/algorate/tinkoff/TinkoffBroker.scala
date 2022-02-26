@@ -6,6 +6,7 @@ import cats.syntax.applicative._
 import cats.syntax.functor._
 import cats.syntax.option._
 import cats.syntax.parallel._
+import cats.syntax.traverse._
 import com.github.ppotseluev.algorate.core.{Bar, Broker, Point}
 import com.github.ppotseluev.algorate.model._
 import com.github.ppotseluev.algorate.util.{Interval, fromJavaFuture, split}
@@ -94,6 +95,7 @@ class TinkoffBroker[F[_]: Parallel](
       offset = 1
     )
     intervals.parTraverse(get).map(_.flatten)
+//    intervals.traverse(get).map(_.flatten)
   }
 
   private def makeStream(
