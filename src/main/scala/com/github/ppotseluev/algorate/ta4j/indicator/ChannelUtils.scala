@@ -6,7 +6,7 @@ import org.apache.commons.math3.analysis.polynomials.PolynomialFunction
 object ChannelUtils {
 
   def isParallel(maxDelta: Double)(channel: Channel): Boolean =
-    (channel.lowerBoundApproximation.func, channel.uppperBoundApproximation.func) match {
+    (channel.lowerBoundApproximation.func, channel.upperBoundApproximation.func) match {
       case (p1: PolynomialFunction, p2: PolynomialFunction) =>
         (p1.getCoefficients, p2.getCoefficients) match {
           case (Array(_, k1), Array(_, k2)) =>
@@ -17,7 +17,7 @@ object ChannelUtils {
     }
 
   def isWide(minPercent: Double)(channel: Channel): Boolean =
-    (channel.lowerBoundApproximation.func, channel.uppperBoundApproximation.func) match {
+    (channel.lowerBoundApproximation.func, channel.upperBoundApproximation.func) match {
       case (p1: PolynomialFunction, p2: PolynomialFunction) =>
         (p1.getCoefficients, p2.getCoefficients) match {
           case (Array(a1, _), Array(a2, _)) =>

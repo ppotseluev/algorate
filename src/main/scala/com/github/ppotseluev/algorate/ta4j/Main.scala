@@ -11,12 +11,13 @@ import java.time.OffsetDateTime
 
 object Main extends App {
   val seriesProvider = new BarSeriesProvider[IO](args.head)
-  val ticker = "YNDX".taggedWith[Tags.Ticker]
+//  val ticker = "YNDX".taggedWith[Tags.Ticker]
+//  val ticker = "CHMF".taggedWith[Tags.Ticker]
+  val ticker = "POLY".taggedWith[Tags.Ticker]
   val interval = Interval.minutes(
-    OffsetDateTime.parse("2021-07-09T10:30+03:00"),
-    OffsetDateTime.parse("2021-10-09T23:30+03:00")
+    OffsetDateTime.parse("2021-02-09T10:30+03:00"),
+    OffsetDateTime.parse("2021-10-22T23:30+03:00")
   )
-    //.map(_.plusDays(8))
   val series = seriesProvider.getBarSeries(ticker, interval)
   val strategy = Strategies.test
   val tester = new StrategyTester(strategy)
@@ -25,7 +26,8 @@ object Main extends App {
   Charts.display(
     strategy,
     series,
+//    None,
     Some(result),
-    "results"
+    title = ticker
   )
 }
