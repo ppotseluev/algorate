@@ -1,4 +1,4 @@
-package com.github.ppotseluev.algorate.ai
+package com.github.ppotseluev.algorate.deprecated.ai
 
 import cats.data.NonEmptyList
 import com.github.ppotseluev.algorate.core.TradingSignal.Decision

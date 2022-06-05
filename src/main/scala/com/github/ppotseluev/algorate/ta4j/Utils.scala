@@ -11,7 +11,7 @@ object Utils {
   def convertBar(bar: Bar): Ta4jBar = {
     val Bar(openPrice, closePrice, lowPrice, highPrice, volume, endTime, duration) = bar
     BaseBar
-      .builder[Double](d => DoubleNum.valueOf(d.toFloat), null)
+      .builder[BigDecimal](d => DoubleNum.valueOf(d.toFloat), null)
       .openPrice(openPrice)
       .closePrice(closePrice)
       .lowPrice(lowPrice)

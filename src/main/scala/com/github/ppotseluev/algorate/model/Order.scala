@@ -13,13 +13,12 @@ case class Order(
 ) {
   def isClosing: Boolean = info.closingOrderType.isDefined
 
-  def estimatedCost: Double = {
-    val price = details match {
-      case Details.Limit(orderPrice) => orderPrice
-      case Details.Market            => info.point.value
-    }
-    price * lots
+  def price: Price = details match {
+    case Details.Limit(orderPrice) => orderPrice
+    case Details.Market            => info.point.value
   }
+
+  def estimatedCost: BigDecimal = price * lots
 
   require(lots > 0, "lots must be positive")
 }

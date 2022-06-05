@@ -1,7 +1,7 @@
-package com.github.ppotseluev.algorate.test
+package com.github.ppotseluev.algorate.deprecated.test
 
 import com.github.ppotseluev.algorate.core.TradingSignal
-import com.github.ppotseluev.algorate.test.TestBroker.TradingStatistics
+import TestBroker.TradingStatistics
 
 trait TradingSignalTester[F[_]] {
   def test(signal: TradingSignal): F[TradingStatistics]
