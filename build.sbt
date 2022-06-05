@@ -19,8 +19,7 @@ lazy val root = (project in file("."))
 useCoursier := false
 
 libraryDependencies ++= Seq(
-  "ru.tinkoff.invest" % "openapi-java-sdk-core" % Versions.tinkoffInvestApi,
-  "ru.tinkoff.invest" % "openapi-java-sdk-java8" % Versions.tinkoffInvestApi,
+  "ru.tinkoff.piapi" % "java-sdk-core" % Versions.tinkoffInvestApi,
   "co.fs2" %% "fs2-reactive-streams" % Versions.fs2,
   "ch.qos.logback" % "logback-classic" % Versions.logback,
   "com.typesafe.scala-logging" %% "scala-logging" % Versions.scalaLogging,
@@ -33,5 +32,6 @@ libraryDependencies ++= Seq(
   "org.ta4j" % "ta4j-core" % Versions.ta4j,
   "org.ta4j" % "ta4j-examples" % Versions.ta4j,
   "org.typelevel" %% "kittens" % Versions.kittens,
-  "org.apache.commons" % "commons-math3" % Versions.apacheMath
+  "org.apache.commons" % "commons-math3" % Versions.apacheMath,
+  "org.scalameta" %% "munit" % Versions.munit % Test
 )

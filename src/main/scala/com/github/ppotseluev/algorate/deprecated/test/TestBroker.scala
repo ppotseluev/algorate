@@ -1,10 +1,10 @@
-package com.github.ppotseluev.algorate.test
+package com.github.ppotseluev.algorate.deprecated.test
 
 import cats.effect.Async
 import com.github.ppotseluev.algorate.core.{Bar, Broker}
 import com.github.ppotseluev.algorate.model.ClosePositionOrder.Type
 import com.github.ppotseluev.algorate.model._
-import com.github.ppotseluev.algorate.test.TestBroker.TradingStatistics
+import TestBroker.TradingStatistics
 import com.github.ppotseluev.algorate.util.Interval
 import com.softwaremill.tagging._
 

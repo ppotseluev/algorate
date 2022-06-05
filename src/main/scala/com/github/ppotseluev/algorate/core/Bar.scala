@@ -10,7 +10,7 @@ case class Bar(
     closePrice: Price,
     lowPrice: Price,
     highPrice: Price,
-    volume: Int,
+    volume: Long,
     endTime: OffsetDateTime,
     duration: FiniteDuration
 )
