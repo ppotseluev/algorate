@@ -2,20 +2,19 @@ package com.github.ppotseluev.algorate.ta4j.indicator
 
 import cats.data.NonEmptyList
 import cats.syntax.functor._
-import com.github.ppotseluev.algorate.ta4j.indicator.ChannelIndicator.{
-  Bounds,
-  CalculatedChannel,
-  Channel,
-  ChannelState,
-  Section,
-  NeedNewChannel
-}
+import com.github.ppotseluev.algorate.ta4j.indicator.ChannelIndicator.Bounds
+import com.github.ppotseluev.algorate.ta4j.indicator.ChannelIndicator.CalculatedChannel
+import com.github.ppotseluev.algorate.ta4j.indicator.ChannelIndicator.Channel
+import com.github.ppotseluev.algorate.ta4j.indicator.ChannelIndicator.ChannelState
+import com.github.ppotseluev.algorate.ta4j.indicator.ChannelIndicator.NeedNewChannel
+import com.github.ppotseluev.algorate.ta4j.indicator.ChannelIndicator.Section
 import com.github.ppotseluev.algorate.ta4j.indicator.LastLocalExtremumIndicator.Extremum
+import com.github.ppotseluev.algorate.util.Approximator
 import com.github.ppotseluev.algorate.util.Approximator.Approximation
-import com.github.ppotseluev.algorate.util.{Approximator, WeightedPoint}
-import org.ta4j.core.indicators.{AbstractIndicator, RecursiveCachedIndicator}
+import com.github.ppotseluev.algorate.util.WeightedPoint
+import org.ta4j.core.indicators.AbstractIndicator
+import org.ta4j.core.indicators.RecursiveCachedIndicator
 import org.ta4j.core.num.Num
-
 import scala.reflect.ClassTag
 
 class ChannelIndicator private (

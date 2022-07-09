@@ -4,7 +4,7 @@ import enumeratum._
 
 sealed trait OperationType extends EnumEntry {
   def reverse: OperationType = this match {
-    case OperationType.Buy => OperationType.Sell
+    case OperationType.Buy  => OperationType.Sell
     case OperationType.Sell => OperationType.Buy
   }
 }

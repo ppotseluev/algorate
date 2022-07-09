@@ -11,6 +11,8 @@ object Versions {
   val sext = "0.2.6"
   val ta4j = "0.14"
   val apacheMath = "3.6.1"
+  val upperbound = "0.4.0"
+  val mulesCache = "0.5.0"
 
   val munit = "0.7.29"
 }

@@ -1,6 +1,8 @@
 package com.github.ppotseluev.algorate.util
 
-import java.time.{Instant, OffsetDateTime, ZoneId}
+import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.ZoneId
 import scala.collection.immutable.NumericRange
 
 case class Interval[T, N](from: T, to: T)(implicit num: Integral[N], val bc: BiConverter[T, N]) {

@@ -1,6 +1,7 @@
 package com.github.ppotseluev.algorate.ta4j.indicator
 
-import com.github.ppotseluev.algorate.ta4j.indicator.ChannelIndicator.{Channel, Section}
+import com.github.ppotseluev.algorate.ta4j.indicator.ChannelIndicator.Channel
+import com.github.ppotseluev.algorate.ta4j.indicator.ChannelIndicator.Section
 import org.ta4j.core.Indicator
 import org.ta4j.core.indicators.CachedIndicator
 
@@ -13,7 +14,7 @@ class VisualChannelIndicator(channelIndicator: Indicator[Option[Channel]])
     }
 
   private val approximations = channels.map(_._2.lowerBoundApproximation).toSet
-  println(s"${approximations.size} channels found")
+  log.debug(s"${approximations.size} channels found")
 
   override protected def calculate(index: Int): Option[Channel] = {
     channels

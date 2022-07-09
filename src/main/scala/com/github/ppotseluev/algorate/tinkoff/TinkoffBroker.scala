@@ -1,40 +1,33 @@
 package com.github.ppotseluev.algorate.tinkoff
 
-import com.github.ppotseluev.algorate.util._
 import cats.Parallel
 import cats.effect.kernel.Async
 import cats.effect.std.UUIDGen
-import cats.syntax.applicative._
-import cats.syntax.functor._
 import cats.syntax.flatMap._
-import cats.syntax.option._
+import cats.syntax.functor._
 import cats.syntax.parallel._
-import cats.syntax.traverse._
-import com.github.ppotseluev.algorate.core.{Bar, Broker, Point}
+import com.github.ppotseluev.algorate.core.Bar
+import com.github.ppotseluev.algorate.core.Broker
 import com.github.ppotseluev.algorate.model.Order.Type
 import com.github.ppotseluev.algorate.model._
-import com.github.ppotseluev.algorate.util.{Interval, fromJavaFuture, split}
+import com.github.ppotseluev.algorate.util._
 import com.google.protobuf.Timestamp
 import com.softwaremill.tagging._
-import fs2.Stream
-import fs2.interop.reactivestreams
-import ru.tinkoff.piapi.contract.v1.{
-  CandleInterval,
-  HistoricCandle,
-  OrderDirection,
-  OrderType,
-  Quotation
-}
-import ru.tinkoff.piapi.core.InvestApi
-
-import java.time.{Instant, OffsetDateTime, ZoneId}
-import java.util.UUID
-import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration}
-import scala.jdk.CollectionConverters._
+import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.ZoneId
+import ru.tinkoff.piapi.contract.v1.CandleInterval
+import ru.tinkoff.piapi.contract.v1.HistoricCandle
+import ru.tinkoff.piapi.contract.v1.OrderDirection
+import ru.tinkoff.piapi.contract.v1.OrderType
+import ru.tinkoff.piapi.contract.v1.Quotation
+import ru.tinkoff.piapi.contract.v1.Share
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.FiniteDuration
 
 //TODO hard-coded candles interval 1min
 class TinkoffBroker[F[_]: Parallel](
-    api: InvestApi,
+    api: TinkoffApi[F],
     brokerAccountId: BrokerAccountId
 )(implicit F: Async[F])
     extends Broker[F] {
@@ -42,8 +35,8 @@ class TinkoffBroker[F[_]: Parallel](
   override def placeOrder(order: Order): F[OrderId] =
     for {
       orderId <- UUIDGen.randomString //TODO make idempotent
-      _ <- fromJavaFuture( //TODO handle returned result
-        api.getOrdersService.postOrder(
+      _ <- //TODO handle returned result
+        api.postOrder(
           order.instrumentId,
           order.lots,
           price(order),
@@ -52,7 +45,6 @@ class TinkoffBroker[F[_]: Parallel](
           orderType(order),
           orderId
         )
-      )
     } yield orderId.taggedWith[Tags.OrderId]
 
   private def price(order: Order): Quotation = {
@@ -102,15 +94,15 @@ class TinkoffBroker[F[_]: Parallel](
       interval: Interval.Time
   ): F[Seq[Bar]] = {
     def get(interval: Interval.Time) = {
-      val futureResult = api.getMarketDataService.getCandles(
-        instrumentId,
-        interval.from.toInstant,
-        interval.to.toInstant,
-        CandleInterval.CANDLE_INTERVAL_1_MIN
-      )
-      fromJavaFuture(futureResult)
+      api
+        .getCandles(
+          instrumentId,
+          interval.from.toInstant,
+          interval.to.toInstant,
+          CandleInterval.CANDLE_INTERVAL_1_MIN
+        )
         .map(
-          _.asScala.toSeq.map(convert(1.minute, interval.from.getOffset))
+          _.map(convert(1.minute, interval.from.getOffset))
         )
     }
     val intervals = split[OffsetDateTime, Long](
@@ -118,8 +110,7 @@ class TinkoffBroker[F[_]: Parallel](
       range = 1.day.toMinutes,
       offset = 1
     )
-    //   TODO intervals.parTraverse(get).map(_.flatten)
-    intervals.traverse(get).map(_.flatten)
+    intervals.parTraverse(get).map(_.flatten)
   }
 
   //  private def makeStream(
@@ -161,4 +152,14 @@ class TinkoffBroker[F[_]: Parallel](
   //    }
   //  }
 
+  override val getAllShares: F[List[Share]] =
+    api.getAllShares
+
+  override def getShare(ticker: Ticker): F[Share] =
+    getAllShares
+      .map(_.filter(_.getTicker == ticker))
+      .map { relatedShares =>
+        require(relatedShares.size == 1, s"${relatedShares.size} shares found for ticker $ticker")
+        relatedShares.head
+      }
 }

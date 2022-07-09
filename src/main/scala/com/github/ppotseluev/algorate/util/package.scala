@@ -2,7 +2,6 @@ package com.github.ppotseluev.algorate
 
 import cats.effect.Sync
 import cats.effect.kernel.Async
-
 import java.util.concurrent.CompletableFuture
 import scala.annotation.tailrec
 import scala.collection.immutable.NumericRange

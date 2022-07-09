@@ -2,21 +2,16 @@ package com.github.ppotseluev.algorate.util
 
 import cats.data.NonEmptyList
 import com.github.ppotseluev.algorate.util.Approximator.Approximation
+import java.util
 import org.apache.commons.math3.analysis.UnivariateFunction
 import org.apache.commons.math3.analysis.polynomials.PolynomialFunction
-import org.apache.commons.math3.fitting.leastsquares.{
-  LeastSquaresProblem,
-  LevenbergMarquardtOptimizer
-}
-import org.apache.commons.math3.fitting.{
-  AbstractCurveFitter,
-  PolynomialCurveFitter,
-  WeightedObservedPoint
-}
+import org.apache.commons.math3.fitting.AbstractCurveFitter
+import org.apache.commons.math3.fitting.PolynomialCurveFitter
+import org.apache.commons.math3.fitting.WeightedObservedPoint
+import org.apache.commons.math3.fitting.leastsquares.LeastSquaresProblem
+import org.apache.commons.math3.fitting.leastsquares.LevenbergMarquardtOptimizer
 import org.apache.commons.math3.linear.ArrayRealVector
 import org.apache.commons.math3.util.FastMath
-
-import java.util
 import scala.jdk.CollectionConverters._
 
 class Approximator(

@@ -5,7 +5,6 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import org.ta4j.core.indicators.AbstractIndicator
 import org.ta4j.core.num.Num
-
 import scala.util.Try
 
 package object indicator {

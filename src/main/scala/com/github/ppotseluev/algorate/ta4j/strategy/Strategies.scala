@@ -1,50 +1,34 @@
 package com.github.ppotseluev.algorate.ta4j.strategy
 
-import com.github.ppotseluev.algorate.ta4j.indicator.{HasDataIndicator, LastLocalExtremumIndicator}
-import org.ta4j.core.indicators.helpers.{
-  ClosePriceIndicator,
-  ConstantIndicator,
-  DifferenceIndicator,
-  FixedDecimalIndicator,
-  SumIndicator,
-  VolumeIndicator
-}
-import org.ta4j.core.indicators.{
-  AbstractIndicator,
-  DPOIndicator,
-  DateTimeIndicator,
-  EMAIndicator,
-  FisherIndicator,
-  KSTIndicator,
-  ParabolicSarIndicator,
-  RSIIndicator
-}
-import org.ta4j.core.rules.TimeRangeRule.TimeRange
-import org.ta4j.core.rules.helper.ChainLink
-import org.ta4j.core.rules._
-import cats.syntax.functor._
 import cats.syntax.flatMap._
-import org.ta4j.core.{BarSeries, BaseStrategy, Strategy}
-
-import scala.jdk.CollectionConverters._
+import cats.syntax.functor._
 import com.github.ppotseluev.algorate.ta4j._
 import com.github.ppotseluev.algorate.ta4j.indicator.ChannelIndicator.Channel
-import com.github.ppotseluev.algorate.ta4j.indicator._
+import com.github.ppotseluev.algorate.ta4j.indicator.HasDataIndicator
+import com.github.ppotseluev.algorate.ta4j.indicator.LastLocalExtremumIndicator
 import com.github.ppotseluev.algorate.ta4j.indicator.LastLocalExtremumIndicator.Extremum
-import com.github.ppotseluev.algorate.ta4j.strategy.FullStrategy.{IndicatorInfo, Representation}
+import com.github.ppotseluev.algorate.ta4j.indicator._
+import com.github.ppotseluev.algorate.ta4j.strategy.FullStrategy.IndicatorInfo
+import com.github.ppotseluev.algorate.ta4j.strategy.FullStrategy.Representation
 import com.github.ppotseluev.algorate.util.Approximator
-import com.github.ppotseluev.algorate.util.Approximator.Approximation
+import java.time.LocalTime
+import java.time.ZonedDateTime
 import org.apache.commons.math3.analysis.polynomials.PolynomialFunction
-import org.ta4j.core.indicators.keltner.{
-  KeltnerChannelLowerIndicator,
-  KeltnerChannelMiddleIndicator,
-  KeltnerChannelUpperIndicator
-}
-import org.ta4j.core.indicators.volume.ChaikinOscillatorIndicator
-import org.ta4j.core.num.{NaN, Num}
-
-import java.time.{LocalTime, ZonedDateTime}
-import scala.language.implicitConversions
+import org.ta4j.core.BarSeries
+import org.ta4j.core.BaseStrategy
+import org.ta4j.core.Strategy
+import org.ta4j.core.indicators.AbstractIndicator
+import org.ta4j.core.indicators.DateTimeIndicator
+import org.ta4j.core.indicators.RSIIndicator
+import org.ta4j.core.indicators.helpers.ClosePriceIndicator
+import org.ta4j.core.indicators.helpers.DifferenceIndicator
+import org.ta4j.core.indicators.helpers.SumIndicator
+import org.ta4j.core.indicators.helpers.VolumeIndicator
+import org.ta4j.core.num.NaN
+import org.ta4j.core.num.Num
+import org.ta4j.core.rules.TimeRangeRule.TimeRange
+import org.ta4j.core.rules._
+import scala.jdk.CollectionConverters._
 
 object Strategies {
   val doNothing: Strategy = new BaseStrategy(
@@ -78,7 +62,7 @@ object Strategies {
       extremum.shifted(extremumWindowSize / 2, None)
     val visualMinExtr = visualExtremum.map(_.collect { case extr: Extremum.Min => extr })
     val visualMaxExtr = visualExtremum.map(_.collect { case extr: Extremum.Max => extr })
-    val minRelativeWidth = num(0.002)//todo...
+    val minRelativeWidth = num(0.002) //todo...
     val channel: AbstractIndicator[Option[Channel]] = ChannelIndicator(
       baseIndicator = closePrice,
       extremumIndicator = extremum,
@@ -158,7 +142,9 @@ object Strategies {
         ) &
         new CrossedUpIndicatorRule(closePrice, lowerBoundIndicator) &
         new BooleanIndicatorRule(priceIsNotTooHigh) &
-        new BooleanIndicatorRule(volumeIndicator.map(_.isGreaterThan(num(500)))) & //TODO research... maybe use some derived ind?
+        new BooleanIndicatorRule(
+          volumeIndicator.map(_.isGreaterThan(num(500)))
+        ) & //TODO research... maybe use some derived ind?
         new BooleanIndicatorRule(relativeWidthIndicator.map(_.isGreaterThan(minRelativeWidth)))
     val coreShortRule = new CrossedDownIndicatorRule(closePrice, upperBoundIndicator)
     val timeRule =

@@ -6,10 +6,16 @@ scalacOptions := Seq(
   "-Ymacro-annotations",
   "-language:higherKinds",
   "-Xfatal-warnings",
-  "-deprecation"
+  "-deprecation",
+  "-Wunused:imports"
 )
 
 ThisBuild / resolvers += Resolver.mavenLocal
+
+ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0"
+
+ThisBuild / semanticdbEnabled := true
+ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
 
 lazy val root = (project in file("."))
   .settings(
@@ -25,7 +31,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.scala-logging" %% "scala-logging" % Versions.scalaLogging,
   "com.softwaremill.common" %% "tagging" % Versions.tagging,
   "com.beachape" %% "enumeratum" % Versions.enumeratum,
-  "com.github.ppotseluev" % "eann" % Versions.eann intransitive(),
+//  "com.github.ppotseluev" % "eann" % Versions.eann intransitive (),
   "org.openjfx" % "javafx-controls" % Versions.javafx classifier "mac",
   "org.openjfx" % "javafx-graphics" % Versions.javafx classifier "mac",
   "org.openjfx" % "javafx-base" % Versions.javafx classifier "mac",
@@ -33,5 +39,7 @@ libraryDependencies ++= Seq(
   "org.ta4j" % "ta4j-examples" % Versions.ta4j,
   "org.typelevel" %% "kittens" % Versions.kittens,
   "org.apache.commons" % "commons-math3" % Versions.apacheMath,
-  "org.scalameta" %% "munit" % Versions.munit % Test
+  "org.scalameta" %% "munit" % Versions.munit % Test,
+  "org.systemfw" %% "upperbound" % Versions.upperbound,
+  "io.chrisdavenport" %% "mules" % Versions.mulesCache
 )

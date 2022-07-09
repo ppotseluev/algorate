@@ -1,7 +1,8 @@
 package com.github.ppotseluev.algorate.ta4j.indicator
 
 import com.github.ppotseluev.algorate.ta4j.indicator.LastLocalExtremumIndicator.Extremum
-import org.ta4j.core.indicators.{AbstractIndicator, CachedIndicator}
+import org.ta4j.core.indicators.AbstractIndicator
+import org.ta4j.core.indicators.CachedIndicator
 
 class FilteredExtremumIndicator(
     extremumIndicator: AbstractIndicator[Option[Extremum]],
