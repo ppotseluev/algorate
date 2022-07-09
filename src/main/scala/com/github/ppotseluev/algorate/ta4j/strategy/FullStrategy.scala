@@ -1,8 +1,9 @@
 package com.github.ppotseluev.algorate.ta4j.strategy
 
 import com.github.ppotseluev.algorate.ta4j.strategy.FullStrategy.IndicatorInfo
+import org.ta4j.core.Indicator
+import org.ta4j.core.Strategy
 import org.ta4j.core.num.Num
-import org.ta4j.core.{Indicator, Strategy}
 
 case class FullStrategy(
     longStrategy: Strategy,
@@ -19,5 +20,8 @@ object FullStrategy {
     case object Points extends Representation
   }
 
-  case class IndicatorInfo(indicator: Indicator[Num], representation: Representation = Representation.Line)
+  case class IndicatorInfo(
+      indicator: Indicator[Num],
+      representation: Representation = Representation.Line
+  )
 }

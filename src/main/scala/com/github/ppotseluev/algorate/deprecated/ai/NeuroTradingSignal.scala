@@ -1,14 +1,14 @@
 package com.github.ppotseluev.algorate.deprecated.ai
 
 import cats.data.NonEmptyList
+import com.github.ppotseluev.algorate.core.Point
+import com.github.ppotseluev.algorate.core.TradingSignal
 import com.github.ppotseluev.algorate.core.TradingSignal.Decision
-import com.github.ppotseluev.algorate.core.{Point, TradingSignal}
-import com.github.ppotseluev.algorate.model.{OperationType, Price, Tags}
-import com.github.ppotseluev.algorate.util.LimitedQueue
+import com.github.ppotseluev.algorate.model.OperationType
+import com.github.ppotseluev.algorate.model.Price
+import com.github.ppotseluev.algorate.model.Tags
 import com.github.ppotseluev.eann.neural.Net
 import com.softwaremill.tagging.Tagger
-
-import scala.collection.mutable
 
 class NeuroTradingSignal(
     net: Net,

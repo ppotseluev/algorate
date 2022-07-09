@@ -1,7 +1,6 @@
 package com.github.ppotseluev.algorate.model
 
 import enumeratum._
-
 import scala.concurrent.duration._
 //todo remove?
 sealed trait CandleResolution extends EnumEntry {

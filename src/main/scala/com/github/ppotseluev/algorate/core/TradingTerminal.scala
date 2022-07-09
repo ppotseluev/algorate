@@ -1,6 +1,8 @@
 package com.github.ppotseluev.algorate.core
 
-import com.github.ppotseluev.algorate.model.{Order, OrderId, Price}
+import com.github.ppotseluev.algorate.model.Order
+import com.github.ppotseluev.algorate.model.OrderId
+import com.github.ppotseluev.algorate.model.Price
 
 trait TradingTerminal[F[_]] {
 

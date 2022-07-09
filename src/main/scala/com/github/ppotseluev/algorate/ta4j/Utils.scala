@@ -1,9 +1,11 @@
 package com.github.ppotseluev.algorate.ta4j
 
 import com.github.ppotseluev.algorate.core.Bar
+import org.ta4j.core.BarSeries
+import org.ta4j.core.BaseBar
+import org.ta4j.core.BaseBarSeriesBuilder
 import org.ta4j.core.num.DoubleNum
-import org.ta4j.core.{BarSeries, BaseBar, BaseBarSeriesBuilder, Bar => Ta4jBar}
-
+import org.ta4j.core.{Bar => Ta4jBar}
 import scala.jdk.CollectionConverters._
 import scala.jdk.DurationConverters._
 

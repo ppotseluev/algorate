@@ -1,9 +1,11 @@
 package com.github.ppotseluev.algorate.ta4j.indicator
 
-import org.ta4j.core.Indicator
 import cats.syntax.functor._
-import org.ta4j.core.indicators.{AbstractIndicator, CachedIndicator}
-import org.ta4j.core.num.{NaN, Num}
+import org.ta4j.core.Indicator
+import org.ta4j.core.indicators.AbstractIndicator
+import org.ta4j.core.indicators.CachedIndicator
+import org.ta4j.core.num.NaN
+import org.ta4j.core.num.Num
 
 object LastLocalExtremumIndicator { //TODO refactor. It's not last extremum now. ~ remove Option
   def apply(indicator: Indicator[Num], windowSize: Int): AbstractIndicator[Option[Extremum]] =

@@ -1,22 +1,35 @@
 package com.github.ppotseluev.algorate.ta4j
 
-import com.github.ppotseluev.algorate.ta4j.StrategyTester.TradingStats
 import com.github.ppotseluev.algorate.ta4j.strategy.FullStrategy
-import com.github.ppotseluev.algorate.ta4j.strategy.FullStrategy.{IndicatorInfo, Representation}
-import org.jfree.chart.axis.{DateAxis, NumberAxis}
-import org.jfree.chart.panel.CrosshairOverlay
-import org.jfree.chart.plot._
-import org.jfree.chart.renderer.xy.{StandardXYItemRenderer, XYDotRenderer, XYShapeRenderer}
-import org.jfree.chart.{ChartMouseEvent, ChartMouseListener, ChartPanel, JFreeChart}
-import org.jfree.data.time.{Minute, TimeSeries, TimeSeriesCollection}
-import org.jfree.ui.{ApplicationFrame, RectangleEdge, RefineryUtilities}
-import org.ta4j.core.Trade.TradeType
-import org.ta4j.core.num.Num
-import org.ta4j.core.{BarSeries, Indicator, Position}
-
-import java.awt.{BasicStroke, Color, Dimension}
+import com.github.ppotseluev.algorate.ta4j.strategy.FullStrategy.IndicatorInfo
+import com.github.ppotseluev.algorate.ta4j.strategy.FullStrategy.Representation
+import com.github.ppotseluev.algorate.ta4j.test.StrategyTester.TradingStats
+import java.awt.BasicStroke
+import java.awt.Color
+import java.awt.Dimension
 import java.text.SimpleDateFormat
 import java.util.Date
+import org.jfree.chart.ChartMouseEvent
+import org.jfree.chart.ChartMouseListener
+import org.jfree.chart.ChartPanel
+import org.jfree.chart.JFreeChart
+import org.jfree.chart.axis.DateAxis
+import org.jfree.chart.axis.NumberAxis
+import org.jfree.chart.panel.CrosshairOverlay
+import org.jfree.chart.plot._
+import org.jfree.chart.renderer.xy.StandardXYItemRenderer
+import org.jfree.chart.renderer.xy.XYShapeRenderer
+import org.jfree.data.time.Minute
+import org.jfree.data.time.TimeSeries
+import org.jfree.data.time.TimeSeriesCollection
+import org.jfree.ui.ApplicationFrame
+import org.jfree.ui.RectangleEdge
+import org.jfree.ui.RefineryUtilities
+import org.ta4j.core.BarSeries
+import org.ta4j.core.Indicator
+import org.ta4j.core.Position
+import org.ta4j.core.Trade.TradeType
+import org.ta4j.core.num.Num
 
 object Charts {
 

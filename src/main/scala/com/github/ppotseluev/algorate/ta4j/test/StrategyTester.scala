@@ -1,15 +1,18 @@
-package com.github.ppotseluev.algorate.ta4j
+package com.github.ppotseluev.algorate.ta4j.test
 
 import cats.Monoid
 import cats.derived.semiauto
-import com.github.ppotseluev.algorate.ta4j.StrategyTester.{Stats, TradingStats}
 import com.github.ppotseluev.algorate.ta4j.strategy.FullStrategy
+import com.github.ppotseluev.algorate.ta4j.test.StrategyTester.Stats
+import com.github.ppotseluev.algorate.ta4j.test.StrategyTester.TradingStats
+import org.ta4j.core.BarSeries
+import org.ta4j.core.BarSeriesManager
+import org.ta4j.core.Position
 import org.ta4j.core.Trade.TradeType
-import org.ta4j.core.{BarSeries, BarSeriesManager, Position, TradingRecord}
-
+import org.ta4j.core.TradingRecord
 import scala.jdk.CollectionConverters._
 
-class StrategyTester(
+case class StrategyTester(
     strategyBuilder: BarSeries => FullStrategy
 ) {
   def test(series: BarSeries): TradingStats = {
@@ -30,10 +33,7 @@ object StrategyTester {
       short: Stats
   ) {
     override def toString: String =
-      s"""
-        |LONG: total = ${long.totalClosedPositions}, win = ${long.winningPositions.toDouble / long.totalClosedPositions}
-        |SHORT: total = ${short.totalClosedPositions}, win = ${short.winningPositions.toDouble / short.totalClosedPositions}
-        |""".stripMargin
+      s"LONG (${long.totalClosedPositions}, ${long.winningPositions.toDouble / long.totalClosedPositions}), SHORT (${short.totalClosedPositions}, ${short.winningPositions.toDouble / short.totalClosedPositions})"
   }
 
   object TradingStats {

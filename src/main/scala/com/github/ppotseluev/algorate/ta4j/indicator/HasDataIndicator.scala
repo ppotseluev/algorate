@@ -2,7 +2,6 @@ package com.github.ppotseluev.algorate.ta4j.indicator
 
 import org.ta4j.core.BarSeries
 import org.ta4j.core.indicators.AbstractIndicator
-
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 

@@ -1,16 +1,17 @@
 package com.github.ppotseluev.algorate.deprecated.test
 
 import cats.effect.Async
-import com.github.ppotseluev.algorate.core.{Bar, Broker}
+import com.github.ppotseluev.algorate.core.Bar
+import com.github.ppotseluev.algorate.core.Broker
 import com.github.ppotseluev.algorate.model.ClosePositionOrder.Type
 import com.github.ppotseluev.algorate.model._
-import TestBroker.TradingStatistics
 import com.github.ppotseluev.algorate.util.Interval
 import com.softwaremill.tagging._
-
-import java.time.OffsetDateTime
 import java.util.UUID
+import ru.tinkoff.piapi.contract.v1.Share
 import scala.collection.concurrent.TrieMap
+
+import TestBroker.TradingStatistics
 
 /**
  * Implementation for strategy testing
@@ -88,6 +89,10 @@ class TestBroker[F[_]](realBroker: Broker[F])(implicit F: Async[F]) extends Brok
 //      }
     }
   }
+
+  override def getShare(ticker: Ticker): F[Share] = realBroker.getShare(ticker)
+
+  override def getAllShares: F[List[Share]] = realBroker.getAllShares
 }
 
 object TestBroker {

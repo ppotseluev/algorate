@@ -1,6 +1,7 @@
 package com.github.ppotseluev.algorate.util
 
-import cats.effect.{IO, unsafe}
+import cats.effect.IO
+import cats.effect.unsafe
 
 trait Awaitable[F[_]] {
   def await[T](f: F[T]): T
