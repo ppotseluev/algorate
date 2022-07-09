@@ -10,9 +10,12 @@ import com.github.ppotseluev.algorate.core.Bar
 import com.github.ppotseluev.algorate.core.Broker
 import com.github.ppotseluev.algorate.model.Order.Type
 import com.github.ppotseluev.algorate.model._
+import com.github.ppotseluev.algorate.util.Interval.Time.Resolution
+import com.github.ppotseluev.algorate.util.Interval.TimeInterval
 import com.github.ppotseluev.algorate.util._
 import com.google.protobuf.Timestamp
 import com.softwaremill.tagging._
+
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -22,6 +25,7 @@ import ru.tinkoff.piapi.contract.v1.OrderDirection
 import ru.tinkoff.piapi.contract.v1.OrderType
 import ru.tinkoff.piapi.contract.v1.Quotation
 import ru.tinkoff.piapi.contract.v1.Share
+
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
 
@@ -89,25 +93,32 @@ class TinkoffBroker[F[_]: Parallel](
       duration = candleDuration //todo candle can be not closed
     )
 
+  private def candleInterval(timeResolution: Interval.Time.Resolution): CandleInterval =
+    timeResolution match {
+      case Resolution.OneMinute => CandleInterval.CANDLE_INTERVAL_1_MIN
+    }
+
   override def getData(
       instrumentId: InstrumentId,
-      interval: Interval.Time
+      timeInterval: Interval.Time
   ): F[Seq[Bar]] = {
-    def get(interval: Interval.Time) = {
+    val resolution = timeInterval.resolution
+    def get(interval: TimeInterval) = {
       api
         .getCandles(
           instrumentId,
           interval.from.toInstant,
           interval.to.toInstant,
-          CandleInterval.CANDLE_INTERVAL_1_MIN
+          candleInterval(resolution)
         )
         .map(
-          _.map(convert(1.minute, interval.from.getOffset))
+          _.map(convert(resolution.duration, interval.from.getOffset))
         )
     }
+    val maxPeriod = 1.day
     val intervals = split[OffsetDateTime, Long](
-      interval = interval,
-      range = 1.day.toMinutes,
+      interval = timeInterval.interval,
+      range = (BigDecimal(maxPeriod.toNanos) / resolution.duration.toNanos).toLongExact,
       offset = 1
     )
     intervals.parTraverse(get).map(_.flatten)
