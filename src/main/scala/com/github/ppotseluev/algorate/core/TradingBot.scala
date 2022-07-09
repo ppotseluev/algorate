@@ -23,7 +23,7 @@ class TradingBot[F[_]](
     instrumentId: InstrumentId,
     source: Stream[F, Point],
     signal: TradingSignal,
-    orderLimit: Price,
+//    orderLimit: Price,
     broker: Broker[F]
 )(implicit F: Async[F])
     extends LazyLogging {
