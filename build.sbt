@@ -7,7 +7,7 @@ scalacOptions := Seq(
   "-language:higherKinds",
   "-Xfatal-warnings",
   "-deprecation",
-  "-Wunused"
+  "-Wunused:imports"
 )
 
 ThisBuild / resolvers += Resolver.mavenLocal

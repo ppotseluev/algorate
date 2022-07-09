@@ -163,7 +163,7 @@ object Charts {
         dataset: TimeSeriesCollection,
         indicators: Map[String, IndicatorInfo]
     ): Unit = {
-      indicators.foreach { case (name, IndicatorInfo(indicator, representation)) =>
+      indicators.foreach { case (name, IndicatorInfo(indicator, _)) =>
         dataset.addSeries(
           buildChartTimeSeries(series, indicator, name)
         )
