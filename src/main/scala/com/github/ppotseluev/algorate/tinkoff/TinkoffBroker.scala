@@ -8,13 +8,13 @@ import cats.syntax.functor._
 import cats.syntax.parallel._
 import com.github.ppotseluev.algorate.core.Bar
 import com.github.ppotseluev.algorate.core.Broker
+import com.github.ppotseluev.algorate.core.Broker.{CandleResolution, CandlesInterval}
 import com.github.ppotseluev.algorate.model.Order.Type
 import com.github.ppotseluev.algorate.model._
-import com.github.ppotseluev.algorate.util.Interval.Time.Resolution
-import com.github.ppotseluev.algorate.util.Interval.TimeInterval
 import com.github.ppotseluev.algorate.util._
 import com.google.protobuf.Timestamp
 import com.softwaremill.tagging._
+import org.jfree.data.time.Day
 
 import java.time.Instant
 import java.time.OffsetDateTime
@@ -26,7 +26,6 @@ import ru.tinkoff.piapi.contract.v1.OrderType
 import ru.tinkoff.piapi.contract.v1.Quotation
 import ru.tinkoff.piapi.contract.v1.Share
 
-import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
 
 //TODO hard-coded candles interval 1min
@@ -93,35 +92,29 @@ class TinkoffBroker[F[_]: Parallel](
       duration = candleDuration //todo candle can be not closed
     )
 
-  private def candleInterval(timeResolution: Interval.Time.Resolution): CandleInterval =
+  private def candleInterval(timeResolution: CandleResolution): CandleInterval =
     timeResolution match {
-      case Resolution.OneMinute => CandleInterval.CANDLE_INTERVAL_1_MIN
+      case CandleResolution.OneMinute => CandleInterval.CANDLE_INTERVAL_1_MIN
     }
 
   override def getData(
       instrumentId: InstrumentId,
-      timeInterval: Interval.Time
+      candlesInterval: CandlesInterval
   ): F[Seq[Bar]] = {
-    val resolution = timeInterval.resolution
-    def get(interval: TimeInterval) = {
+    val resolution = candlesInterval.resolution
+    def get(day: Day) = {
       api
         .getCandles(
           instrumentId,
-          interval.from.toInstant,
-          interval.to.toInstant,
+          day.getStart.toInstant,
+          day.getEnd.toInstant,
           candleInterval(resolution)
         )
         .map(
-          _.map(convert(resolution.duration, interval.from.getOffset))
+          _.map(convert(resolution.duration, candlesInterval.zoneId))
         )
     }
-    val maxPeriod = 1.day
-    val intervals = split[OffsetDateTime, Long](
-      interval = timeInterval.interval,
-      range = (BigDecimal(maxPeriod.toNanos) / resolution.duration.toNanos).toLongExact,
-      offset = 1
-    )
-    intervals.parTraverse(get).map(_.flatten)
+    candlesInterval.interval.days.toList.parTraverse(get).map(_.flatten)
   }
 
   //  private def makeStream(

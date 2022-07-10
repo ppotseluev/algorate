@@ -13,6 +13,8 @@ object Versions {
   val apacheMath = "3.6.1"
   val upperbound = "0.4.0"
   val mulesCache = "0.5.0"
+  val redisClient = "1.2.0"
+  val circe = "0.14.2"
 
   val munit = "0.7.29"
 }

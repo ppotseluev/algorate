@@ -35,7 +35,7 @@ object Factory {
         )
         .map { sharesCache =>
           val impl = new TinkoffBroker(tinkoffApi, accountId)
-          new CachedBroker(sharesCache, impl)
+          new CachedBroker(sharesCache, impl, null) //todo
         }
     }
   }

@@ -3,14 +3,17 @@ package com.github.ppotseluev.algorate.ta4j.test.app
 import cats.effect.ExitCode
 import cats.effect.IO
 import cats.effect.IOApp
+import com.github.ppotseluev.algorate.core.Broker.CandleResolution.OneMinute
+import com.github.ppotseluev.algorate.core.Broker.{CandlesInterval, Interval}
 import com.github.ppotseluev.algorate.model.Tags
 import com.github.ppotseluev.algorate.ta4j.BarSeriesProvider
 import com.github.ppotseluev.algorate.ta4j.Charts
 import com.github.ppotseluev.algorate.ta4j.strategy.Strategies
 import com.github.ppotseluev.algorate.ta4j.test.StrategyTester
-import com.github.ppotseluev.algorate.util.Interval
 import com.softwaremill.tagging.Tagger
-import java.time.OffsetDateTime
+import org.jfree.data.time.Day
+
+import java.time.ZoneId
 
 object VisualizeStrategy extends IOApp {
 
@@ -19,9 +22,13 @@ object VisualizeStrategy extends IOApp {
   //  val ticker = "YNDX".taggedWith[Tags.Ticker]
   //  val ticker = "CHMF".taggedWith[Tags.Ticker]
   val ticker = "POLY".taggedWith[Tags.Ticker]
-  val interval = Interval.minutes(
-    OffsetDateTime.parse("2021-02-09T10:30+03:00"),
-    OffsetDateTime.parse("2021-10-22T23:30+03:00")
+  val interval = CandlesInterval(
+    interval = Interval(
+      new Day(9, 2, 2021),
+      new Day(22, 2, 2021)
+    ),
+    resolution = OneMinute,
+    zoneId = ZoneId.of("+03:00")
   )
 
   override def run(args: List[String]): IO[ExitCode] = {
