@@ -4,18 +4,18 @@ import cats.effect.ExitCode
 import cats.effect.IO
 import cats.effect.IOApp
 import com.github.ppotseluev.algorate.core.Broker.CandleResolution.OneMinute
-import com.github.ppotseluev.algorate.core.Broker.{CandlesInterval, Interval}
+import com.github.ppotseluev.algorate.core.Broker.{CandlesInterval, DaysInterval}
 import com.github.ppotseluev.algorate.model.Tags
 import com.github.ppotseluev.algorate.ta4j.BarSeriesProvider
 import com.github.ppotseluev.algorate.ta4j.Charts
 import com.github.ppotseluev.algorate.ta4j.strategy.Strategies
 import com.github.ppotseluev.algorate.ta4j.test.StrategyTester
 import com.softwaremill.tagging.Tagger
-import org.jfree.data.time.Day
+import com.typesafe.scalalogging.StrictLogging
 
-import java.time.ZoneId
+import java.time.LocalDate
 
-object VisualizeStrategy extends IOApp {
+object VisualizeStrategy extends IOApp with StrictLogging {
 
   val strategy = Strategies.test
   val tester = new StrategyTester(strategy)
@@ -23,12 +23,11 @@ object VisualizeStrategy extends IOApp {
   //  val ticker = "CHMF".taggedWith[Tags.Ticker]
   val ticker = "POLY".taggedWith[Tags.Ticker]
   val interval = CandlesInterval(
-    interval = Interval(
-      new Day(9, 2, 2021),
-      new Day(22, 2, 2021)
+    interval = DaysInterval(
+      LocalDate.of(2021, 2, 9),
+      LocalDate.of(2021, 4, 22)
     ),
-    resolution = OneMinute,
-    zoneId = ZoneId.of("+03:00")
+    resolution = OneMinute
   )
 
   override def run(args: List[String]): IO[ExitCode] = {
@@ -42,6 +41,9 @@ object VisualizeStrategy extends IOApp {
         for {
           share <- broker.getShare(ticker)
           series <- seriesProvider.getBarSeries(share, interval)
+          _ <- IO {
+            logger.info(s"Data has been collected (${series.getBarCount} bars), start testing...")
+          }
           result = tester.test(series)
           _ <- IO {
             println(result)

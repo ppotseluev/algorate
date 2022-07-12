@@ -15,6 +15,7 @@ object Versions {
   val mulesCache = "0.5.0"
   val redisClient = "1.2.0"
   val circe = "0.14.2"
+  val littleTime = "0.7.0"
 
   val munit = "0.7.29"
 }

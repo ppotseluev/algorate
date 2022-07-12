@@ -3,8 +3,8 @@ package com.github.ppotseluev.algorate.util.redis
 import dev.profunktor.redis4cats.data.{RedisCodec => DRedisCodec}
 import io.lettuce.core.RedisException
 import io.lettuce.core.codec.{RedisCodec => JRedisCodec}
-
 import java.nio.ByteBuffer
+import scala.language.implicitConversions
 import scala.util.Try
 
 trait RedisCodec[T] extends RedisEncoder[T] with RedisDecoder[T] {
@@ -72,7 +72,7 @@ object RedisCodecs {
     )
   }
 
-  def unwrap[K, V](redisCodecs: RedisCodecs[K, V]): DRedisCodec[K, V] = {
+  implicit def unwrap[K, V](redisCodecs: RedisCodecs[K, V]): DRedisCodec[K, V] = {
     def getOrThrow[T](result: Either[String, T]): T =
       result.left
         .map(new RedisException(_))

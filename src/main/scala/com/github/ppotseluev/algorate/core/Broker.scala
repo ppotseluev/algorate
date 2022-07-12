@@ -1,16 +1,13 @@
 package com.github.ppotseluev.algorate.core
 
-import cats.data.NonEmptyList
 import com.github.ppotseluev.algorate.core.Broker.CandlesInterval
-import com.github.ppotseluev.algorate.model.InstrumentId
-import com.github.ppotseluev.algorate.model.Order
-import com.github.ppotseluev.algorate.model.OrderId
-import com.github.ppotseluev.algorate.model.Ticker
-import org.jfree.data.time.Day
+import com.github.ppotseluev.algorate.model.{InstrumentId, Order, OrderId, Ticker}
 import ru.tinkoff.piapi.contract.v1.Share
 
-import java.time.ZoneId
+import java.time.{Instant, LocalDate, ZoneOffset}
+import java.util.stream.Collectors
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.jdk.CollectionConverters._
 
 trait Broker[F[_]] {
   def getShare(ticker: Ticker): F[Share]
@@ -22,25 +19,34 @@ trait Broker[F[_]] {
   def getData(
       instrumentId: InstrumentId,
       interval: CandlesInterval
-  ): F[Seq[Bar]]
+  ): F[List[Bar]]
 }
 
 object Broker {
-  case class Interval(start: Day, end: Day) {
-    require(start.getStart.before(end.getStart), "start must be before end")
-
-    def days: NonEmptyList[Day] = {
-      def loop(acc: NonEmptyList[Day]): NonEmptyList[Day] = {
-        if (acc.head == start) acc
-        else loop(acc.head.previous.asInstanceOf[Day] :: acc)
-      }
-      loop(NonEmptyList.one(end))
-    }
+  case class Day(localDate: LocalDate) {
+    val start: Instant = localDate.atStartOfDay.toInstant(ZoneOffset.UTC)
+    val end: Instant = localDate.plusDays(1).atStartOfDay.toInstant(ZoneOffset.UTC)
+    val id: Long = start.getEpochSecond
   }
+
+  case class DaysInterval(start: LocalDate, end: LocalDate) {
+    require(!start.isAfter(end), "start can't be after end")
+
+    def iterate: List[Day] =
+      start
+        .datesUntil(end.plusDays(1))
+        .collect(Collectors.toList[LocalDate])
+        .asScala
+        .toList
+        .map(Day)
+  }
+  object DaysInterval {
+    def singleDay(day: Day): DaysInterval = DaysInterval(day.localDate, day.localDate)
+  }
+
   case class CandlesInterval(
-      interval: Interval,
-      resolution: CandleResolution,
-      zoneId: ZoneId
+      interval: DaysInterval,
+      resolution: CandleResolution
   )
 
   sealed trait CandleResolution {

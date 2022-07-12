@@ -44,5 +44,7 @@ libraryDependencies ++= Seq(
   "io.chrisdavenport" %% "mules" % Versions.mulesCache,
   "dev.profunktor" %% "redis4cats-effects" % Versions.redisClient,
   "io.circe" %% "circe-core" % Versions.circe,
-  "io.circe" %% "circe-parser" % Versions.circe
+  "io.circe" %% "circe-parser" % Versions.circe,
+  "io.circe" %% "circe-generic" % Versions.circe,
+  "com.github.losizm" %% "little-time" % Versions.littleTime
 )
