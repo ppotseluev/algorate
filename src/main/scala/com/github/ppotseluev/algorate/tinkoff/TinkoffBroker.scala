@@ -8,6 +8,9 @@ import cats.syntax.functor._
 import cats.syntax.parallel._
 import com.github.ppotseluev.algorate.core.Bar
 import com.github.ppotseluev.algorate.core.Broker
+import com.github.ppotseluev.algorate.core.Broker.CandleResolution
+import com.github.ppotseluev.algorate.core.Broker.CandlesInterval
+import com.github.ppotseluev.algorate.core.Broker.Day
 import com.github.ppotseluev.algorate.model.Order.Type
 import com.github.ppotseluev.algorate.model._
 import com.github.ppotseluev.algorate.util._
@@ -22,13 +25,12 @@ import ru.tinkoff.piapi.contract.v1.OrderDirection
 import ru.tinkoff.piapi.contract.v1.OrderType
 import ru.tinkoff.piapi.contract.v1.Quotation
 import ru.tinkoff.piapi.contract.v1.Share
-import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
 
-//TODO hard-coded candles interval 1min
 class TinkoffBroker[F[_]: Parallel](
     api: TinkoffApi[F],
-    brokerAccountId: BrokerAccountId
+    brokerAccountId: BrokerAccountId,
+    zoneId: ZoneId
 )(implicit F: Async[F])
     extends Broker[F] {
 
@@ -72,45 +74,46 @@ class TinkoffBroker[F[_]: Parallel](
     real.asBigDecimal.taggedWith[Tags.Price]
   }
 
-  private def fromProto(timestamp: Timestamp, zoneId: ZoneId): OffsetDateTime =
+  private def fromProto(timestamp: Timestamp): OffsetDateTime =
     OffsetDateTime.ofInstant(
       Instant.ofEpochSecond(timestamp.getSeconds, timestamp.getNanos),
       zoneId
     )
 
-  private def convert(candleDuration: FiniteDuration, zoneId: ZoneId)(candle: HistoricCandle): Bar =
+  private def convert(candleDuration: FiniteDuration)(candle: HistoricCandle): Bar =
     Bar(
       openPrice = price(candle.getOpen),
       closePrice = price(candle.getClose),
       lowPrice = price(candle.getLow),
       highPrice = price(candle.getHigh),
       volume = candle.getVolume,
-      endTime = fromProto(candle.getTime, zoneId),
+      endTime = fromProto(candle.getTime),
       duration = candleDuration //todo candle can be not closed
     )
 
+  private def candleInterval(timeResolution: CandleResolution): CandleInterval =
+    timeResolution match {
+      case CandleResolution.OneMinute => CandleInterval.CANDLE_INTERVAL_1_MIN
+    }
+
   override def getData(
       instrumentId: InstrumentId,
-      interval: Interval.Time
-  ): F[Seq[Bar]] = {
-    def get(interval: Interval.Time) = {
+      candlesInterval: CandlesInterval
+  ): F[List[Bar]] = {
+    val resolution = candlesInterval.resolution
+    def get(day: Day) = {
       api
         .getCandles(
           instrumentId,
-          interval.from.toInstant,
-          interval.to.toInstant,
-          CandleInterval.CANDLE_INTERVAL_1_MIN
+          day.start,
+          day.end,
+          candleInterval(resolution)
         )
         .map(
-          _.map(convert(1.minute, interval.from.getOffset))
+          _.map(convert(resolution.duration))
         )
     }
-    val intervals = split[OffsetDateTime, Long](
-      interval = interval,
-      range = 1.day.toMinutes,
-      offset = 1
-    )
-    intervals.parTraverse(get).map(_.flatten)
+    candlesInterval.interval.days.parTraverse(get).map(_.flatten)
   }
 
   //  private def makeStream(
@@ -152,14 +155,6 @@ class TinkoffBroker[F[_]: Parallel](
   //    }
   //  }
 
-  override val getAllShares: F[List[Share]] =
+  override def getAllShares: F[List[Share]] =
     api.getAllShares
-
-  override def getShare(ticker: Ticker): F[Share] =
-    getAllShares
-      .map(_.filter(_.getTicker == ticker))
-      .map { relatedShares =>
-        require(relatedShares.size == 1, s"${relatedShares.size} shares found for ticker $ticker")
-        relatedShares.head
-      }
 }

@@ -3,25 +3,31 @@ package com.github.ppotseluev.algorate.ta4j.test.app
 import cats.effect.ExitCode
 import cats.effect.IO
 import cats.effect.IOApp
+import com.github.ppotseluev.algorate.core.Broker.CandleResolution.OneMinute
+import com.github.ppotseluev.algorate.core.Broker.CandlesInterval
+import com.github.ppotseluev.algorate.core.Broker.DaysInterval
 import com.github.ppotseluev.algorate.model.Tags
 import com.github.ppotseluev.algorate.ta4j.BarSeriesProvider
 import com.github.ppotseluev.algorate.ta4j.Charts
 import com.github.ppotseluev.algorate.ta4j.strategy.Strategies
 import com.github.ppotseluev.algorate.ta4j.test.StrategyTester
-import com.github.ppotseluev.algorate.util.Interval
 import com.softwaremill.tagging.Tagger
-import java.time.OffsetDateTime
+import com.typesafe.scalalogging.StrictLogging
+import java.time.LocalDate
 
-object VisualizeStrategy extends IOApp {
+object VisualizeStrategy extends IOApp with StrictLogging {
 
   val strategy = Strategies.test
   val tester = new StrategyTester(strategy)
   //  val ticker = "YNDX".taggedWith[Tags.Ticker]
   //  val ticker = "CHMF".taggedWith[Tags.Ticker]
   val ticker = "POLY".taggedWith[Tags.Ticker]
-  val interval = Interval.minutes(
-    OffsetDateTime.parse("2021-02-09T10:30+03:00"),
-    OffsetDateTime.parse("2021-10-22T23:30+03:00")
+  val interval = CandlesInterval(
+    interval = DaysInterval(
+      LocalDate.of(2021, 2, 9),
+      LocalDate.of(2021, 4, 22)
+    ),
+    resolution = OneMinute
   )
 
   override def run(args: List[String]): IO[ExitCode] = {
@@ -35,6 +41,9 @@ object VisualizeStrategy extends IOApp {
         for {
           share <- broker.getShare(ticker)
           series <- seriesProvider.getBarSeries(share, interval)
+          _ <- IO {
+            logger.info(s"Data has been collected (${series.getBarCount} bars), start testing...")
+          }
           result = tester.test(series)
           _ <- IO {
             println(result)

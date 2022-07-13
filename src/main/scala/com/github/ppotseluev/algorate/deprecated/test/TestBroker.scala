@@ -3,9 +3,9 @@ package com.github.ppotseluev.algorate.deprecated.test
 import cats.effect.Async
 import com.github.ppotseluev.algorate.core.Bar
 import com.github.ppotseluev.algorate.core.Broker
+import com.github.ppotseluev.algorate.core.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.model.ClosePositionOrder.Type
 import com.github.ppotseluev.algorate.model._
-import com.github.ppotseluev.algorate.util.Interval
 import com.softwaremill.tagging._
 import java.util.UUID
 import ru.tinkoff.piapi.contract.v1.Share
@@ -30,8 +30,8 @@ class TestBroker[F[_]](realBroker: Broker[F])(implicit F: Async[F]) extends Brok
 
   override def getData(
       instrumentId: InstrumentId,
-      interval: Interval.Time
-  ): F[Seq[Bar]] =
+      interval: CandlesInterval
+  ): F[List[Bar]] =
     realBroker.getData(instrumentId, interval)
 
   def getStatistics(
@@ -89,8 +89,6 @@ class TestBroker[F[_]](realBroker: Broker[F])(implicit F: Async[F]) extends Brok
 //      }
     }
   }
-
-  override def getShare(ticker: Ticker): F[Share] = realBroker.getShare(ticker)
 
   override def getAllShares: F[List[Share]] = realBroker.getAllShares
 }

@@ -1,5 +1,6 @@
 package com.github.ppotseluev.algorate.tinkoff
 
+import cats.effect.Sync
 import cats.effect.kernel.Async
 import cats.syntax.functor._
 import com.github.ppotseluev.algorate.util.fromJavaFuture
@@ -78,5 +79,8 @@ object TinkoffApi {
   implicit class Syntax[F[_]](val api: TinkoffApi[F]) extends AnyVal {
     def withCandlesLimit(limiter: Limiter[F]): TinkoffApi[F] =
       new ThrottledTinkoffApi[F](api, candlesLimiter = limiter)
+
+    def withLogging(implicit F: Sync[F]): TinkoffApi[F] =
+      new LoggingTinkoffApi(api)
   }
 }
