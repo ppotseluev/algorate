@@ -3,12 +3,11 @@ package com.github.ppotseluev.algorate.ta4j.test.app
 import cats.Parallel
 import cats.effect.Resource
 import cats.effect.kernel.Async
-import com.github.ppotseluev.algorate.core.Bar
 import com.github.ppotseluev.algorate.core.Broker
 import com.github.ppotseluev.algorate.core.CachedBroker
 import com.github.ppotseluev.algorate.core.JsonCodecs._
 import com.github.ppotseluev.algorate.core.LoggingBroker
-import com.github.ppotseluev.algorate.model.BrokerAccountId
+import com.github.ppotseluev.algorate.model.{Bar, BrokerAccountId}
 import com.github.ppotseluev.algorate.tinkoff.TinkoffApi
 import com.github.ppotseluev.algorate.tinkoff.TinkoffBroker
 import com.github.ppotseluev.algorate.util.redis.RedisCodecs
@@ -17,9 +16,11 @@ import dev.profunktor.redis4cats.Redis
 import dev.profunktor.redis4cats.RedisCommands
 import dev.profunktor.redis4cats.connection.RedisClient
 import dev.profunktor.redis4cats.effect.Log.Stdout._
+
 import java.time.ZoneOffset
 import ru.tinkoff.piapi.contract.v1.Share
 import ru.tinkoff.piapi.core.InvestApi
+
 import scala.concurrent.duration._
 import upperbound.Limiter
 import upperbound.syntax.rate.rateOps

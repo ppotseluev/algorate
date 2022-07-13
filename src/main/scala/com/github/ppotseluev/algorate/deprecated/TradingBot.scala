@@ -1,21 +1,21 @@
-package com.github.ppotseluev.algorate.core
+package com.github.ppotseluev.algorate.deprecated
 
 import cats.effect.Async
+import cats.syntax.option._
 import cats.instances.seq._
 import cats.syntax.applicative._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import cats.syntax.option._
 import cats.syntax.traverse._
-import com.github.ppotseluev.algorate.core.TradingBot.Action
-import com.github.ppotseluev.algorate.core.TradingBot.PositionInfo
-import com.github.ppotseluev.algorate.core.TradingSignal.Decision
+import com.github.ppotseluev.algorate.core.Broker
+import com.github.ppotseluev.algorate.deprecated.TradingBot.{Action, PositionInfo}
+import com.github.ppotseluev.algorate.deprecated.TradingSignal.Decision
 import com.github.ppotseluev.algorate.model.ClosePositionOrder.Type
-import com.github.ppotseluev.algorate.model.Order.Details
-import com.github.ppotseluev.algorate.model.Order.Info
+import com.github.ppotseluev.algorate.model.Order.{Details, Info}
 import com.github.ppotseluev.algorate.model._
 import com.typesafe.scalalogging.LazyLogging
 import fs2.Stream
+
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable
 

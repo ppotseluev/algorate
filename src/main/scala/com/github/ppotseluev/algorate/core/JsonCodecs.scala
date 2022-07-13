@@ -1,7 +1,6 @@
 package com.github.ppotseluev.algorate.core
 
-import com.github.ppotseluev.algorate.model.Price
-import com.github.ppotseluev.algorate.model.Tags
+import com.github.ppotseluev.algorate.model.{Bar, Price, Tags}
 import com.google.protobuf.util.JsonFormat
 import com.softwaremill.tagging.Tagger
 import io.circe.Decoder
@@ -11,6 +10,7 @@ import io.circe.generic.semiauto.deriveDecoder
 import io.circe.generic.semiauto.deriveEncoder
 import io.circe.parser.parse
 import ru.tinkoff.piapi.contract.v1.Share
+
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try

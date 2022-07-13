@@ -6,16 +6,17 @@ import cats.effect.std.UUIDGen
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.parallel._
-import com.github.ppotseluev.algorate.core.Bar
 import com.github.ppotseluev.algorate.core.Broker
 import com.github.ppotseluev.algorate.core.Broker.CandleResolution
 import com.github.ppotseluev.algorate.core.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.core.Broker.Day
+import com.github.ppotseluev.algorate.model
 import com.github.ppotseluev.algorate.model.Order.Type
-import com.github.ppotseluev.algorate.model._
+import com.github.ppotseluev.algorate.model.{Bar, _}
 import com.github.ppotseluev.algorate.util._
 import com.google.protobuf.Timestamp
 import com.softwaremill.tagging._
+
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -25,6 +26,7 @@ import ru.tinkoff.piapi.contract.v1.OrderDirection
 import ru.tinkoff.piapi.contract.v1.OrderType
 import ru.tinkoff.piapi.contract.v1.Quotation
 import ru.tinkoff.piapi.contract.v1.Share
+
 import scala.concurrent.duration.FiniteDuration
 
 class TinkoffBroker[F[_]: Parallel](
@@ -81,7 +83,7 @@ class TinkoffBroker[F[_]: Parallel](
     )
 
   private def convert(candleDuration: FiniteDuration)(candle: HistoricCandle): Bar =
-    Bar(
+    model.Bar(
       openPrice = price(candle.getOpen),
       closePrice = price(candle.getClose),
       lowPrice = price(candle.getLow),

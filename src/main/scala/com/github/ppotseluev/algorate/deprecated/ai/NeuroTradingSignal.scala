@@ -1,9 +1,9 @@
 //package com.github.ppotseluev.algorate.deprecated.ai
 //
 //import cats.data.NonEmptyList
-//import com.github.ppotseluev.algorate.core.Point
-//import com.github.ppotseluev.algorate.core.TradingSignal
-//import com.github.ppotseluev.algorate.core.TradingSignal.Decision
+//import com.github.ppotseluev.algorate.model.Point
+//import com.github.ppotseluev.algorate.deprecated.TradingSignal
+//import com.github.ppotseluev.algorate.deprecated.TradingSignal.Decision
 //import com.github.ppotseluev.algorate.model.OperationType
 //import com.github.ppotseluev.algorate.model.Price
 //import com.github.ppotseluev.algorate.model.Tags

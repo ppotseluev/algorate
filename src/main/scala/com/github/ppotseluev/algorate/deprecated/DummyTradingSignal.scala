@@ -1,6 +1,6 @@
 //package com.github.ppotseluev.algorate.core
 //
-//import com.github.ppotseluev.algorate.core.TradingSignal.Decision
+//import com.github.ppotseluev.algorate.deprecated.TradingSignal.Decision
 //import com.github.ppotseluev.algorate.model.OperationType.Buy
 //import com.github.ppotseluev.algorate.model.Tags
 //import com.github.ppotseluev.algorate.util.LimitedQueue
