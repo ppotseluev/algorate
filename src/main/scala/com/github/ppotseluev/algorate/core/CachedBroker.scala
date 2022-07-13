@@ -1,12 +1,8 @@
 package com.github.ppotseluev.algorate.core
-import cats.Monad
-import cats.Parallel
+import cats.{Monad, Parallel}
 import cats.implicits._
-import com.github.ppotseluev.algorate.core.Broker.{CandlesInterval, Day, DaysInterval}
-import com.github.ppotseluev.algorate.model.InstrumentId
-import com.github.ppotseluev.algorate.model.Order
-import com.github.ppotseluev.algorate.model.OrderId
-import com.github.ppotseluev.algorate.model.Ticker
+import com.github.ppotseluev.algorate.core.Broker.{CandlesInterval, DaysInterval}
+import com.github.ppotseluev.algorate.model.{InstrumentId, Order, OrderId, Ticker}
 import dev.profunktor.redis4cats.RedisCommands
 import io.chrisdavenport.mules.Cache
 import ru.tinkoff.piapi.contract.v1.Share
@@ -30,11 +26,11 @@ class CachedBroker[F[_]: Monad: Parallel](
       instrumentId: InstrumentId,
       candlesInterval: CandlesInterval
   ): F[List[Bar]] = {
-    def key(day: Day): String = s"${candlesInterval.resolution}_${day.id}"
     candlesInterval.interval.iterate
       .parTraverse { day =>
+        val key = s"${instrumentId}_${candlesInterval.resolution}_${day.id}"
         for {
-          cached <- barsCache.get(key(day))
+          cached <- barsCache.get(key)
           result <- cached match {
             case Some(value) => value.pure[F]
             case None =>
@@ -43,7 +39,7 @@ class CachedBroker[F[_]: Monad: Parallel](
                   instrumentId,
                   candlesInterval.copy(interval = DaysInterval.singleDay(day))
                 )
-                _ <- barsCache.set(key(day), newData)
+                _ <- barsCache.set(key, newData)
               } yield newData
           }
         } yield result
