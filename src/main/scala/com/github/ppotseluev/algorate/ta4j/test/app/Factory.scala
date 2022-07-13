@@ -3,11 +3,11 @@ package com.github.ppotseluev.algorate.ta4j.test.app
 import cats.Parallel
 import cats.effect.Resource
 import cats.effect.kernel.Async
-import com.github.ppotseluev.algorate.core.Bar
 import com.github.ppotseluev.algorate.core.Broker
 import com.github.ppotseluev.algorate.core.CachedBroker
 import com.github.ppotseluev.algorate.core.JsonCodecs._
 import com.github.ppotseluev.algorate.core.LoggingBroker
+import com.github.ppotseluev.algorate.model.Bar
 import com.github.ppotseluev.algorate.model.BrokerAccountId
 import com.github.ppotseluev.algorate.tinkoff.TinkoffApi
 import com.github.ppotseluev.algorate.tinkoff.TinkoffBroker

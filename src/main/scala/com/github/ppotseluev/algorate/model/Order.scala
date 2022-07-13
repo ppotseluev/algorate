@@ -1,6 +1,5 @@
 package com.github.ppotseluev.algorate.model
 
-import com.github.ppotseluev.algorate.core.Point
 import com.github.ppotseluev.algorate.model.Order.Details
 import enumeratum._
 

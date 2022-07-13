@@ -133,13 +133,6 @@ class ChannelIndicator private (
             case None        => ChannelIndicator.Empty
           }
       }
-//      prevChannel match {
-//        case Some(channel) if actualizeLastChannel(channel) =>
-//
-//          Some(updated)
-//        case _ =>
-//          calcNewChannel(index)
-//      }
     }
   }
 }

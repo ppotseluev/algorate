@@ -2,6 +2,7 @@ package com.github.ppotseluev.algorate.core
 
 import cats.effect.Sync
 import cats.implicits._
+import com.github.ppotseluev.algorate.model.Bar
 import com.github.ppotseluev.algorate.model.InstrumentId
 import com.github.ppotseluev.algorate.model.Order
 import com.github.ppotseluev.algorate.model.OrderId

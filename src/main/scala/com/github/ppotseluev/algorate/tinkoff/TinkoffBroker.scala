@@ -6,11 +6,12 @@ import cats.effect.std.UUIDGen
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.parallel._
-import com.github.ppotseluev.algorate.core.Bar
 import com.github.ppotseluev.algorate.core.Broker
 import com.github.ppotseluev.algorate.core.Broker.CandleResolution
 import com.github.ppotseluev.algorate.core.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.core.Broker.Day
+import com.github.ppotseluev.algorate.model
+import com.github.ppotseluev.algorate.model.Bar
 import com.github.ppotseluev.algorate.model.Order.Type
 import com.github.ppotseluev.algorate.model._
 import com.github.ppotseluev.algorate.util._
@@ -81,7 +82,7 @@ class TinkoffBroker[F[_]: Parallel](
     )
 
   private def convert(candleDuration: FiniteDuration)(candle: HistoricCandle): Bar =
-    Bar(
+    model.Bar(
       openPrice = price(candle.getOpen),
       closePrice = price(candle.getClose),
       lowPrice = price(candle.getLow),

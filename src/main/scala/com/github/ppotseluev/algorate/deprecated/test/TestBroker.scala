@@ -1,9 +1,9 @@
 package com.github.ppotseluev.algorate.deprecated.test
 
 import cats.effect.Async
-import com.github.ppotseluev.algorate.core.Bar
 import com.github.ppotseluev.algorate.core.Broker
 import com.github.ppotseluev.algorate.core.Broker.CandlesInterval
+import com.github.ppotseluev.algorate.model.Bar
 import com.github.ppotseluev.algorate.model.ClosePositionOrder.Type
 import com.github.ppotseluev.algorate.model._
 import com.softwaremill.tagging._

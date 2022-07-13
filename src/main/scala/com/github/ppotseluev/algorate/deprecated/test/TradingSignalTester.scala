@@ -1,6 +1,6 @@
 package com.github.ppotseluev.algorate.deprecated.test
 
-import com.github.ppotseluev.algorate.core.TradingSignal
+import com.github.ppotseluev.algorate.deprecated.TradingSignal
 
 import TestBroker.TradingStatistics
 

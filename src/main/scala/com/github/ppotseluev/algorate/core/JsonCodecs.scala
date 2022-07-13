@@ -1,5 +1,6 @@
 package com.github.ppotseluev.algorate.core
 
+import com.github.ppotseluev.algorate.model.Bar
 import com.github.ppotseluev.algorate.model.Price
 import com.github.ppotseluev.algorate.model.Tags
 import com.google.protobuf.util.JsonFormat

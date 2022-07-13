@@ -1,7 +1,7 @@
 //package com.github.ppotseluev.algorate.core
 //
 //import cats.data.NonEmptyList
-//import com.github.ppotseluev.algorate.core.TradingSignal.Decision
+//import com.github.ppotseluev.algorate.deprecated.TradingSignal.Decision
 //
 //class CompositeTradingSignal( //TODO is it needed?
 //    signals: NonEmptyList[TradingSignal]

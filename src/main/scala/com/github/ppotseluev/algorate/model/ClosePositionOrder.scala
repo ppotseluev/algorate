@@ -1,6 +1,5 @@
 package com.github.ppotseluev.algorate.model
 
-import com.github.ppotseluev.algorate.core.Point
 import com.github.ppotseluev.algorate.model.ClosePositionOrder.Type
 import com.github.ppotseluev.algorate.model.Order.Info
 import enumeratum.Enum

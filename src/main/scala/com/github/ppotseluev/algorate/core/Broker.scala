@@ -3,6 +3,7 @@ package com.github.ppotseluev.algorate.core
 import cats.Functor
 import cats.syntax.functor._
 import com.github.ppotseluev.algorate.core.Broker.CandlesInterval
+import com.github.ppotseluev.algorate.model.Bar
 import com.github.ppotseluev.algorate.model.InstrumentId
 import com.github.ppotseluev.algorate.model.Order
 import com.github.ppotseluev.algorate.model.OrderId

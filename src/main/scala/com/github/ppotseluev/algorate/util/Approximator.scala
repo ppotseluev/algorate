@@ -55,7 +55,11 @@ class Approximator(
       classOf[util.Collection[WeightedObservedPoint]]
     )
     m.setAccessible(true)
-    m.invoke(fitter, points).asInstanceOf[LeastSquaresProblem]
+    try {
+      m.invoke(fitter, points).asInstanceOf[LeastSquaresProblem]
+    } finally {
+      m.setAccessible(false)
+    }
   }
 }
 

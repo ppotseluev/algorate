@@ -1,6 +1,5 @@
-package com.github.ppotseluev.algorate.core
+package com.github.ppotseluev.algorate.model
 
-import com.github.ppotseluev.algorate.model.Price
 import java.time.OffsetDateTime
 
 case class Point(

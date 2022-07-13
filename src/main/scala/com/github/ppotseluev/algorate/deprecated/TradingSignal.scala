@@ -1,8 +1,9 @@
-package com.github.ppotseluev.algorate.core
+package com.github.ppotseluev.algorate.deprecated
 
 import cats.data.NonEmptyList
-import com.github.ppotseluev.algorate.core.TradingSignal.Decision
+import com.github.ppotseluev.algorate.deprecated.TradingSignal.Decision
 import com.github.ppotseluev.algorate.model.OperationType
+import com.github.ppotseluev.algorate.model.Point
 import com.github.ppotseluev.algorate.model.Price
 
 trait TradingSignal {

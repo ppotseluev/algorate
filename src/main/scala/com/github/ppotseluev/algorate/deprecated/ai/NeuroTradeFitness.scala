@@ -1,7 +1,7 @@
 //package com.github.ppotseluev.algorate.deprecated.ai
 //
 //import cats.Id
-//import com.github.ppotseluev.algorate.core.TradingSignal
+//import com.github.ppotseluev.algorate.deprecated.TradingSignal
 //import com.github.ppotseluev.algorate.deprecated.test.TradingSignalTester
 //import com.github.ppotseluev.eann.evolutional.FitnessFunc
 //import com.github.ppotseluev.eann.neural.Net

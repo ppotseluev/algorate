@@ -1,6 +1,6 @@
 package com.github.ppotseluev.algorate.ta4j
 
-import com.github.ppotseluev.algorate.core.Bar
+import com.github.ppotseluev.algorate.model.Bar
 import org.ta4j.core.BarSeries
 import org.ta4j.core.BaseBar
 import org.ta4j.core.BaseBarSeriesBuilder
