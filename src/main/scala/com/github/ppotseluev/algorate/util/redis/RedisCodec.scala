@@ -41,7 +41,7 @@ case class RedisCodecs[K, V]()(implicit
     RedisCodecs()
   }
 
-  def imapValue[V1](f: V => Either[String, V1])(g: V1 => V): RedisCodecs[K, V1] = {
+  def iemapValue[V1](f: V => Either[String, V1])(g: V1 => V): RedisCodecs[K, V1] = {
     implicit val v1Codec: RedisCodec[V1] = valueCodec.iemap(f)(g)
     RedisCodecs()
   }
