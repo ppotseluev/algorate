@@ -12,15 +12,21 @@ import com.github.ppotseluev.algorate.model.OrderId
 import dev.profunktor.redis4cats.RedisCommands
 import ru.tinkoff.piapi.contract.v1.Share
 
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
+
 class CachedBroker[F[_]: Monad: Parallel](
     sharesCache: RedisCommands[F, String, List[Share]],
     broker: Broker[F],
-    barsCache: RedisCommands[F, String, List[Bar]]
+    barsCache: RedisCommands[F, String, List[Bar]],
+    sharesTtl: FiniteDuration = 1.hour
 ) extends Broker[F] {
   override def getAllShares: F[List[Share]] =
     sharesCache.get(sharesKey).flatMap {
       case Some(shares) => shares.pure[F]
-      case None         => broker.getAllShares.flatMap(s => sharesCache.set(sharesKey, s).as(s))
+      case None =>
+        broker.getAllShares.flatMap { s =>
+          sharesCache.setEx(sharesKey, s, sharesTtl).as(s)
+        }
     }
 
   override def placeOrder(order: Order): F[OrderId] = broker.placeOrder(order)
