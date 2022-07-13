@@ -8,13 +8,14 @@ import cats.syntax.functor._
 import cats.syntax.parallel._
 import com.github.ppotseluev.algorate.core.Bar
 import com.github.ppotseluev.algorate.core.Broker
-import com.github.ppotseluev.algorate.core.Broker.{CandleResolution, CandlesInterval, Day}
+import com.github.ppotseluev.algorate.core.Broker.CandleResolution
+import com.github.ppotseluev.algorate.core.Broker.CandlesInterval
+import com.github.ppotseluev.algorate.core.Broker.Day
 import com.github.ppotseluev.algorate.model.Order.Type
 import com.github.ppotseluev.algorate.model._
 import com.github.ppotseluev.algorate.util._
 import com.google.protobuf.Timestamp
 import com.softwaremill.tagging._
-
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -24,7 +25,6 @@ import ru.tinkoff.piapi.contract.v1.OrderDirection
 import ru.tinkoff.piapi.contract.v1.OrderType
 import ru.tinkoff.piapi.contract.v1.Quotation
 import ru.tinkoff.piapi.contract.v1.Share
-
 import scala.concurrent.duration.FiniteDuration
 
 class TinkoffBroker[F[_]: Parallel](
@@ -113,7 +113,7 @@ class TinkoffBroker[F[_]: Parallel](
           _.map(convert(resolution.duration))
         )
     }
-    candlesInterval.interval.iterate.parTraverse(get).map(_.flatten)
+    candlesInterval.interval.days.parTraverse(get).map(_.flatten)
   }
 
   //  private def makeStream(
@@ -155,14 +155,6 @@ class TinkoffBroker[F[_]: Parallel](
   //    }
   //  }
 
-  override val getAllShares: F[List[Share]] =
+  override def getAllShares: F[List[Share]] =
     api.getAllShares
-
-  override def getShare(ticker: Ticker): F[Share] =
-    getAllShares
-      .map(_.filter(_.getTicker == ticker))
-      .map { relatedShares =>
-        require(relatedShares.size == 1, s"${relatedShares.size} shares found for ticker $ticker")
-        relatedShares.head
-      }
 }

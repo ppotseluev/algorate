@@ -1,11 +1,11 @@
 package com.github.ppotseluev.algorate.ta4j.test
 
 import com.github.ppotseluev.algorate.core.Broker.CandleResolution.OneMinute
-import com.github.ppotseluev.algorate.core.Broker.{CandlesInterval, DaysInterval}
+import com.github.ppotseluev.algorate.core.Broker.CandlesInterval
+import com.github.ppotseluev.algorate.core.Broker.DaysInterval
 import com.github.ppotseluev.algorate.model.Tags
 import com.github.ppotseluev.algorate.ta4j.strategy.Strategies
 import com.softwaremill.tagging.Tagger
-
 import java.time.LocalDate
 
 object TestSetup {

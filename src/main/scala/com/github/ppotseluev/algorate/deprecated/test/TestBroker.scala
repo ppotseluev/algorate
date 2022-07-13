@@ -90,8 +90,6 @@ class TestBroker[F[_]](realBroker: Broker[F])(implicit F: Async[F]) extends Brok
     }
   }
 
-  override def getShare(ticker: Ticker): F[Share] = realBroker.getShare(ticker)
-
   override def getAllShares: F[List[Share]] = realBroker.getAllShares
 }
 

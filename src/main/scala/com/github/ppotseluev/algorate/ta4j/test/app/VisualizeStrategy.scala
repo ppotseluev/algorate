@@ -4,7 +4,8 @@ import cats.effect.ExitCode
 import cats.effect.IO
 import cats.effect.IOApp
 import com.github.ppotseluev.algorate.core.Broker.CandleResolution.OneMinute
-import com.github.ppotseluev.algorate.core.Broker.{CandlesInterval, DaysInterval}
+import com.github.ppotseluev.algorate.core.Broker.CandlesInterval
+import com.github.ppotseluev.algorate.core.Broker.DaysInterval
 import com.github.ppotseluev.algorate.model.Tags
 import com.github.ppotseluev.algorate.ta4j.BarSeriesProvider
 import com.github.ppotseluev.algorate.ta4j.Charts
@@ -12,7 +13,6 @@ import com.github.ppotseluev.algorate.ta4j.strategy.Strategies
 import com.github.ppotseluev.algorate.ta4j.test.StrategyTester
 import com.softwaremill.tagging.Tagger
 import com.typesafe.scalalogging.StrictLogging
-
 import java.time.LocalDate
 
 object VisualizeStrategy extends IOApp with StrictLogging {

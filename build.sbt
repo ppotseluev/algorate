@@ -41,10 +41,9 @@ libraryDependencies ++= Seq(
   "org.apache.commons" % "commons-math3" % Versions.apacheMath,
   "org.scalameta" %% "munit" % Versions.munit % Test,
   "org.systemfw" %% "upperbound" % Versions.upperbound,
-  "io.chrisdavenport" %% "mules" % Versions.mulesCache,
   "dev.profunktor" %% "redis4cats-effects" % Versions.redisClient,
   "io.circe" %% "circe-core" % Versions.circe,
   "io.circe" %% "circe-parser" % Versions.circe,
   "io.circe" %% "circe-generic" % Versions.circe,
-  "com.github.losizm" %% "little-time" % Versions.littleTime
+  "com.google.protobuf" % "protobuf-java-util" % Versions.protobuf
 )

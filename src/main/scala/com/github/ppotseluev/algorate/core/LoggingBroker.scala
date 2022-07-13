@@ -2,14 +2,13 @@ package com.github.ppotseluev.algorate.core
 
 import cats.effect.Sync
 import cats.implicits._
-import com.github.ppotseluev.algorate.model.{InstrumentId, Order, OrderId, Ticker}
+import com.github.ppotseluev.algorate.model.InstrumentId
+import com.github.ppotseluev.algorate.model.Order
+import com.github.ppotseluev.algorate.model.OrderId
 import com.typesafe.scalalogging.LazyLogging
 import ru.tinkoff.piapi.contract.v1.Share
 
 class LoggingBroker[F[_]: Sync](broker: Broker[F]) extends Broker[F] with LazyLogging {
-  override def getShare(ticker: Ticker): F[Share] =
-    broker.getShare(ticker)
-
   override def getAllShares: F[List[Share]] =
     broker.getAllShares
 

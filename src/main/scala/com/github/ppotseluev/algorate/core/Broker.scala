@@ -1,16 +1,29 @@
 package com.github.ppotseluev.algorate.core
 
+import cats.Functor
+import cats.syntax.functor._
 import com.github.ppotseluev.algorate.core.Broker.CandlesInterval
-import com.github.ppotseluev.algorate.model.{InstrumentId, Order, OrderId, Ticker}
-import ru.tinkoff.piapi.contract.v1.Share
-
-import java.time.{Instant, LocalDate, ZoneOffset}
+import com.github.ppotseluev.algorate.model.InstrumentId
+import com.github.ppotseluev.algorate.model.Order
+import com.github.ppotseluev.algorate.model.OrderId
+import com.github.ppotseluev.algorate.model.Ticker
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
 import java.util.stream.Collectors
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import ru.tinkoff.piapi.contract.v1.Share
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 
 trait Broker[F[_]] {
-  def getShare(ticker: Ticker): F[Share]
+  final def getShare(ticker: Ticker)(implicit F: Functor[F]): F[Share] =
+    getAllShares
+      .map(_.filter(_.getTicker == ticker))
+      .map { relatedShares =>
+        require(relatedShares.size == 1, s"${relatedShares.size} shares found for ticker $ticker")
+        relatedShares.head
+      }
 
   def getAllShares: F[List[Share]] //TODO abstract over tinkoff model
 
@@ -32,7 +45,7 @@ object Broker {
   case class DaysInterval(start: LocalDate, end: LocalDate) {
     require(!start.isAfter(end), "start can't be after end")
 
-    def iterate: List[Day] =
+    def days: List[Day] =
       start
         .datesUntil(end.plusDays(1))
         .collect(Collectors.toList[LocalDate])

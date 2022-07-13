@@ -4,7 +4,6 @@ import cats.effect.Sync
 import cats.effect.kernel.Async
 import cats.syntax.functor._
 import com.github.ppotseluev.algorate.util.fromJavaFuture
-
 import java.time.Instant
 import ru.tinkoff.piapi.contract.v1.CandleInterval
 import ru.tinkoff.piapi.contract.v1.HistoricCandle
@@ -14,7 +13,6 @@ import ru.tinkoff.piapi.contract.v1.PostOrderResponse
 import ru.tinkoff.piapi.contract.v1.Quotation
 import ru.tinkoff.piapi.contract.v1.Share
 import ru.tinkoff.piapi.core.InvestApi
-
 import scala.jdk.CollectionConverters._
 import upperbound.Limiter
 
