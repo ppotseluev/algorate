@@ -2,7 +2,9 @@ package com.github.ppotseluev.algorate.deprecated
 
 import cats.data.NonEmptyList
 import com.github.ppotseluev.algorate.deprecated.TradingSignal.Decision
-import com.github.ppotseluev.algorate.model.{OperationType, Point, Price}
+import com.github.ppotseluev.algorate.model.OperationType
+import com.github.ppotseluev.algorate.model.Point
+import com.github.ppotseluev.algorate.model.Price
 
 trait TradingSignal {
   def push(newPoints: NonEmptyList[Point]): Unit

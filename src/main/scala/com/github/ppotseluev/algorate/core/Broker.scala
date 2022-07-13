@@ -3,14 +3,16 @@ package com.github.ppotseluev.algorate.core
 import cats.Functor
 import cats.syntax.functor._
 import com.github.ppotseluev.algorate.core.Broker.CandlesInterval
-import com.github.ppotseluev.algorate.model.{Bar, InstrumentId, Order, OrderId, Ticker}
-
+import com.github.ppotseluev.algorate.model.Bar
+import com.github.ppotseluev.algorate.model.InstrumentId
+import com.github.ppotseluev.algorate.model.Order
+import com.github.ppotseluev.algorate.model.OrderId
+import com.github.ppotseluev.algorate.model.Ticker
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.util.stream.Collectors
 import ru.tinkoff.piapi.contract.v1.Share
-
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._

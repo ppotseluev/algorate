@@ -6,11 +6,14 @@ import com.github.ppotseluev.algorate.core.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.core.Broker.Day
 import com.github.ppotseluev.algorate.core.Broker.DaysInterval
 import com.github.ppotseluev.algorate.core.CachedBroker.sharesKey
-import com.github.ppotseluev.algorate.model.{Bar, InstrumentId, Order, OrderId}
+import com.github.ppotseluev.algorate.model.Bar
+import com.github.ppotseluev.algorate.model.InstrumentId
+import com.github.ppotseluev.algorate.model.Order
+import com.github.ppotseluev.algorate.model.OrderId
 import dev.profunktor.redis4cats.RedisCommands
 import ru.tinkoff.piapi.contract.v1.Share
-
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.FiniteDuration
 
 class CachedBroker[F[_]: Monad: Parallel](
     sharesCache: RedisCommands[F, String, List[Share]],

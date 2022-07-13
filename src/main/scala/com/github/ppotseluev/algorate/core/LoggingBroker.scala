@@ -2,7 +2,10 @@ package com.github.ppotseluev.algorate.core
 
 import cats.effect.Sync
 import cats.implicits._
-import com.github.ppotseluev.algorate.model.{Bar, InstrumentId, Order, OrderId}
+import com.github.ppotseluev.algorate.model.Bar
+import com.github.ppotseluev.algorate.model.InstrumentId
+import com.github.ppotseluev.algorate.model.Order
+import com.github.ppotseluev.algorate.model.OrderId
 import com.typesafe.scalalogging.LazyLogging
 import ru.tinkoff.piapi.contract.v1.Share
 

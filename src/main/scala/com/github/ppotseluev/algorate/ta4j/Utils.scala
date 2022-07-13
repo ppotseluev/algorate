@@ -6,7 +6,6 @@ import org.ta4j.core.BaseBar
 import org.ta4j.core.BaseBarSeriesBuilder
 import org.ta4j.core.num.DoubleNum
 import org.ta4j.core.{Bar => Ta4jBar}
-
 import scala.collection.immutable.ArraySeq
 import scala.jdk.CollectionConverters._
 import scala.jdk.DurationConverters._

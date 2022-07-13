@@ -11,12 +11,12 @@ import com.github.ppotseluev.algorate.core.Broker.CandleResolution
 import com.github.ppotseluev.algorate.core.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.core.Broker.Day
 import com.github.ppotseluev.algorate.model
+import com.github.ppotseluev.algorate.model.Bar
 import com.github.ppotseluev.algorate.model.Order.Type
-import com.github.ppotseluev.algorate.model.{Bar, _}
+import com.github.ppotseluev.algorate.model._
 import com.github.ppotseluev.algorate.util._
 import com.google.protobuf.Timestamp
 import com.softwaremill.tagging._
-
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -26,7 +26,6 @@ import ru.tinkoff.piapi.contract.v1.OrderDirection
 import ru.tinkoff.piapi.contract.v1.OrderType
 import ru.tinkoff.piapi.contract.v1.Quotation
 import ru.tinkoff.piapi.contract.v1.Share
-
 import scala.concurrent.duration.FiniteDuration
 
 class TinkoffBroker[F[_]: Parallel](
