@@ -5,8 +5,8 @@ import cats.syntax.functor._
 import com.github.ppotseluev.algorate.ta4j._
 import com.github.ppotseluev.algorate.ta4j.indicator.ChannelIndicator.Channel
 import com.github.ppotseluev.algorate.ta4j.indicator.HasDataIndicator
-import com.github.ppotseluev.algorate.ta4j.indicator.LastLocalExtremumIndicator
-import com.github.ppotseluev.algorate.ta4j.indicator.LastLocalExtremumIndicator.Extremum
+import com.github.ppotseluev.algorate.ta4j.indicator.LocalExtremumIndicator
+import com.github.ppotseluev.algorate.ta4j.indicator.LocalExtremumIndicator.Extremum
 import com.github.ppotseluev.algorate.ta4j.indicator._
 import com.github.ppotseluev.algorate.ta4j.strategy.FullStrategy.IndicatorInfo
 import com.github.ppotseluev.algorate.ta4j.strategy.FullStrategy.Representation
@@ -51,7 +51,7 @@ object Strategies {
     val extremumWindowSize = 30
     val hasData: AbstractIndicator[Boolean] = new HasDataIndicator(extremumWindowSize, series)
     val _extremum: AbstractIndicator[Option[Extremum]] =
-      LastLocalExtremumIndicator(closePrice, extremumWindowSize)
+      LocalExtremumIndicator(closePrice, extremumWindowSize)
     val extremum: AbstractIndicator[Option[Extremum]] = _extremum
 //      new FilteredExtremumIndicator(
 //        extremumIndicator = _extremum,
@@ -72,7 +72,6 @@ object Strategies {
       maxError = 0.0009 //0.0007
     ).filter(ChannelUtils.isParallel(maxDelta = 0.6)) //todo?
 //      .filter(ChannelUtils.isWide(minPercent = 0.05))
-//todo check we are close to lower bound
     val rsi = new RSIIndicator(closePrice, 14)
 
     //TODO was (6, 0.5). (2, 0.2) - better?

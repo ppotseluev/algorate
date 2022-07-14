@@ -8,7 +8,7 @@ import com.github.ppotseluev.algorate.ta4j.indicator.ChannelIndicator.Channel
 import com.github.ppotseluev.algorate.ta4j.indicator.ChannelIndicator.ChannelState
 import com.github.ppotseluev.algorate.ta4j.indicator.ChannelIndicator.NeedNewChannel
 import com.github.ppotseluev.algorate.ta4j.indicator.ChannelIndicator.Section
-import com.github.ppotseluev.algorate.ta4j.indicator.LastLocalExtremumIndicator.Extremum
+import com.github.ppotseluev.algorate.ta4j.indicator.LocalExtremumIndicator.Extremum
 import com.github.ppotseluev.algorate.util.Approximator
 import com.github.ppotseluev.algorate.util.Approximator.Approximation
 import com.github.ppotseluev.algorate.util.WeightedPoint
