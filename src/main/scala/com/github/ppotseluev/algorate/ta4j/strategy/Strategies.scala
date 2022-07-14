@@ -146,7 +146,31 @@ object Strategies {
           volumeIndicator.map(_.isGreaterThan(num(500)))
         ) & //TODO research... maybe use some derived ind?
         new BooleanIndicatorRule(relativeWidthIndicator.map(_.isGreaterThan(minRelativeWidth)))
-    val coreShortRule = new CrossedDownIndicatorRule(closePrice, upperBoundIndicator)
+    val coreShortRule = {
+      val priceIsNotTooLow: AbstractIndicator[java.lang.Boolean] =
+        for {
+          price <- closePrice: AbstractIndicator[Num]
+          bound <-
+            upperBoundIndicator \-\ halfChannel //channelDiffIndicator.map(_.dividedBy(num(10)))
+        } yield price.isGreaterThan(bound)
+      channelIsDefinedRule &
+        new BooleanIndicatorRule(
+          channel.map(
+            _.exists(
+              _.upperBoundApproximation.func
+                .asInstanceOf[PolynomialFunction]
+                .getCoefficients
+                .last > 0
+            )
+          )
+        ) &
+        new CrossedDownIndicatorRule(closePrice, upperBoundIndicator) &
+        new BooleanIndicatorRule(priceIsNotTooLow) &
+        new BooleanIndicatorRule(
+          volumeIndicator.map(_.isGreaterThan(num(500)))
+        ) &
+        new BooleanIndicatorRule(relativeWidthIndicator.map(_.isGreaterThan(minRelativeWidth)))
+    }
     val timeRule =
       new TimeRangeRule(Seq(tradeTimeRange).asJava, time.asInstanceOf[DateTimeIndicator])
     val entryLongRule =
@@ -157,12 +181,32 @@ object Strategies {
       new BooleanIndicatorRule(hasData.map(boolean2Boolean)) &
         timeRule &
         coreShortRule
+    val exitShortRule =
+      new StopLossRule(closePrice, 1)
+        .or(
+          new StopGainRule(closePrice, 1)
+        )
+        .or(
+          new CrossedDownIndicatorRule(
+            closePrice,
+            new DifferenceIndicator(upperBoundIndicator, halfChannel)
+          )
+        )
+        .or(
+          new CrossedUpIndicatorRule(
+            closePrice,
+            new SumIndicator(upperBoundIndicator, halfChannel)
+          )
+        )
+        .or(
+          channelIsDefinedRule.negation
+        )
     val buyingStrategy = new BaseStrategy(entryLongRule, exitLongRule)
-//    val sellingStrategy = new BaseStrategy(entryShortRule, exitRule)
+    val sellingStrategy = new BaseStrategy(entryShortRule, exitShortRule)
 //    val ema = new EMAIndicator(closePrice, 3 * extremumWindowSize)
     FullStrategy(
       longStrategy = buyingStrategy,
-      shortStrategy = doNothing,
+      shortStrategy = sellingStrategy,
       priceIndicators = Map(
 //        "ema" -> IndicatorInfo(ema),
         "close price" -> IndicatorInfo(closePrice),
