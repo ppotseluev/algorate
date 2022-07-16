@@ -22,7 +22,7 @@ class ChannelIndicator private (
     extremumIndicator: AbstractIndicator[Option[Extremum]],
     approximator: Approximator,
     numOfPoints: Int,
-    maxError: Double //TODO normalize it in some way...
+    maxError: Double
 ) extends RecursiveCachedIndicator[ChannelState](extremumIndicator.getBarSeries) {
 
   private def collectExtremums[T <: Extremum](

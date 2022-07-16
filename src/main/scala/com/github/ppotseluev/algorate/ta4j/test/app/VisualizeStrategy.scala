@@ -17,15 +17,15 @@ import java.time.LocalDate
 
 object VisualizeStrategy extends IOApp with StrictLogging {
 
-  val strategy = Strategies.test
+  val strategy = Strategies.intraChannel
   val tester = new StrategyTester(strategy)
   //  val ticker = "YNDX".taggedWith[Tags.Ticker]
   //  val ticker = "CHMF".taggedWith[Tags.Ticker]
-  val ticker = "POLY".taggedWith[Tags.Ticker]
+  val ticker = "MA".taggedWith[Tags.Ticker]
   val interval = CandlesInterval(
     interval = DaysInterval(
-      LocalDate.of(2021, 2, 9),
-      LocalDate.of(2021, 4, 22)
+      LocalDate.of(2022, 2, 1),
+      LocalDate.of(2022, 7, 24)
     ),
     resolution = OneMinute
   )

@@ -33,7 +33,7 @@ object StrategyTester {
       short: Stats
   ) {
     override def toString: String =
-      s"LONG (${long.totalClosedPositions}, ${long.winningPositions.toDouble / long.totalClosedPositions}), SHORT (${short.totalClosedPositions}, ${short.winningPositions.toDouble / short.totalClosedPositions})"
+      s"LONG (${long.totalClosedPositions}, ${long.winRatio}), SHORT (${short.totalClosedPositions}, ${short.winRatio})"
   }
 
   object TradingStats {
@@ -44,7 +44,9 @@ object StrategyTester {
       totalClosedPositions: Int,
       winningPositions: Int,
       positions: Seq[Position]
-  )
+  ) {
+    def winRatio: Double = winningPositions.toDouble / totalClosedPositions
+  }
 
   object Stats {
     implicit val Monoid: Monoid[Stats] = semiauto.monoid
