@@ -48,8 +48,19 @@ case class RedisCodecs[K, V]()(implicit
 }
 
 object RedisCodecs {
+  case class DecodeException(msg: String) extends RedisException(msg)
+
   implicit val string: RedisCodecs[String, String] =
     wrap(DRedisCodec.Utf8)
+
+  implicit val byteBuffer: RedisCodecs[ByteBuffer, ByteBuffer] = {
+    implicit val codec: RedisCodec[ByteBuffer] = new RedisCodec[ByteBuffer] {
+      override def decode(bytes: ByteBuffer): Either[String, ByteBuffer] = Right(bytes)
+
+      override def encode(obj: ByteBuffer): ByteBuffer = obj
+    }
+    RedisCodecs()
+  }
 
   implicit def apply[K, V](implicit redisCodecs: RedisCodecs[K, V]): RedisCodecs[K, V] =
     redisCodecs
@@ -75,7 +86,7 @@ object RedisCodecs {
   implicit def unwrap[K, V](redisCodecs: RedisCodecs[K, V]): DRedisCodec[K, V] = {
     def getOrThrow[T](result: Either[String, T]): T =
       result.left
-        .map(new RedisException(_))
+        .map(DecodeException)
         .toTry
         .get
 

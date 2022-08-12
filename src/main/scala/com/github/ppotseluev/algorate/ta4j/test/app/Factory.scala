@@ -1,5 +1,6 @@
 package com.github.ppotseluev.algorate.ta4j.test.app
 
+import boopickle.Default.iterablePickler
 import cats.Parallel
 import cats.effect.Resource
 import cats.effect.kernel.Async
@@ -12,9 +13,8 @@ import com.github.ppotseluev.algorate.model.BrokerAccountId
 import com.github.ppotseluev.algorate.tinkoff.TinkoffApi
 import com.github.ppotseluev.algorate.tinkoff.TinkoffBroker
 import com.github.ppotseluev.algorate.util.redis.RedisCodecs
-import com.github.ppotseluev.algorate.util.redis.RedisJsonCodec._
+import com.github.ppotseluev.algorate.util.redis.codec._
 import dev.profunktor.redis4cats.Redis
-import dev.profunktor.redis4cats.RedisCommands
 import dev.profunktor.redis4cats.connection.RedisClient
 import dev.profunktor.redis4cats.effect.Log.Stdout._
 import java.time.ZoneOffset
@@ -29,20 +29,6 @@ object Factory {
   def redisClient[F[_]: Async]: Resource[F, RedisClient] =
     RedisClient[F].from("redis://localhost")
 
-  def redisBarsCache[F[_]: Async](
-      client: RedisClient
-  ): Resource[F, RedisCommands[F, String, List[Bar]]] = {
-    val codec = RedisCodecs[String, String].jsonValues[List[Bar]]
-    Redis[F].fromClient(client, codec)
-  }
-
-  def redisSharesCache[F[_]: Async](
-      client: RedisClient
-  ): Resource[F, RedisCommands[F, String, List[Share]]] = {
-    val codec = RedisCodecs[String, String].jsonValues[List[Share]]
-    Redis[F].fromClient(client, codec)
-  }
-
   def tinkoffBroker[F[_]: Parallel: Async](
       token: String,
       accountId: BrokerAccountId,
@@ -51,8 +37,14 @@ object Factory {
     for {
       candlesLimiter <- Limiter.start[F](candlesMinInterval)
       redisClient <- redisClient
-      barsCache <- redisBarsCache(redisClient)
-      sharesCache <- redisSharesCache(redisClient)
+      barsCache <- Redis[F].fromClient(
+        redisClient,
+        RedisCodecs.byteBuffer.stringKeys.boopickleValues[List[Bar]]
+      )
+      sharesCache <- Redis[F].fromClient(
+        redisClient,
+        RedisCodecs[String, String].jsonValues[List[Share]]
+      )
       broker = {
         val api = InvestApi.create(token)
         val tinkoffApi = TinkoffApi

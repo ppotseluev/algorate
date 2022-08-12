@@ -6,7 +6,6 @@ import com.github.ppotseluev.algorate.core.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.model.Bar
 import com.github.ppotseluev.algorate.model.ClosePositionOrder.Type
 import com.github.ppotseluev.algorate.model._
-import com.softwaremill.tagging._
 import java.util.UUID
 import ru.tinkoff.piapi.contract.v1.Share
 import scala.collection.concurrent.TrieMap
@@ -25,7 +24,7 @@ class TestBroker[F[_]](realBroker: Broker[F])(implicit F: Async[F]) extends Brok
       case Some(value) => Some(order :: value)
       case None        => Some(List(order))
     }
-    UUID.randomUUID().toString.taggedWith[Tags.OrderId]
+    UUID.randomUUID().toString
   }
 
   override def getData(

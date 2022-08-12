@@ -7,7 +7,7 @@ import org.ta4j.core.indicators.CachedIndicator
 import org.ta4j.core.num.NaN
 import org.ta4j.core.num.Num
 
-object LastLocalExtremumIndicator { //TODO refactor. It's not last extremum now. ~ remove Option
+object LocalExtremumIndicator {
   def apply(indicator: Indicator[Num], windowSize: Int): AbstractIndicator[Option[Extremum]] =
     new Impl(indicator, windowSize)
 
@@ -47,6 +47,4 @@ object LastLocalExtremumIndicator { //TODO refactor. It's not last extremum now.
     case class Min(value: Num, index: Int) extends Extremum
     case class Max(value: Num, index: Int) extends Extremum
   }
-
-//todo ignore/merge if two points are too close
 }

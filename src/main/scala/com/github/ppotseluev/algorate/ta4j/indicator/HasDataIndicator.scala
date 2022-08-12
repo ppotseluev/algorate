@@ -11,7 +11,7 @@ class HasDataIndicator(
 ) extends AbstractIndicator[Boolean](barSeries) {
   override def getValue(index: Int): Boolean = {
     val start = index - period
-    if (start < 0) {
+    if (start < 0 || index > barSeries.getEndIndex) {
       false
     } else {
       val bars = barSeries.getSubSeries(start, index).getBarData.asScala

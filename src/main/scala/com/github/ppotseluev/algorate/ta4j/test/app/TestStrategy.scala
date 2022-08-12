@@ -7,12 +7,10 @@ import cats.effect.ExitCode
 import cats.effect.IO
 import cats.effect.IOApp
 import cats.implicits._
-import com.github.ppotseluev.algorate.model.Tags
 import com.github.ppotseluev.algorate.ta4j.BarSeriesProvider
 import com.github.ppotseluev.algorate.ta4j.test.StrategyTester
 import com.github.ppotseluev.algorate.ta4j.test.StrategyTester.TradingStats
 import com.github.ppotseluev.algorate.ta4j.test.TestSetup
-import com.softwaremill.tagging.Tagger
 import ru.tinkoff.piapi.contract.v1.Share
 import scala.concurrent.duration._
 
@@ -26,7 +24,7 @@ object TestStrategy extends IOApp {
     Factory
       .tinkoffBroker[IO](
         token = args.head,
-        accountId = "fake_acc_id".taggedWith[Tags.BrokerAccountId]
+        accountId = "fake_acc_id"
       )
       .use { broker =>
         val start = System.currentTimeMillis()
@@ -48,10 +46,14 @@ object TestStrategy extends IOApp {
         result
           .map { res =>
             println(res.show)
-            val allStats = res.sectorsStats.values.flatMap(_.values)
+            val allStats = res.sectorsStats.values.flatMap(_.values).toList.combineAll
+            println(s"total: $allStats")
             println()
-            println(s"total: ${allStats.toList.combineAll}")
-
+            println("per month statistics")
+            allStats.monthly.foreach { case (month, stats) =>
+              println(s"$month $stats")
+            }
+            println()
             val end = System.currentTimeMillis()
             val duration = (end - start).millis
             println(s"Testing took $duration")

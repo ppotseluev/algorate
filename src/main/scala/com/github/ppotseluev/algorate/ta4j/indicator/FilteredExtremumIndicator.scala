@@ -1,6 +1,6 @@
 package com.github.ppotseluev.algorate.ta4j.indicator
 
-import com.github.ppotseluev.algorate.ta4j.indicator.LastLocalExtremumIndicator.Extremum
+import com.github.ppotseluev.algorate.ta4j.indicator.LocalExtremumIndicator.Extremum
 import org.ta4j.core.indicators.AbstractIndicator
 import org.ta4j.core.indicators.CachedIndicator
 

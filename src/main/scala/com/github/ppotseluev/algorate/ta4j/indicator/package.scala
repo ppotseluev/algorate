@@ -44,6 +44,12 @@ package object indicator {
         y <- other
       } yield y.plus(x)
 
+    def \-\(other: AbstractIndicator[Num])(implicit ev: T <:< Num): AbstractIndicator[Num] =
+      for {
+        x <- indicator.map(ev.apply)
+        y <- other
+      } yield x.minus(y)
+
     def filter[A](predicate: A => Boolean)(implicit
         ev: T <:< Option[A]
     ): AbstractIndicator[Option[A]] =
