@@ -16,7 +16,6 @@ import com.github.ppotseluev.algorate.model.Order.Type
 import com.github.ppotseluev.algorate.model._
 import com.github.ppotseluev.algorate.util._
 import com.google.protobuf.Timestamp
-import com.softwaremill.tagging._
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -48,7 +47,7 @@ class TinkoffBroker[F[_]: Parallel](
           orderType(order),
           orderId
         )
-    } yield orderId.taggedWith[Tags.OrderId]
+    } yield orderId
 
   private def price(order: Order): Quotation = {
     val RealNumber(units, nano) = order.price.asRealNumber
@@ -72,7 +71,7 @@ class TinkoffBroker[F[_]: Parallel](
 
   private def price(quotation: Quotation): Price = {
     val real = RealNumber(quotation.getUnits, quotation.getNano)
-    real.asBigDecimal.taggedWith[Tags.Price]
+    real.asBigDecimal
   }
 
   private def fromProto(timestamp: Timestamp): OffsetDateTime =

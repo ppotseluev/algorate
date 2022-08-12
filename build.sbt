@@ -29,7 +29,6 @@ libraryDependencies ++= Seq(
   "co.fs2" %% "fs2-reactive-streams" % Versions.fs2,
   "ch.qos.logback" % "logback-classic" % Versions.logback,
   "com.typesafe.scala-logging" %% "scala-logging" % Versions.scalaLogging,
-  "com.softwaremill.common" %% "tagging" % Versions.tagging,
   "com.beachape" %% "enumeratum" % Versions.enumeratum,
 //  "com.github.ppotseluev" % "eann" % Versions.eann intransitive (),
   "org.ta4j" % "ta4j-core" % Versions.ta4j,
@@ -42,5 +41,6 @@ libraryDependencies ++= Seq(
   "io.circe" %% "circe-core" % Versions.circe,
   "io.circe" %% "circe-parser" % Versions.circe,
   "io.circe" %% "circe-generic" % Versions.circe,
-  "com.google.protobuf" % "protobuf-java-util" % Versions.protobuf
+  "com.google.protobuf" % "protobuf-java-util" % Versions.protobuf,
+  "io.suzaku" %% "boopickle" % Versions.boopickle
 )

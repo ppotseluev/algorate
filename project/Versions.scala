@@ -4,7 +4,6 @@ object Versions {
   val tinkoffInvestApi = "1.0-M9"
   val logback = "1.2.9"
   val scalaLogging = "3.9.4"
-  val tagging = "2.3.2"
   val enumeratum = "1.7.0"
   val eann = "1.0.0"
   val javafx = "17.0.0.1"
@@ -15,6 +14,7 @@ object Versions {
   val redisClient = "1.2.0"
   val circe = "0.14.2"
   val protobuf = "3.21.2"
+  val boopickle = "1.4.0"
 
   val munit = "0.7.29"
 }

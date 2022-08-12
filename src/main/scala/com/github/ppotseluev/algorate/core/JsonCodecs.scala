@@ -2,9 +2,7 @@ package com.github.ppotseluev.algorate.core
 
 import com.github.ppotseluev.algorate.model.Bar
 import com.github.ppotseluev.algorate.model.Price
-import com.github.ppotseluev.algorate.model.Tags
 import com.google.protobuf.util.JsonFormat
-import com.softwaremill.tagging.Tagger
 import io.circe.Decoder
 import io.circe.DecodingFailure
 import io.circe.Encoder
@@ -19,9 +17,6 @@ import scala.util.Try
 object JsonCodecs {
   implicit val priceEncoder: Encoder[Price] =
     Encoder[String].contramap(_.toString)
-
-  implicit val priceDecoder: Decoder[Price] =
-    Decoder[String].map(BigDecimal(_).taggedWith[Tags.Price])
 
   implicit val durationEncoder: Encoder[FiniteDuration] =
     Encoder[String].contramap(_.toString)

@@ -1,6 +1,7 @@
 package com.github.ppotseluev.algorate.util
 
-import ru.tinkoff.piapi.contract.v1.{Share, ShareType}
+import ru.tinkoff.piapi.contract.v1.Share
+import ru.tinkoff.piapi.contract.v1.ShareType
 import ru.tinkoff.piapi.core.InvestApi
 import scala.jdk.CollectionConverters._
 
