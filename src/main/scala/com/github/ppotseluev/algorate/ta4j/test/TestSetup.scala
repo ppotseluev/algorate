@@ -16,8 +16,8 @@ object TestSetup {
 
 //      LocalDate.of(2020, 1, 1),
 //      LocalDate.of(2021, 1, 1)
-      LocalDate.of(2021, 1, 1),
-      LocalDate.of(2022, 1, 1)
+      LocalDate.of(2022, 1, 2),
+      LocalDate.of(2022, 8, 20)
     ),
     resolution = OneMinute
   )
@@ -351,15 +351,49 @@ object TestSetup {
   )
 
   val tickers = List(
-    "YNDX",
-    "GAZP",
-    "LKOH",
-    "GMKN",
-    "ROSN",
+    "LUV",
+    "FDX",
+    "DAL",
+    "LYB",
     "CHMF",
-    "TATNP",
-    "NVTK",
-    "POLY"
+    "PHOR",
+    "POLY",
+    "QRVO",
+    "MU",
+    "LRCX",
+    "NVDA",
+    "XRX",
+    "CSCO",
+    "PINS",
+    "WDC",
+    "QCOM",
+    "GLW",
+    "LKOH",
+    "XOM",
+    "ROSN",
+    "CVX",
+    "OXY",
+    "PPL",
+    "CNP",
+    "NKE",
+    "TGT",
+    "MDLZ",
+    "MCD",
+    "RL",
+    "NFLX",
+    "YNDX",
+    "TRIP",
+    "MET",
+    "KEY",
+    "V",
+    "CFG",
+    "BAC",
+    "HIG",
+    "RF",
+    "BIIB",
+    "AMGN",
+    "CVS",
+    "ABBV"
   )
   //Random.shuffle(allTickers).take(sampleSize)
 //    List(
