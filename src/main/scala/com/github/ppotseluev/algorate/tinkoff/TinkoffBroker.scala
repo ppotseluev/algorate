@@ -14,10 +14,8 @@ import com.github.ppotseluev.algorate.model
 import com.github.ppotseluev.algorate.model.Bar
 import com.github.ppotseluev.algorate.model.Order.Type
 import com.github.ppotseluev.algorate.model._
+import com.github.ppotseluev.algorate.proto.ProtoConverters
 import com.github.ppotseluev.algorate.util._
-import com.google.protobuf.Timestamp
-import java.time.Instant
-import java.time.OffsetDateTime
 import java.time.ZoneId
 import ru.tinkoff.piapi.contract.v1.CandleInterval
 import ru.tinkoff.piapi.contract.v1.HistoricCandle
@@ -69,25 +67,14 @@ class TinkoffBroker[F[_]: Parallel](
       case Type.Market => OrderType.ORDER_TYPE_MARKET
     }
 
-  private def price(quotation: Quotation): Price = {
-    val real = RealNumber(quotation.getUnits, quotation.getNano)
-    real.asBigDecimal
-  }
-
-  private def fromProto(timestamp: Timestamp): OffsetDateTime =
-    OffsetDateTime.ofInstant(
-      Instant.ofEpochSecond(timestamp.getSeconds, timestamp.getNanos),
-      zoneId
-    )
-
   private def convert(candleDuration: FiniteDuration)(candle: HistoricCandle): Bar =
     model.Bar(
-      openPrice = price(candle.getOpen),
-      closePrice = price(candle.getClose),
-      lowPrice = price(candle.getLow),
-      highPrice = price(candle.getHigh),
+      openPrice = TinkoffConverters.price(candle.getOpen),
+      closePrice = TinkoffConverters.price(candle.getClose),
+      lowPrice = TinkoffConverters.price(candle.getLow),
+      highPrice = TinkoffConverters.price(candle.getHigh),
       volume = candle.getVolume,
-      endTime = fromProto(candle.getTime),
+      endTime = ProtoConverters.fromProto(candle.getTime, zoneId),
       duration = candleDuration //todo candle can be not closed
     )
 
@@ -115,45 +102,6 @@ class TinkoffBroker[F[_]: Parallel](
     }
     candlesInterval.interval.days.parTraverse(get).map(_.flatten)
   }
-
-  //  private def makeStream(
-  //      instrumentId: InstrumentId
-  //  )(maybeCandles: Option[Candles]): F[Stream[F, Point]] =
-  //    maybeCandles match {
-  //      case Some(value) =>
-  //        val candles = value.getCandles.asScala.map { candle =>
-  //          Point(
-  //            candle.getTime,
-  //            candle.getO.doubleValue.taggedWith[Tags.Price]
-  //          ) //todo check time <-> o/c price
-  //        }
-  //        Stream.emits(candles).evalMap(_.pure).pure
-  //      case None =>
-  //        F.raiseError(new NoSuchElementException(s"Instrument not found: $instrumentId"))
-  //    }
-  //
-  //  private def subscribe(
-  //      instrumentId: InstrumentId
-  //  ): F[Stream[F, Point]] = {
-  //    val subscribeRequest = StreamingRequest.subscribeCandle(
-  //      instrumentId,
-  //      CandleInterval._1MIN
-  //    )
-  //    for {
-  //      _ <- F.delay(api.getStreamingContext.sendRequest(subscribeRequest))
-  //      stream = reactivestreams.fromPublisher[F, StreamingEvent](
-  //        api.getStreamingContext,
-  //        bufferSize = 1
-  //      )
-  //    } yield stream.evalMapFilter {
-  //      case candle: StreamingEvent.Candle =>
-  //        Point(
-  //          OffsetDateTime.now,
-  //          candle.getClosingPrice.doubleValue.taggedWith[Tags.Price]
-  //        ).some.pure
-  //      case _ => Option.empty[Point].pure
-  //    }
-  //  }
 
   override def getAllShares: F[List[Share]] =
     api.getAllShares

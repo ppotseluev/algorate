@@ -12,6 +12,7 @@ import com.github.ppotseluev.algorate.ta4j.strategy.Strategies
 import com.github.ppotseluev.algorate.ta4j.test.StrategyTester
 import com.typesafe.scalalogging.StrictLogging
 import java.time.LocalDate
+import ru.tinkoff.piapi.core.InvestApi
 
 object VisualizeStrategy extends IOApp with StrictLogging {
 
@@ -19,20 +20,21 @@ object VisualizeStrategy extends IOApp with StrictLogging {
   val tester = new StrategyTester(strategy)
   //  val ticker = "YNDX"
   //  val ticker = "CHMF"
-  val ticker = "MA"
+  val ticker = "CSCO"
   val interval = CandlesInterval(
     interval = DaysInterval(
-      LocalDate.of(2021, 1, 1),
-      LocalDate.of(2022, 1, 11)
+      LocalDate.now.minusDays(5),
+      LocalDate.now.minusDays(2)
     ),
     resolution = OneMinute
   )
 
   override def run(args: List[String]): IO[ExitCode] = {
+    val token = args.head
     Factory
       .tinkoffBroker[IO](
-        token = args.head,
-        accountId = "fake_acc_id"
+        accountId = "fake_acc_id",
+        investApi = InvestApi.create(token)
       )
       .use { broker =>
         val seriesProvider = new BarSeriesProvider[IO](broker)

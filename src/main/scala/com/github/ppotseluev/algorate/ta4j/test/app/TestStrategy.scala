@@ -12,6 +12,7 @@ import com.github.ppotseluev.algorate.ta4j.test.StrategyTester
 import com.github.ppotseluev.algorate.ta4j.test.StrategyTester.TradingStats
 import com.github.ppotseluev.algorate.ta4j.test.TestSetup
 import ru.tinkoff.piapi.contract.v1.Share
+import ru.tinkoff.piapi.core.InvestApi
 import scala.concurrent.duration._
 
 /**
@@ -20,11 +21,12 @@ import scala.concurrent.duration._
 object TestStrategy extends IOApp {
   import TestSetup._
 
-  override def run(args: List[String]): IO[ExitCode] =
+  override def run(args: List[String]): IO[ExitCode] = {
+    val token = args.head
     Factory
       .tinkoffBroker[IO](
-        token = args.head,
-        accountId = "fake_acc_id"
+        accountId = "fake_acc_id",
+        investApi = InvestApi.create(token)
       )
       .use { broker =>
         val start = System.currentTimeMillis()
@@ -60,6 +62,7 @@ object TestStrategy extends IOApp {
           }
           .as(ExitCode.Success)
       }
+  }
 
   implicit val tickersShow: Show[Map[Share, TradingStats]] = (stats: Map[Share, TradingStats]) =>
     stats

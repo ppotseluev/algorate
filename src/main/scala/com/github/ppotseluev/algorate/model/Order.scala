@@ -19,6 +19,27 @@ case class Order(
 
   def estimatedCost: BigDecimal = price * lots
 
+  /**
+   * Order that closes this order at the specified point
+   */
+  def buildClosingOrder(point: Point): Order = {
+    val isProfitable = operationType match {
+      case OperationType.Buy  => point.value > this.price
+      case OperationType.Sell => point.value < this.price
+    }
+    val closingOrderType =
+      if (isProfitable) ClosePositionOrder.Type.TakeProfit
+      else ClosePositionOrder.Type.StopLoss
+    this.copy(
+      operationType = operationType.reverse,
+      details = Order.Details.Market,
+      info = Order.Info(
+        point = point,
+        closingOrderType = Some(closingOrderType)
+      )
+    )
+  }
+
   require(lots > 0, "lots must be positive")
 }
 
