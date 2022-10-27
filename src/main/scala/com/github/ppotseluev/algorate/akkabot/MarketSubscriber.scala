@@ -28,7 +28,7 @@ object MarketSubscriber extends LazyLogging {
   /**
    * Actor-based subscriber
    */
-  def actors(actors: ActorSystem[TradingManager.Event]) =
+  def fromActors(actors: ActorSystem[TradingManager.Event]) =
     new FromActors(actors)
 
   class FromActors private[MarketSubscriber] (actors: ActorSystem[TradingManager.Event]) {

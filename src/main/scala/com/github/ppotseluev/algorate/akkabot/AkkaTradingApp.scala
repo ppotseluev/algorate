@@ -124,12 +124,12 @@ object AkkaTradingApp extends IOApp with LazyLogging {
           actorSystem <- IO(ActorSystem(tradingManager, "Algorate"))
           _ <- useHistoricalData.fold {
             MarketSubscriber
-              .actors(actorSystem)
+              .fromActors(actorSystem)
               .using[IO](investApi)
               .subscribe(figiList)
           } { case StubSettings(ticker, streamFrom, streamTo, rate) =>
             MarketSubscriber
-              .actors(actorSystem)
+              .fromActors(actorSystem)
               .stub[IO](
                 broker,
                 rate = rate,

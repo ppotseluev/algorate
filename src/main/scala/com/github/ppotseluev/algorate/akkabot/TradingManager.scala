@@ -37,17 +37,19 @@ object TradingManager extends LazyLogging {
       instrumentId -> ctx.spawn(trader(instrumentId), s"$instrumentId-trader")
     }.toMap
 
+    def useTrader(instrumentId: InstrumentId)(f: Trader => Unit): Unit =
+      traders.get(instrumentId) match {
+        case Some(trader) => f(trader)
+        case None         => logger.error(s"Trader for $instrumentId not found")
+      }
+
     Behaviors.receiveMessage {
       case CandleData(data) =>
         logger.debug(s"Received $data")
-        traders.get(data.instrumentId).foreach { trader =>
-          trader ! Trader.Event.NewData(data.bar)
-        }
+        useTrader(data.instrumentId)(_ ! Trader.Event.NewData(data.bar))
         Behaviors.same
       case ShowStateRequested(instrumentId) =>
-        traders.get(instrumentId).foreach { trader =>
-          trader ! Trader.Event.ShowStateRequested
-        }
+        useTrader(instrumentId)(_ ! Trader.Event.ShowStateRequested)
         Behaviors.same
     }
   }

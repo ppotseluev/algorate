@@ -75,7 +75,7 @@ class TinkoffBroker[F[_]: Parallel](
       highPrice = TinkoffConverters.price(candle.getHigh),
       volume = candle.getVolume,
       endTime = ProtoConverters.fromProto(candle.getTime, zoneId),
-      duration = candleDuration //todo candle can be not closed
+      duration = candleDuration
     )
 
   private def candleInterval(timeResolution: CandleResolution): CandleInterval =
