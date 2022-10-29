@@ -160,12 +160,12 @@ object Strategies {
 //      new TimeRangeRule(Seq(tradeTimeRange).asJava, time.asInstanceOf[DateTimeIndicator])
     val entryLongRule =
       new BooleanIndicatorRule(hasData.map(boolean2Boolean)) &
-        new BooleanIndicatorRule(hasFutureData.map(boolean2Boolean)) &
+//        new BooleanIndicatorRule(hasFutureData.map(boolean2Boolean)) &
 //        timeRule &
         coreLongRule
     val entryShortRule =
       new BooleanIndicatorRule(hasData.map(boolean2Boolean)) &
-        new BooleanIndicatorRule(hasFutureData.map(boolean2Boolean)) &
+//        new BooleanIndicatorRule(hasFutureData.map(boolean2Boolean)) &
 //        timeRule &
         coreShortRule
     val exitShortRule =

@@ -16,8 +16,10 @@ object SharesFinder extends App {
       share.getShareType == ShareType.SHARE_TYPE_COMMON
   }
 
-  val allShares = api.getInstrumentsService.getAllSharesSync.asScala
-  val shares = allShares.filter(shareFilter)
+  lazy val allShares = api.getInstrumentsService.getAllSharesSync.asScala
+  lazy val shares = allShares.filter(shareFilter)
+
+  val accounts = api.getUserService.getAccountsSync
 
   val sectors = shares.map(_.getSector).toSet
   ???

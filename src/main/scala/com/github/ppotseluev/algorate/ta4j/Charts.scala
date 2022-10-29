@@ -4,6 +4,7 @@ import com.github.ppotseluev.algorate.ta4j.strategy.FullStrategy
 import com.github.ppotseluev.algorate.ta4j.strategy.FullStrategy.IndicatorInfo
 import com.github.ppotseluev.algorate.ta4j.strategy.FullStrategy.Representation
 import com.github.ppotseluev.algorate.ta4j.test.StrategyTester.TradingStats
+import com.github.ppotseluev.algorate.util.NonClosingApplicationFrame
 import java.awt.BasicStroke
 import java.awt.Color
 import java.awt.Dimension
@@ -22,7 +23,6 @@ import org.jfree.chart.renderer.xy.XYShapeRenderer
 import org.jfree.data.time.Minute
 import org.jfree.data.time.TimeSeries
 import org.jfree.data.time.TimeSeriesCollection
-import org.jfree.ui.ApplicationFrame
 import org.jfree.ui.RectangleEdge
 import org.jfree.ui.RefineryUtilities
 import org.ta4j.core.BarSeries
@@ -145,7 +145,7 @@ object Charts {
     panel.setMouseWheelEnabled(true)
     panel.setPreferredSize(new Dimension(1024, 400))
     // Application frame
-    val frame = new ApplicationFrame(title)
+    val frame = new NonClosingApplicationFrame(title)
     frame.setContentPane(panel)
     frame.pack()
     RefineryUtilities.centerFrameOnScreen(frame)

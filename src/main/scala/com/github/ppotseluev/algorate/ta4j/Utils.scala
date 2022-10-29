@@ -4,7 +4,7 @@ import com.github.ppotseluev.algorate.model.Bar
 import org.ta4j.core.BarSeries
 import org.ta4j.core.BaseBar
 import org.ta4j.core.BaseBarSeriesBuilder
-import org.ta4j.core.num.DoubleNum
+import org.ta4j.core.num.DecimalNum
 import org.ta4j.core.{Bar => Ta4jBar}
 import scala.collection.immutable.ArraySeq
 import scala.jdk.CollectionConverters._
@@ -14,7 +14,7 @@ object Utils {
   def convertBar(bar: Bar): Ta4jBar = {
     val Bar(openPrice, closePrice, lowPrice, highPrice, volume, endTime, duration) = bar
     BaseBar
-      .builder[BigDecimal](d => DoubleNum.valueOf(d.toFloat), null)
+      .builder[BigDecimal](x => DecimalNum.valueOf(x.bigDecimal), null)
       .openPrice(openPrice)
       .closePrice(closePrice)
       .lowPrice(lowPrice)

@@ -15,6 +15,9 @@ object Versions {
   val circe = "0.14.2"
   val protobuf = "3.21.2"
   val boopickle = "1.4.0"
+  val akka = "2.6.20"
 
   val munit = "0.7.29"
+
+  val kindProjector = "0.13.2"
 }

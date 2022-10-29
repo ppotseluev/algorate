@@ -42,5 +42,10 @@ libraryDependencies ++= Seq(
   "io.circe" %% "circe-parser" % Versions.circe,
   "io.circe" %% "circe-generic" % Versions.circe,
   "com.google.protobuf" % "protobuf-java-util" % Versions.protobuf,
-  "io.suzaku" %% "boopickle" % Versions.boopickle
+  "io.suzaku" %% "boopickle" % Versions.boopickle,
+  "com.typesafe.akka" %% "akka-actor-typed" % Versions.akka
+)
+
+addCompilerPlugin(
+  "org.typelevel" % "kind-projector" % Versions.kindProjector cross CrossVersion.full
 )

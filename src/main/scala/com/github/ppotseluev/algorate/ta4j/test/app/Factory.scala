@@ -30,8 +30,8 @@ object Factory {
     RedisClient[F].from("redis://localhost")
 
   def tinkoffBroker[F[_]: Parallel: Async](
-      token: String,
       accountId: BrokerAccountId,
+      investApi: InvestApi,
       candlesMinInterval: FiniteDuration = 300 every 1.minute
   ): Resource[F, Broker[F]] = {
     for {
@@ -46,9 +46,8 @@ object Factory {
         RedisCodecs[String, String].jsonValues[List[Share]]
       )
       broker = {
-        val api = InvestApi.create(token)
         val tinkoffApi = TinkoffApi
-          .wrap[F](api)
+          .wrap[F](investApi)
           .withCandlesLimit(candlesLimiter)
           .withLogging
         val impl = new TinkoffBroker(tinkoffApi, accountId, ZoneOffset.UTC)

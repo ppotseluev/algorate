@@ -1,25 +1,22 @@
-package com.github.ppotseluev.algorate.deprecated.test
+package com.github.ppotseluev.algorate.core
 
-import cats.effect.Async
-import com.github.ppotseluev.algorate.core.Broker
+import cats.effect.Sync
 import com.github.ppotseluev.algorate.core.Broker.CandlesInterval
-import com.github.ppotseluev.algorate.model.Bar
+import com.github.ppotseluev.algorate.core.TestBroker.TradingStatistics
 import com.github.ppotseluev.algorate.model.ClosePositionOrder.Type
 import com.github.ppotseluev.algorate.model._
 import java.util.UUID
 import ru.tinkoff.piapi.contract.v1.Share
 import scala.collection.concurrent.TrieMap
 
-import TestBroker.TradingStatistics
-
 /**
  * Implementation for strategy testing
  */
-class TestBroker[F[_]](realBroker: Broker[F])(implicit F: Async[F]) extends Broker[F] {
+class TestBroker[F[_]: Sync] private (realBroker: Broker[F]) extends Broker[F] {
 
   private val journal = TrieMap.empty[InstrumentId, List[Order]]
 
-  override def placeOrder(order: Order): F[OrderId] = F.delay {
+  override def placeOrder(order: Order): F[OrderId] = Sync[F].delay {
     journal.updateWith(order.instrumentId) {
       case Some(value) => Some(order :: value)
       case None        => Some(List(order))
@@ -60,32 +57,6 @@ class TestBroker[F[_]](realBroker: Broker[F])(implicit F: Async[F]) extends Brok
         ordersHistory = ordersHistory
       )
       newState
-//      order.operationType match {
-//        case OperationType.Buy =>
-//          if (state.positionLots >= 0) //докупаем
-//            newState.copy(
-//              positionLots = state.positionLots + order.lots,
-//              balanceDelta = state.balanceDelta - order.estimatedCost
-//            )
-//          else if (state.positionLots == -order.lots) //закрываем короткую позицию
-//            newState.copy(
-//              positionLots = 0,
-//              balanceDelta = state.balanceDelta - order.estimatedCost
-//            )
-//          else ???
-//        case OperationType.Sell =>
-//          if (state.positionLots == order.lots) //закрываем длинную позицию
-//            newState.copy(
-//              positionLots = 0,
-//              balanceDelta = state.balanceDelta + order.estimatedCost
-//            )
-//          else if (state.positionLots <= 0) //увеличиваем шорт
-//            newState.copy(
-//              positionLots = state.positionLots - order.lots,
-//              balanceDelta = state.balanceDelta + order.estimatedCost
-//            )
-//          else ???
-//      }
     }
   }
 
@@ -93,10 +64,7 @@ class TestBroker[F[_]](realBroker: Broker[F])(implicit F: Async[F]) extends Brok
 }
 
 object TestBroker {
-  case class TradingInfo(
-      orders: Seq[Order],
-      currentLots: Int
-  )
+  def wrap[F[_]: Sync](broker: Broker[F]) = new TestBroker(broker)
 
   case class TradingStatistics(
       triggerCount: Map[OperationType, Int],
