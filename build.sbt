@@ -1,51 +1,100 @@
-version := "0.1.0-SNAPSHOT"
-
-scalaVersion := "2.13.7"
-
-scalacOptions := Seq(
-  "-Ymacro-annotations",
-  "-language:higherKinds",
-  "-Xfatal-warnings",
-  "-deprecation",
-  "-Wunused:imports"
+lazy val settings = Seq(
+  organization := "com.github.ppotseluev",
+  version := "1.0-SNAPSHOT",
+  scalaVersion := "2.13.7",
+  Compile / scalaSource := baseDirectory.value / "src/main/scala",
+  Test / scalaSource := baseDirectory.value / "src/test/scala",
+//  javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
+  ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0",
+  ThisBuild / semanticdbEnabled := true,
+  ThisBuild / semanticdbVersion := scalafixSemanticdb.revision,
+  ThisBuild / resolvers += Resolver.mavenLocal,
+  useCoursier := false,
+  scalacOptions := Seq(
+    "-Ymacro-annotations",
+    "-language:higherKinds",
+    "-Xfatal-warnings",
+    "-deprecation",
+    "-Wunused:imports"
+  ),
+  libraryDependencies ++= Seq(
+    Dependency.kittens
+  ),
+  addCompilerPlugin(Dependency.kindProjector)
 )
 
-ThisBuild / resolvers += Resolver.mavenLocal
-
-ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0"
-
-ThisBuild / semanticdbEnabled := true
-ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
-
-lazy val root = (project in file("."))
+lazy val root = project
+  .in(file("."))
   .settings(
     name := "algorate"
   )
+  .aggregate(
+    `math-utils`,
+    `redis-utils`,
+    `strategy`,
+    `broker`,
+    `trader`
+  )
 
-useCoursier := false
+lazy val trader = project
+  .settings(
+    name := "trader",
+    settings,
+    libraryDependencies ++= Seq(
+      Dependency.tinkoffInvestApi,
+      Dependency.fs2,
+      Dependency.logback,
+      Dependency.scalaLogging,
+      Dependency.enumeratrum,
+      Dependency.munit,
+      Dependency.upperbound,
+      Dependency.protobuf,
+      Dependency.akka
+    )
+  )
+  .dependsOn(
+    `strategy`,
+    `redis-utils`,
+    `broker`
+  )
 
-libraryDependencies ++= Seq(
-  "ru.tinkoff.piapi" % "java-sdk-core" % Versions.tinkoffInvestApi,
-  "co.fs2" %% "fs2-reactive-streams" % Versions.fs2,
-  "ch.qos.logback" % "logback-classic" % Versions.logback,
-  "com.typesafe.scala-logging" %% "scala-logging" % Versions.scalaLogging,
-  "com.beachape" %% "enumeratum" % Versions.enumeratum,
-//  "com.github.ppotseluev" % "eann" % Versions.eann intransitive (),
-  "org.ta4j" % "ta4j-core" % Versions.ta4j,
-  "org.ta4j" % "ta4j-examples" % Versions.ta4j,
-  "org.typelevel" %% "kittens" % Versions.kittens,
-  "org.apache.commons" % "commons-math3" % Versions.apacheMath,
-  "org.scalameta" %% "munit" % Versions.munit % Test,
-  "org.systemfw" %% "upperbound" % Versions.upperbound,
-  "dev.profunktor" %% "redis4cats-effects" % Versions.redisClient,
-  "io.circe" %% "circe-core" % Versions.circe,
-  "io.circe" %% "circe-parser" % Versions.circe,
-  "io.circe" %% "circe-generic" % Versions.circe,
-  "com.google.protobuf" % "protobuf-java-util" % Versions.protobuf,
-  "io.suzaku" %% "boopickle" % Versions.boopickle,
-  "com.typesafe.akka" %% "akka-actor-typed" % Versions.akka
-)
+lazy val `math-utils` = project
+  .settings(
+    name := "math-utils",
+    settings,
+    libraryDependencies ++= Seq(
+      Dependency.apacheMath
+    )
+  )
 
-addCompilerPlugin(
-  "org.typelevel" % "kind-projector" % Versions.kindProjector cross CrossVersion.full
-)
+lazy val `redis-utils` = project
+  .settings(
+    name := "redis-utils",
+    settings,
+    libraryDependencies ++= Seq(
+      Dependency.boopickle,
+      Dependency.redisClient
+    ) ++ Dependency.circe.all
+  )
+
+lazy val `strategy` = project
+  .settings(
+    name := "strategy",
+    settings,
+    libraryDependencies ++= Seq(
+      Dependency.ta4j
+    )
+  )
+  .dependsOn(`math-utils`)
+
+lazy val `broker` = project
+  .settings(
+    name := "broker",
+    settings,
+    libraryDependencies ++= Seq(
+//      Dependency.scalaGraph,
+//      Dependency.catsCore,
+//      Dependency.catsFree
+    )
+  )
+//  .dependsOn(`botgen-model`)
