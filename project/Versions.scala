@@ -1,7 +1,7 @@
 object Versions {
   val fs2 = "3.2.3"
   val kittens = "2.3.2"
-  val tinkoffInvestApi = "1.0-M9"
+  val tinkoffInvestApi = "1.0.19"
   val logback = "1.2.9"
   val scalaLogging = "3.9.4"
   val enumeratum = "1.7.0"

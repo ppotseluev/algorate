@@ -5,6 +5,7 @@ import cats.implicits._
 import com.github.ppotseluev.algorate.core.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.core.Broker.Day
 import com.github.ppotseluev.algorate.core.Broker.DaysInterval
+import com.github.ppotseluev.algorate.core.Broker.OrderPlacementInfo
 import com.github.ppotseluev.algorate.core.CachedBroker.sharesKey
 import com.github.ppotseluev.algorate.model.Bar
 import com.github.ppotseluev.algorate.model.InstrumentId
@@ -12,6 +13,7 @@ import com.github.ppotseluev.algorate.model.Order
 import com.github.ppotseluev.algorate.model.OrderId
 import com.typesafe.scalalogging.LazyLogging
 import dev.profunktor.redis4cats.RedisCommands
+import ru.tinkoff.piapi.contract.v1.OrderState
 import ru.tinkoff.piapi.contract.v1.Share
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
@@ -32,7 +34,7 @@ class CachedBroker[F[_]: Monad: Parallel](
         }
     }
 
-  override def placeOrder(order: Order): F[OrderId] = broker.placeOrder(order)
+  override def placeOrder(order: Order): F[OrderPlacementInfo] = broker.placeOrder(order)
 
   override def getData(
       instrumentId: InstrumentId,
@@ -60,6 +62,9 @@ class CachedBroker[F[_]: Monad: Parallel](
       }
     } yield result.flatten
   }
+
+  override def getOrderState(orderId: OrderId): F[OrderState] =
+    broker.getOrderState(orderId)
 }
 
 object CachedBroker {

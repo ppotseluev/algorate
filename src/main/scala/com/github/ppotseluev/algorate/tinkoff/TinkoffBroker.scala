@@ -2,14 +2,13 @@ package com.github.ppotseluev.algorate.tinkoff
 
 import cats.Parallel
 import cats.effect.kernel.Async
-import cats.effect.std.UUIDGen
-import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.parallel._
 import com.github.ppotseluev.algorate.core.Broker
 import com.github.ppotseluev.algorate.core.Broker.CandleResolution
 import com.github.ppotseluev.algorate.core.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.core.Broker.Day
+import com.github.ppotseluev.algorate.core.Broker.OrderPlacementInfo
 import com.github.ppotseluev.algorate.model
 import com.github.ppotseluev.algorate.model.Bar
 import com.github.ppotseluev.algorate.model.Order.Type
@@ -20,6 +19,7 @@ import java.time.ZoneId
 import ru.tinkoff.piapi.contract.v1.CandleInterval
 import ru.tinkoff.piapi.contract.v1.HistoricCandle
 import ru.tinkoff.piapi.contract.v1.OrderDirection
+import ru.tinkoff.piapi.contract.v1.OrderState
 import ru.tinkoff.piapi.contract.v1.OrderType
 import ru.tinkoff.piapi.contract.v1.Quotation
 import ru.tinkoff.piapi.contract.v1.Share
@@ -32,20 +32,23 @@ class TinkoffBroker[F[_]: Parallel](
 )(implicit F: Async[F])
     extends Broker[F] {
 
-  override def placeOrder(order: Order): F[OrderId] =
-    for {
-      orderId <- UUIDGen.randomString //TODO make idempotent
-      _ <- //TODO handle returned result
-        api.postOrder(
-          order.instrumentId,
-          order.lots,
-          price(order),
-          orderDirection(order),
-          brokerAccountId,
-          orderType(order),
-          orderId
-        )
-    } yield orderId
+  override def getOrderState(orderId: OrderId): F[OrderState] =
+    api.getOderState(brokerAccountId, orderId)
+
+  override def placeOrder(order: Order): F[OrderPlacementInfo] =
+    api
+      .postOrder(
+        order.instrumentId,
+        order.lots,
+        price(order),
+        orderDirection(order),
+        brokerAccountId,
+        orderType(order),
+        order.key
+      )
+      .map { r =>
+        OrderPlacementInfo(r.getOrderId, r.getExecutionReportStatus)
+      }
 
   private def price(order: Order): Quotation = {
     val RealNumber(units, nano) = order.price.asRealNumber

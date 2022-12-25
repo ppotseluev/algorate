@@ -3,17 +3,11 @@ package com.github.ppotseluev.algorate.akkabot
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.ActorContext
 import akka.actor.typed.scaladsl.Behaviors
-import com.github.ppotseluev.algorate.akkabot.Trader.Event.FailedToPlaceOrder
-import com.github.ppotseluev.algorate.akkabot.Trader.Event.NewData
-import com.github.ppotseluev.algorate.akkabot.Trader.Event.OrderPlaced
-import com.github.ppotseluev.algorate.akkabot.Trader.Event.ShowStateRequested
+import cats.implicits._
+import com.github.ppotseluev.algorate.akkabot.Trader.Position.State
 import com.github.ppotseluev.algorate.core.Broker
-import com.github.ppotseluev.algorate.model.Bar
-import com.github.ppotseluev.algorate.model.InstrumentId
-import com.github.ppotseluev.algorate.model.OperationType
-import com.github.ppotseluev.algorate.model.Order
-import com.github.ppotseluev.algorate.model.OrderId
-import com.github.ppotseluev.algorate.model.Point
+import com.github.ppotseluev.algorate.core.Broker.OrderPlacementInfo
+import com.github.ppotseluev.algorate.model._
 import com.github.ppotseluev.algorate.ta4j.Charts
 import com.github.ppotseluev.algorate.ta4j.Utils
 import com.github.ppotseluev.algorate.ta4j.strategy.FullStrategy
@@ -25,7 +19,7 @@ import org.ta4j.core.BaseBarSeries
 import org.ta4j.core.BaseTradingRecord
 import org.ta4j.core.Trade.TradeType
 import org.ta4j.core.TradingRecord
-import scala.concurrent.ExecutionContext.Implicits.global
+import ru.tinkoff.piapi.contract.v1.OrderExecutionReportStatus._
 import scala.concurrent.Future
 import scala.util.Failure
 import scala.util.Success
@@ -34,17 +28,67 @@ import scala.util.Try
 object Trader extends LazyLogging {
   sealed trait Event
   object Event {
+    private[Trader] sealed trait OrderPlacementUpdate extends Event {
+      def info: OrderPlacementInfo
+    }
+    private[Trader] case class OrderPlaced(info: OrderPlacementInfo) extends OrderPlacementUpdate
+    private[Trader] case class FailedToPlaceOrder(error: Throwable) extends Event
+
     case class NewData(bar: Bar) extends Event
-    case class OrderPlaced(orderId: OrderId, order: Order) extends Event
-    case class FailedToPlaceOrder(error: Throwable) extends Event
     case object ShowStateRequested extends Event
+    case class OrderUpdated(info: OrderPlacementInfo) extends OrderPlacementUpdate
+  }
+
+  sealed trait TraderState
+  object TraderState {
+    def enter(order: Order) = Entering(Position.initial(order))
+    def exit(order: Order, originalPosition: Position) =
+      Exiting(Position.initial(order), originalPosition)
+
+    case object Empty extends TraderState
+    sealed trait Trading extends TraderState {
+      def position: Position
+    }
+    case class Entering(position: Position) extends Trading
+    case class Exiting(position: Position, originalPosition: Position) extends Trading
+  }
+
+  case class Position(
+      payload: Order,
+      placementInfo: Option[OrderPlacementInfo]
+  ) {
+    def state: Position.State =
+      placementInfo
+        .map(_.status)
+        .fold(Position.State.Initial: Position.State) {
+          case EXECUTION_REPORT_STATUS_FILL =>
+            Position.State.Completed
+          case EXECUTION_REPORT_STATUS_REJECTED | EXECUTION_REPORT_STATUS_CANCELLED =>
+            Position.State.Failed
+          case EXECUTION_REPORT_STATUS_NEW | EXECUTION_REPORT_STATUS_PARTIALLYFILL =>
+            Position.State.Waiting
+          case s @ (EXECUTION_REPORT_STATUS_UNSPECIFIED | UNRECOGNIZED) =>
+            throw new IllegalStateException(s"Wrong order status $s")
+        }
+  }
+
+  object Position {
+    sealed trait State
+    object State {
+      case object Initial extends State
+      case object Waiting extends State
+      case object Completed extends State
+      case object Failed extends State
+    }
+    def initial(order: Order) = Position(order, placementInfo = None)
   }
 
   def apply(
       instrumentId: InstrumentId,
       strategyBuilder: BarSeries => FullStrategy,
       broker: Broker[Future],
-      keepLastBars: Int
+      keepLastBars: Int,
+      ordersWatcher: OrdersWatcher
   ): Behavior[Event] = {
     def buildOrder(point: Point, operationType: OperationType): Order = Order(
       instrumentId = instrumentId,
@@ -54,13 +98,10 @@ object Trader extends LazyLogging {
       info = Order.Info(point, closingOrderType = None)
     )
 
-    def brokerPlaceOrder(order: Order): Future[(OrderId, Order)] =
-      broker.placeOrder(order).map(_ -> order)
-
-    def orderPlacedEvent(result: Try[(OrderId, Order)]): Event =
+    def orderPlacedEvent(result: Try[OrderPlacementInfo]): Event =
       result match {
-        case Failure(exception)        => FailedToPlaceOrder(exception)
-        case Success((orderId, order)) => OrderPlaced(orderId, order)
+        case Failure(exception) => Trader.Event.FailedToPlaceOrder(exception)
+        case Success(info)      => Trader.Event.OrderPlaced(info)
       }
 
     Behaviors.setup { _ =>
@@ -68,9 +109,10 @@ object Trader extends LazyLogging {
       barSeries.setMaximumBarCount(keepLastBars)
       val strategy = strategyBuilder(barSeries)
       var currentBar: Option[Bar] = None
-      var currentPosition: Option[Order] = None
+      var state: TraderState = TraderState.Empty
       val longHistory = new BaseTradingRecord()
       val shortHistory = new BaseTradingRecord(TradeType.SELL)
+
       def historyRecord(operationType: OperationType) = operationType match {
         case OperationType.Buy  => longHistory
         case OperationType.Sell => shortHistory
@@ -93,71 +135,118 @@ object Trader extends LazyLogging {
         val lastIndex = barSeries.getEndIndex
         val lastPrice = barSeries.getBar(lastIndex).getClosePrice
         def placeOrder(order: Order): Unit =
-          ctx.pipeToSelf(brokerPlaceOrder(order))(orderPlacedEvent)
+          ctx.pipeToSelf(broker.placeOrder(order))(orderPlacedEvent)
         def enter(operationType: OperationType): Unit = {
           val order = buildOrder(point, operationType)
-          currentPosition = Some(order)
+          state = TraderState.enter(order)
           historyRecord(operationType).enter(lastIndex, lastPrice, barSeries.numOf(order.lots))
           placeOrder(order)
         }
-        currentPosition match {
-          case Some(position) =>
-            val (exit, historyRecord) = shouldExit(position)
-            if (exit) {
-              currentPosition = None
-              val order = position.buildClosingOrder(point)
-              historyRecord.exit(lastIndex, lastPrice, barSeries.numOf(order.lots))
-              placeOrder(order)
-            } else ()
-          case None =>
+        state match {
+          case TraderState.Empty =>
             if (strategy.longStrategy.shouldEnter(lastIndex)) {
               enter(OperationType.Buy)
             } else if (strategy.shortStrategy.shouldEnter(lastIndex)) {
               enter(OperationType.Sell)
             } else ()
+          case TraderState.Entering(position) =>
+            position.state match {
+              case State.Initial | State.Waiting | State.Failed => ()
+              case State.Completed =>
+                val (exit, historyRecord) = shouldExit(position.payload)
+                if (exit) {
+                  val order = position.payload.buildClosingOrder(point)
+                  state = TraderState.exit(order, position)
+                  historyRecord.exit(lastIndex, lastPrice, barSeries.numOf(order.lots))
+                  placeOrder(order)
+                } else {
+                  () //keep holding current position
+                }
+            }
+          case _: TraderState.Exiting =>
+            logger.info("Exiting position in progress")
         }
       }
+
+      def handleBar(bar: Bar, ctx: ActorContext[Event]): Unit =
+        currentBar match {
+          case None =>
+            currentBar = Some(bar)
+          case Some(cur) =>
+            if (bar.endTime.isEqual(cur.endTime)) {
+              // received update for the current bar
+              currentBar = Some(bar)
+            } else if (bar.endTime.isAfter(cur.endTime)) {
+              // received data for the new bar, consider current bar as closed
+              handleClosedBar(cur, ctx)
+              currentBar = Some(bar)
+            } else { // bar.time < curBar.time
+              // received an update for some old bar. Let's ignore it for now
+              logger.warn(s"Received old data, ts = ${bar.endTime}, curTs = ${cur.endTime}")
+            }
+        }
+
+      def visualizeState(): Unit = {
+        val tradingStats = TradingStats(
+          long = Stats.fromRecord(longHistory, barSeries),
+          short = Stats.fromRecord(shortHistory, barSeries)
+        )
+        logger.info(s"$instrumentId $tradingStats")
+        Charts.display(
+          strategyBuilder = strategyBuilder,
+          series = barSeries,
+          tradingStats = Some(tradingStats),
+          title = instrumentId
+        )
+      }
+
+      def handleOrderInfo(placementInfo: OrderPlacementInfo): Unit =
+        state match {
+          case TraderState.Empty =>
+            logger.error(
+              s"Illegal state, received placement info $placementInfo while in Empty state"
+            )
+          case TraderState.Entering(position) =>
+            require(
+              position.placementInfo.forall(_.orderId == placementInfo.orderId),
+              s"Received unexpected order status $placementInfo"
+            )
+            val updatedPosition = position.copy(placementInfo = placementInfo.some)
+            updatedPosition.state match {
+              case State.Failed =>
+                logger.error("Failed to enter")
+                state = TraderState.Empty
+              case _ =>
+                state = TraderState.Entering(updatedPosition)
+            }
+          case exiting @ TraderState.Exiting(pos, _) =>
+            require(
+              pos.placementInfo.forall(_.orderId == placementInfo.orderId),
+              s"Received unexpected order status $placementInfo"
+            )
+            val position = pos.copy(placementInfo = placementInfo.some)
+            position.state match {
+              case State.Initial | State.Waiting =>
+                state = exiting.copy(position = position)
+              case State.Completed =>
+                logger.info("Position closed")
+                state = TraderState.Empty
+              case State.Failed =>
+                logger.error("CRITICAL ALERT: Failed to exit position, manual action required")
+                state = exiting.copy(position = position)
+            }
+        }
 
       //todo stop-loss & take-profit, check if there is no memory leak caused by indicators caching
 
       Behaviors.receive { (ctx, event) =>
         event match {
-          case NewData(bar) =>
-            currentBar match {
-              case None =>
-                currentBar = Some(bar)
-              case Some(cur) =>
-                if (bar.endTime.isEqual(cur.endTime)) {
-                  // received update for the current bar
-                  currentBar = Some(bar)
-                } else if (bar.endTime.isAfter(cur.endTime)) {
-                  // received data for the new bar, consider current bar as closed
-                  handleClosedBar(cur, ctx)
-                  currentBar = Some(bar)
-                } else { // bar.time < curBar.time
-                  // received an update for some old bar. Let's ignore it for now
-                  logger.warn(s"Received old data, ts = ${bar.endTime}, curTs = ${cur.endTime}")
-                }
-            }
-          case OrderPlaced(orderId, order) =>
-            order.info.closingOrderType match {
-              case Some(value) => logger.info(s"Close position ($value)")
-              case None        => logger.info(s"Placed order $orderId, point ${order.info.point}")
-            }
-          case FailedToPlaceOrder(t) =>
-            logger.error(s"Failed to place order", t)
-          case ShowStateRequested =>
-            val tradingStats = TradingStats(
-              long = Stats.fromRecord(longHistory, barSeries),
-              short = Stats.fromRecord(shortHistory, barSeries)
-            )
-            logger.info(s"$instrumentId $tradingStats")
-            Charts.display(
-              strategyBuilder = strategyBuilder,
-              series = barSeries,
-              tradingStats = Some(tradingStats),
-              title = instrumentId
-            )
+          case Trader.Event.NewData(bar) => handleBar(bar, ctx)
+          case Trader.Event.OrderPlaced(info) =>
+            ordersWatcher ! OrdersWatcher.Request.RegisterOrder(info, ctx.self)
+          case Trader.Event.OrderUpdated(info)    => handleOrderInfo(info)
+          case Trader.Event.FailedToPlaceOrder(t) => logger.error(s"Failed to place order", t)
+          case Trader.Event.ShowStateRequested    => visualizeState()
         }
         Behaviors.same
       }

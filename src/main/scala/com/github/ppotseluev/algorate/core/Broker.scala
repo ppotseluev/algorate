@@ -3,6 +3,7 @@ package com.github.ppotseluev.algorate.core
 import cats.Functor
 import cats.syntax.functor._
 import com.github.ppotseluev.algorate.core.Broker.CandlesInterval
+import com.github.ppotseluev.algorate.core.Broker.OrderPlacementInfo
 import com.github.ppotseluev.algorate.model.Bar
 import com.github.ppotseluev.algorate.model.InstrumentId
 import com.github.ppotseluev.algorate.model.Order
@@ -12,6 +13,8 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.util.stream.Collectors
+import ru.tinkoff.piapi.contract.v1.OrderExecutionReportStatus
+import ru.tinkoff.piapi.contract.v1.OrderState
 import ru.tinkoff.piapi.contract.v1.Share
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
@@ -26,9 +29,11 @@ trait Broker[F[_]] {
         relatedShares.head
       }
 
+  def getOrderState(orderId: OrderId): F[OrderState]
+
   def getAllShares: F[List[Share]] //TODO abstract over tinkoff model
 
-  def placeOrder(order: Order): F[OrderId]
+  def placeOrder(order: Order): F[OrderPlacementInfo]
 
   def getData(
       instrumentId: InstrumentId,
@@ -37,6 +42,11 @@ trait Broker[F[_]] {
 }
 
 object Broker {
+  case class OrderPlacementInfo(
+      orderId: OrderId,
+      status: OrderExecutionReportStatus
+  )
+
   case class Day(localDate: LocalDate) {
     val start: Instant = localDate.atStartOfDay.toInstant(ZoneOffset.UTC)
     val end: Instant = localDate.plusDays(1).atStartOfDay.toInstant(ZoneOffset.UTC)

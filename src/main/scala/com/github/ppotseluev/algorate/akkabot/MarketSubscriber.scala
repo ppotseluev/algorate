@@ -1,6 +1,5 @@
 package com.github.ppotseluev.algorate.akkabot
 
-import akka.actor.typed.ActorSystem
 import cats.Id
 import cats.effect.kernel.Sync
 import cats.effect.kernel.Temporal
@@ -28,10 +27,10 @@ object MarketSubscriber extends LazyLogging {
   /**
    * Actor-based subscriber
    */
-  def fromActors(actors: ActorSystem[TradingManager.Event]) =
-    new FromActors(actors)
+  def fromActor(actor: TradingManager) =
+    new FromActor(actor)
 
-  class FromActors private[MarketSubscriber] (actors: ActorSystem[TradingManager.Event]) {
+  class FromActor private[MarketSubscriber] (actor: TradingManager) {
     def using[F[_]: Sync](investApi: InvestApi): MarketSubscriber[F, List] =
       (instruments: List[InstrumentId]) =>
         Sync[F].delay {
@@ -41,7 +40,7 @@ object MarketSubscriber extends LazyLogging {
                 val candle = data.getCandle
                 val bar = TinkoffConverters.convert(candle)
                 val barInfo = BarInfo(candle.getFigi, bar)
-                actors ! TradingManager.Event.CandleData(barInfo)
+                actor ! TradingManager.Event.CandleData(barInfo)
               } else
                 ()
             }
@@ -71,7 +70,7 @@ object MarketSubscriber extends LazyLogging {
           rate = rate
         )
         .foreach { barInfo =>
-          Sync[F].delay(actors ! TradingManager.Event.CandleData(barInfo))
+          Sync[F].delay(actor ! TradingManager.Event.CandleData(barInfo))
         }
         .compile
         .drain

@@ -1,11 +1,15 @@
 package com.github.ppotseluev.algorate.core
 
 import cats.effect.Sync
+import cats.implicits._
 import com.github.ppotseluev.algorate.core.Broker.CandlesInterval
+import com.github.ppotseluev.algorate.core.Broker.OrderPlacementInfo
 import com.github.ppotseluev.algorate.core.TestBroker.TradingStatistics
 import com.github.ppotseluev.algorate.model.ClosePositionOrder.Type
 import com.github.ppotseluev.algorate.model._
 import java.util.UUID
+import ru.tinkoff.piapi.contract.v1.OrderExecutionReportStatus
+import ru.tinkoff.piapi.contract.v1.OrderState
 import ru.tinkoff.piapi.contract.v1.Share
 import scala.collection.concurrent.TrieMap
 
@@ -16,12 +20,15 @@ class TestBroker[F[_]: Sync] private (realBroker: Broker[F]) extends Broker[F] {
 
   private val journal = TrieMap.empty[InstrumentId, List[Order]]
 
-  override def placeOrder(order: Order): F[OrderId] = Sync[F].delay {
+  override def placeOrder(order: Order): F[OrderPlacementInfo] = Sync[F].delay {
     journal.updateWith(order.instrumentId) {
       case Some(value) => Some(order :: value)
       case None        => Some(List(order))
     }
-    UUID.randomUUID().toString
+    OrderPlacementInfo(
+      orderId = UUID.randomUUID().toString,
+      status = OrderExecutionReportStatus.EXECUTION_REPORT_STATUS_FILL
+    )
   }
 
   override def getData(
@@ -61,6 +68,12 @@ class TestBroker[F[_]: Sync] private (realBroker: Broker[F]) extends Broker[F] {
   }
 
   override def getAllShares: F[List[Share]] = realBroker.getAllShares
+
+  override def getOrderState(orderId: OrderId): F[OrderState] =
+    OrderState.newBuilder
+      .setExecutionReportStatus(OrderExecutionReportStatus.EXECUTION_REPORT_STATUS_FILL)
+      .build
+      .pure[F]
 }
 
 object TestBroker {
