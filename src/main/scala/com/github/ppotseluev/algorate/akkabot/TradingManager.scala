@@ -11,6 +11,8 @@ import com.github.ppotseluev.algorate.ta4j.strategy.FullStrategy
 import com.typesafe.scalalogging.LazyLogging
 import org.ta4j.core.BarSeries
 import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
 
 object TradingManager extends LazyLogging {
 
@@ -24,14 +26,21 @@ object TradingManager extends LazyLogging {
       tradingInstruments: Set[InstrumentId],
       broker: Broker[Future],
       strategy: BarSeries => FullStrategy,
-      keepLastBars: Int
+      keepLastBars: Int,
+      checkOrdersStatusEvery: FiniteDuration = 3.seconds
   ): Behavior[Event] = Behaviors.setup { ctx =>
+    val ordersWatcher = ctx.spawn(
+      OrdersWatcher(checkOrdersStatusEvery, broker),
+      "orders-watcher"
+    )
+
     def trader(instrumentId: InstrumentId): Behavior[Trader.Event] =
       Trader(
         instrumentId = instrumentId,
         strategyBuilder = strategy,
         broker = broker,
-        keepLastBars = keepLastBars
+        keepLastBars = keepLastBars,
+        ordersWatcher = ordersWatcher
       )
     val traders = tradingInstruments.map { instrumentId =>
       instrumentId -> ctx.spawn(trader(instrumentId), s"$instrumentId-trader")

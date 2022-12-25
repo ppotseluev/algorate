@@ -1,5 +1,7 @@
 package com.github.ppotseluev.algorate.tinkoff
 
+import com.github.ppotseluev.algorate.model.BrokerAccountId
+import com.github.ppotseluev.algorate.model.OrderId
 import java.time.Instant
 import ru.tinkoff.piapi.contract.v1._
 import upperbound.Limiter
@@ -30,4 +32,7 @@ class ThrottledTinkoffApi[F[_]](
 
   override def getAllShares: F[List[Share]] =
     delegate.getAllShares
+
+  override def getOderState(accountId: BrokerAccountId, orderId: OrderId): F[OrderState] =
+    delegate.getOderState(accountId, orderId)
 }

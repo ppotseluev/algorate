@@ -1,6 +1,8 @@
 package com.github.ppotseluev.algorate.tinkoff
 import cats.effect.Sync
 import cats.implicits._
+import com.github.ppotseluev.algorate.model.BrokerAccountId
+import com.github.ppotseluev.algorate.model.OrderId
 import com.typesafe.scalalogging.StrictLogging
 import java.time.Instant
 import ru.tinkoff.piapi.contract.v1._
@@ -28,4 +30,7 @@ class LoggingTinkoffApi[F[_]: Sync](api: TinkoffApi[F]) extends TinkoffApi[F] wi
     }
 
   override def getAllShares: F[List[Share]] = api.getAllShares
+
+  override def getOderState(accountId: BrokerAccountId, orderId: OrderId): F[OrderState] =
+    api.getOderState(accountId, orderId)
 }

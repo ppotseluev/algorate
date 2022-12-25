@@ -3,11 +3,14 @@ package com.github.ppotseluev.algorate.tinkoff
 import cats.effect.Sync
 import cats.effect.kernel.Async
 import cats.syntax.functor._
+import com.github.ppotseluev.algorate.model.BrokerAccountId
+import com.github.ppotseluev.algorate.model.OrderId
 import com.github.ppotseluev.algorate.util.fromJavaFuture
 import java.time.Instant
 import ru.tinkoff.piapi.contract.v1.CandleInterval
 import ru.tinkoff.piapi.contract.v1.HistoricCandle
 import ru.tinkoff.piapi.contract.v1.OrderDirection
+import ru.tinkoff.piapi.contract.v1.OrderState
 import ru.tinkoff.piapi.contract.v1.OrderType
 import ru.tinkoff.piapi.contract.v1.PostOrderResponse
 import ru.tinkoff.piapi.contract.v1.Quotation
@@ -39,6 +42,8 @@ trait TinkoffApi[F[_]] {
   ): F[List[HistoricCandle]]
 
   def getAllShares: F[List[Share]]
+
+  def getOderState(accountId: BrokerAccountId, orderId: OrderId): F[OrderState]
 }
 
 object TinkoffApi {
@@ -74,6 +79,11 @@ object TinkoffApi {
 
     override def getAllShares: F[List[Share]] =
       fromJavaFuture(investApi.getInstrumentsService.getAllShares).map(_.asScala.toList)
+
+    override def getOderState(accountId: BrokerAccountId, orderId: OrderId): F[OrderState] =
+      fromJavaFuture {
+        investApi.getOrdersService.getOrderState(accountId, orderId)
+      }
   }
 
   implicit class Syntax[F[_]](val api: TinkoffApi[F]) extends AnyVal {

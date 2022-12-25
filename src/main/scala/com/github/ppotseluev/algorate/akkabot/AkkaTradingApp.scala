@@ -8,6 +8,7 @@ import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import cats.~>
 import com.github.ppotseluev.algorate.core.Broker
+import com.github.ppotseluev.algorate.core.Broker.OrderPlacementInfo
 import com.github.ppotseluev.algorate.core.TestBroker
 import com.github.ppotseluev.algorate.model.Bar
 import com.github.ppotseluev.algorate.model.InstrumentId
@@ -18,6 +19,7 @@ import com.github.ppotseluev.algorate.ta4j.strategy.Strategies
 import com.github.ppotseluev.algorate.ta4j.test.app.Factory
 import com.typesafe.scalalogging.LazyLogging
 import java.time.LocalDate
+import ru.tinkoff.piapi.contract.v1.OrderState
 import ru.tinkoff.piapi.contract.v1.Share
 import ru.tinkoff.piapi.core.InvestApi
 import scala.concurrent.Future
@@ -90,7 +92,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
       override def getAllShares: F[List[Share]] =
         toF(broker.getAllShares)
 
-      override def placeOrder(order: Order): F[OrderId] =
+      override def placeOrder(order: Order): F[OrderPlacementInfo] =
         toF(broker.placeOrder(order))
 
       override def getData(
@@ -98,6 +100,9 @@ object AkkaTradingApp extends IOApp with LazyLogging {
           interval: Broker.CandlesInterval
       ): F[List[Bar]] =
         toF(broker.getData(instrumentId, interval))
+
+      override def getOrderState(orderId: OrderId): F[OrderState] =
+        toF(broker.getOrderState(orderId))
     }
 
   override def run(args: List[String]): IO[ExitCode] = {
@@ -124,12 +129,12 @@ object AkkaTradingApp extends IOApp with LazyLogging {
           actorSystem <- IO(ActorSystem(tradingManager, "Algorate"))
           _ <- useHistoricalData.fold {
             MarketSubscriber
-              .fromActors(actorSystem)
+              .fromActor(actorSystem)
               .using[IO](investApi)
               .subscribe(figiList)
           } { case StubSettings(ticker, streamFrom, streamTo, rate) =>
             MarketSubscriber
-              .fromActors(actorSystem)
+              .fromActor(actorSystem)
               .stub[IO](
                 broker,
                 rate = rate,

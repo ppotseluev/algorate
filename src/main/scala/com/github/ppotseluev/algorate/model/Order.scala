@@ -10,6 +10,11 @@ case class Order(
     details: Order.Details,
     info: Order.Info
 ) {
+  def key: String = {
+    val ts = info.point.timestamp.toInstant.getEpochSecond
+    s"$instrumentId-$ts"
+  }
+
   def isClosing: Boolean = info.closingOrderType.isDefined
 
   def price: Price = details match {
