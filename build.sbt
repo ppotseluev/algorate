@@ -34,6 +34,8 @@ lazy val root = project
     `strategy`,
     `broker`,
     `server`,
+    `trader-lib`,
+    `trader-charts`,
     `trader-app`,
     `tools-app`
   )
