@@ -76,7 +76,6 @@ lazy val `trader-app` = project
     settings,
     libraryDependencies ++= Seq(
       Dependency.fs2,
-      Dependency.logback,
       Dependency.akka
     )
   )
@@ -130,7 +129,8 @@ lazy val `server` = project
     name := "server",
     settings,
     libraryDependencies ++= Seq(
-      Dependency.protobuf
+      Dependency.protobuf,
+      Dependency.logback
     )
   )
   .dependsOn(
