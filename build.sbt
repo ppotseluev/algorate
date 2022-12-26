@@ -4,8 +4,7 @@ lazy val settings = Seq(
   scalaVersion := "2.13.7",
   Compile / scalaSource := baseDirectory.value / "src/main/scala",
   Test / scalaSource := baseDirectory.value / "src/test/scala",
-//  javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
-  ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0",
+  ThisBuild / scalafixDependencies += Dependency.organizeImports,
   ThisBuild / semanticdbEnabled := true,
   ThisBuild / semanticdbVersion := scalafixSemanticdb.revision,
   ThisBuild / resolvers += Resolver.mavenLocal,
@@ -29,33 +28,61 @@ lazy val root = project
     name := "algorate"
   )
   .aggregate(
+    `model`,
     `math-utils`,
     `redis-utils`,
     `strategy`,
     `broker`,
-    `trader`
+    `server`,
+    `trader-app`,
+    `tools-app`
   )
 
-lazy val trader = project
+lazy val `model` = project
   .settings(
-    name := "trader",
+    name := "model",
     settings,
     libraryDependencies ++= Seq(
-      Dependency.tinkoffInvestApi,
-      Dependency.fs2,
-      Dependency.logback,
-      Dependency.scalaLogging,
-      Dependency.enumeratrum,
-      Dependency.munit,
-      Dependency.upperbound,
-      Dependency.protobuf,
-      Dependency.akka
+      Dependency.enumeratrum
+    )
+  )
+
+lazy val `trader-lib` = project
+  .settings(
+    name := "trader-lib",
+    settings,
+    libraryDependencies ++= Seq(
+      Dependency.ta4j
+    )
+  )
+  .dependsOn(`model`)
+
+lazy val `trader-charts` = project
+  .settings(
+    name := "trader-charts",
+    settings,
+    libraryDependencies ++= Seq(
+      Dependency.jfree
     )
   )
   .dependsOn(
     `strategy`,
-    `redis-utils`,
-    `broker`
+    `trader-lib`
+  )
+
+lazy val `trader-app` = project
+  .settings(
+    name := "trader-app",
+    settings,
+    libraryDependencies ++= Seq(
+      Dependency.fs2,
+      Dependency.logback,
+      Dependency.akka
+    )
+  )
+  .dependsOn(
+    `server`,
+    `trader-charts`
   )
 
 lazy val `math-utils` = project
@@ -63,7 +90,8 @@ lazy val `math-utils` = project
     name := "math-utils",
     settings,
     libraryDependencies ++= Seq(
-      Dependency.apacheMath
+      Dependency.apacheMath,
+      Dependency.munit
     )
   )
 
@@ -87,14 +115,40 @@ lazy val `strategy` = project
   )
   .dependsOn(`math-utils`)
 
+lazy val `tools-app` = project
+  .settings(
+    name := "tools-app",
+    settings
+  )
+  .dependsOn(
+    `server`,
+    `trader-charts`
+  )
+
+lazy val `server` = project
+  .settings(
+    name := "server",
+    settings,
+    libraryDependencies ++= Seq(
+      Dependency.protobuf
+    )
+  )
+  .dependsOn(
+    `broker`
+  )
+
 lazy val `broker` = project
   .settings(
     name := "broker",
     settings,
     libraryDependencies ++= Seq(
-//      Dependency.scalaGraph,
-//      Dependency.catsCore,
-//      Dependency.catsFree
+      Dependency.tinkoffInvestApi,
+      Dependency.upperbound,
+      Dependency.scalaLogging
     )
   )
-//  .dependsOn(`botgen-model`)
+  .dependsOn(
+    `model`,
+    `math-utils`,
+    `redis-utils`
+  )

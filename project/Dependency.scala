@@ -17,7 +17,7 @@ object Dependency {
 
   val apacheMath = "org.apache.commons" % "commons-math3" % "3.6.1"
 
-  val munit = "org.scalameta" %% "munit" % "0.7.29"
+  val munit = "org.scalameta" %% "munit" % "0.7.29" % Test
 
   val upperbound = "org.systemfw" %% "upperbound" % "0.4.0"
 
@@ -29,6 +29,8 @@ object Dependency {
 
   val akka = "com.typesafe.akka" %% "akka-actor-typed" % "2.6.20"
 
+  val jfree = "org.jfree" % "jfreechart" % "1.0.17" // TODO update versions
+
   object circe {
     val version = "0.14.2"
     val core = "io.circe" %% "circe-core" % version
@@ -38,4 +40,6 @@ object Dependency {
   }
 
   val kindProjector = "org.typelevel" % "kind-projector" % "0.13.2" cross CrossVersion.full
+
+  val organizeImports = "com.github.liancheng" %% "organize-imports" % "0.6.0"
 }

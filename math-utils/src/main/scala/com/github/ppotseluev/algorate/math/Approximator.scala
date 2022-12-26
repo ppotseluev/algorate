@@ -1,7 +1,6 @@
 package com.github.ppotseluev.algorate.math
 
 import cats.data.NonEmptyList
-import Approximator.Approximation
 import java.util
 import org.apache.commons.math3.analysis.UnivariateFunction
 import org.apache.commons.math3.analysis.polynomials.PolynomialFunction
@@ -13,6 +12,8 @@ import org.apache.commons.math3.fitting.leastsquares.LevenbergMarquardtOptimizer
 import org.apache.commons.math3.linear.ArrayRealVector
 import org.apache.commons.math3.util.FastMath
 import scala.jdk.CollectionConverters._
+
+import Approximator.Approximation
 
 class Approximator(
     fitter: AbstractCurveFitter,

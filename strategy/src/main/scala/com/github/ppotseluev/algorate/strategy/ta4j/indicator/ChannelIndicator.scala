@@ -3,6 +3,8 @@ package com.github.ppotseluev.algorate.strategy.ta4j.indicator
 import cats.data.NonEmptyList
 import cats.syntax.functor._
 import com.github.ppotseluev.algorate.math.Approximator
+import com.github.ppotseluev.algorate.math.Approximator.Approximation
+import com.github.ppotseluev.algorate.math.WeightedPoint
 import com.github.ppotseluev.algorate.strategy.ta4j.indicator.ChannelIndicator.Bounds
 import com.github.ppotseluev.algorate.strategy.ta4j.indicator.ChannelIndicator.CalculatedChannel
 import com.github.ppotseluev.algorate.strategy.ta4j.indicator.ChannelIndicator.Channel
@@ -10,12 +12,9 @@ import com.github.ppotseluev.algorate.strategy.ta4j.indicator.ChannelIndicator.C
 import com.github.ppotseluev.algorate.strategy.ta4j.indicator.ChannelIndicator.NeedNewChannel
 import com.github.ppotseluev.algorate.strategy.ta4j.indicator.ChannelIndicator.Section
 import com.github.ppotseluev.algorate.strategy.ta4j.indicator.LocalExtremumIndicator.Extremum
-import com.github.ppotseluev.algorate.math.Approximator.Approximation
-import com.github.ppotseluev.algorate.math.WeightedPoint
 import org.ta4j.core.indicators.AbstractIndicator
 import org.ta4j.core.indicators.RecursiveCachedIndicator
 import org.ta4j.core.num.Num
-
 import scala.reflect.ClassTag
 
 class ChannelIndicator private (

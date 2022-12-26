@@ -1,12 +1,6 @@
 package com.github.ppotseluev.algorate
 
-import cats.effect.Sync
-import cats.effect.kernel.Async
-import java.util.concurrent.CompletableFuture
-
 package object math {
-  def fromJavaFuture[F[_]: Async, T](future: => CompletableFuture[T]): F[T] =
-    Async[F].fromCompletableFuture(Sync[F].delay(future))
 
   implicit class BigDecimalOps(val number: BigDecimal) extends AnyVal {
     def asRealNumber: RealNumber = {
