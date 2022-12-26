@@ -1,51 +1,156 @@
-version := "0.1.0-SNAPSHOT"
-
-scalaVersion := "2.13.7"
-
-scalacOptions := Seq(
-  "-Ymacro-annotations",
-  "-language:higherKinds",
-  "-Xfatal-warnings",
-  "-deprecation",
-  "-Wunused:imports"
+lazy val settings = Seq(
+  organization := "com.github.ppotseluev",
+  version := "1.0-SNAPSHOT",
+  scalaVersion := "2.13.7",
+  Compile / scalaSource := baseDirectory.value / "src/main/scala",
+  Test / scalaSource := baseDirectory.value / "src/test/scala",
+  ThisBuild / scalafixDependencies += Dependency.organizeImports,
+  ThisBuild / semanticdbEnabled := true,
+  ThisBuild / semanticdbVersion := scalafixSemanticdb.revision,
+  ThisBuild / resolvers += Resolver.mavenLocal,
+  useCoursier := false,
+  scalacOptions := Seq(
+    "-Ymacro-annotations",
+    "-language:higherKinds",
+    "-Xfatal-warnings",
+    "-deprecation",
+    "-Wunused:imports"
+  ),
+  libraryDependencies ++= Seq(
+    Dependency.kittens
+  ),
+  addCompilerPlugin(Dependency.kindProjector)
 )
 
-ThisBuild / resolvers += Resolver.mavenLocal
-
-ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0"
-
-ThisBuild / semanticdbEnabled := true
-ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
-
-lazy val root = (project in file("."))
+lazy val root = project
+  .in(file("."))
   .settings(
     name := "algorate"
   )
+  .aggregate(
+    `model`,
+    `math-utils`,
+    `redis-utils`,
+    `strategy`,
+    `broker`,
+    `server`,
+    `trader-lib`,
+    `trader-charts`,
+    `trader-app`,
+    `tools-app`
+  )
 
-useCoursier := false
+lazy val `model` = project
+  .settings(
+    name := "model",
+    settings,
+    libraryDependencies ++= Seq(
+      Dependency.enumeratrum
+    )
+  )
 
-libraryDependencies ++= Seq(
-  "ru.tinkoff.piapi" % "java-sdk-core" % Versions.tinkoffInvestApi,
-  "co.fs2" %% "fs2-reactive-streams" % Versions.fs2,
-  "ch.qos.logback" % "logback-classic" % Versions.logback,
-  "com.typesafe.scala-logging" %% "scala-logging" % Versions.scalaLogging,
-  "com.beachape" %% "enumeratum" % Versions.enumeratum,
-//  "com.github.ppotseluev" % "eann" % Versions.eann intransitive (),
-  "org.ta4j" % "ta4j-core" % Versions.ta4j,
-  "org.ta4j" % "ta4j-examples" % Versions.ta4j,
-  "org.typelevel" %% "kittens" % Versions.kittens,
-  "org.apache.commons" % "commons-math3" % Versions.apacheMath,
-  "org.scalameta" %% "munit" % Versions.munit % Test,
-  "org.systemfw" %% "upperbound" % Versions.upperbound,
-  "dev.profunktor" %% "redis4cats-effects" % Versions.redisClient,
-  "io.circe" %% "circe-core" % Versions.circe,
-  "io.circe" %% "circe-parser" % Versions.circe,
-  "io.circe" %% "circe-generic" % Versions.circe,
-  "com.google.protobuf" % "protobuf-java-util" % Versions.protobuf,
-  "io.suzaku" %% "boopickle" % Versions.boopickle,
-  "com.typesafe.akka" %% "akka-actor-typed" % Versions.akka
-)
+lazy val `trader-lib` = project
+  .settings(
+    name := "trader-lib",
+    settings,
+    libraryDependencies ++= Seq(
+      Dependency.ta4j
+    )
+  )
+  .dependsOn(`model`)
 
-addCompilerPlugin(
-  "org.typelevel" % "kind-projector" % Versions.kindProjector cross CrossVersion.full
-)
+lazy val `trader-charts` = project
+  .settings(
+    name := "trader-charts",
+    settings,
+    libraryDependencies ++= Seq(
+      Dependency.jfree
+    )
+  )
+  .dependsOn(
+    `strategy`,
+    `trader-lib`
+  )
+
+lazy val `trader-app` = project
+  .settings(
+    name := "trader-app",
+    settings,
+    libraryDependencies ++= Seq(
+      Dependency.fs2,
+      Dependency.akka
+    )
+  )
+  .dependsOn(
+    `server`,
+    `trader-charts`
+  )
+
+lazy val `math-utils` = project
+  .settings(
+    name := "math-utils",
+    settings,
+    libraryDependencies ++= Seq(
+      Dependency.apacheMath,
+      Dependency.munit
+    )
+  )
+
+lazy val `redis-utils` = project
+  .settings(
+    name := "redis-utils",
+    settings,
+    libraryDependencies ++= Seq(
+      Dependency.boopickle,
+      Dependency.redisClient
+    ) ++ Dependency.circe.all
+  )
+
+lazy val `strategy` = project
+  .settings(
+    name := "strategy",
+    settings,
+    libraryDependencies ++= Seq(
+      Dependency.ta4j
+    )
+  )
+  .dependsOn(`math-utils`)
+
+lazy val `tools-app` = project
+  .settings(
+    name := "tools-app",
+    settings
+  )
+  .dependsOn(
+    `server`,
+    `trader-charts`
+  )
+
+lazy val `server` = project
+  .settings(
+    name := "server",
+    settings,
+    libraryDependencies ++= Seq(
+      Dependency.protobuf,
+      Dependency.logback
+    )
+  )
+  .dependsOn(
+    `broker`
+  )
+
+lazy val `broker` = project
+  .settings(
+    name := "broker",
+    settings,
+    libraryDependencies ++= Seq(
+      Dependency.tinkoffInvestApi,
+      Dependency.upperbound,
+      Dependency.scalaLogging
+    )
+  )
+  .dependsOn(
+    `model`,
+    `math-utils`,
+    `redis-utils`
+  )
