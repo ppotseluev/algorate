@@ -3,7 +3,6 @@ package com.github.ppotseluev.algorate.tools
 import ru.tinkoff.piapi.core.InvestApi
 import scala.jdk.CollectionConverters._
 
-
 object GetAccounts extends App {
 
   val api = InvestApi.create(args.head)

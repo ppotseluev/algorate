@@ -8,7 +8,7 @@ import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import com.github.ppotseluev.algorate.charts.TradingCharts
 import com.github.ppotseluev.algorate.server.Factory
-import com.github.ppotseluev.algorate.strategy.ta4j.Strategies
+import com.github.ppotseluev.algorate.strategy.Strategies
 import com.github.ppotseluev.algorate.tools.strategy.BarSeriesProvider
 import com.github.ppotseluev.algorate.tools.strategy.StrategyTester
 import com.typesafe.scalalogging.StrictLogging

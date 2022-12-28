@@ -3,7 +3,7 @@ package com.github.ppotseluev.algorate.tools.strategy
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution.OneMinute
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
-import com.github.ppotseluev.algorate.strategy.ta4j.Strategies
+import com.github.ppotseluev.algorate.strategy.Strategies
 import java.time.LocalDate
 //import scala.util.Random
 

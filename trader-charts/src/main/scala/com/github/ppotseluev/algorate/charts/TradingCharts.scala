@@ -1,7 +1,10 @@
 package com.github.ppotseluev.algorate.charts
 
-import com.github.ppotseluev.algorate.strategy.ta4j.FullStrategy
-
+import com.github.ppotseluev.algorate.TradingStats
+import com.github.ppotseluev.algorate.strategy.FullStrategy
+import com.github.ppotseluev.algorate.strategy.FullStrategy.IndicatorInfo
+import com.github.ppotseluev.algorate.strategy.FullStrategy.Representation
+import com.github.ppotseluev.algorate.strategy.FullStrategy.Representation.Line
 import java.awt.BasicStroke
 import java.awt.Color
 import java.awt.Dimension
@@ -20,9 +23,6 @@ import org.ta4j.core.Indicator
 import org.ta4j.core.Position
 import org.ta4j.core.Trade.TradeType
 import org.ta4j.core.num.Num
-import FullStrategy.{IndicatorInfo, Representation}
-import FullStrategy.Representation.Line
-import com.github.ppotseluev.algorate.trader.TradingStats
 
 object TradingCharts {
 
