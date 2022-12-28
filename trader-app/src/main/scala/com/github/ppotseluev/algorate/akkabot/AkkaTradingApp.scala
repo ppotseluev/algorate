@@ -35,9 +35,10 @@ object AkkaTradingApp extends IOApp with LazyLogging {
       rate: FiniteDuration = 10.millis
   )
 
-  val useHistoricalData: Option[StubSettings] = Some( //None to stream realtime market data
-    StubSettings("CSCO")
-  )
+  val useHistoricalData: Option[StubSettings] = None
+//    Some( //None to stream realtime market data
+//    StubSettings("CSCO")
+//  )
 
   val _tickers = List(
     "LUV",

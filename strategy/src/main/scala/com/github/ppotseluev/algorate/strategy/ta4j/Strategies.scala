@@ -14,9 +14,7 @@ import com.github.ppotseluev.algorate.strategy.ta4j.indicator.LocalExtremumIndic
 import com.github.ppotseluev.algorate.strategy.ta4j.indicator.VisualChannelIndicator
 import com.github.ppotseluev.algorate.strategy.ta4j.indicator._
 import org.apache.commons.math3.analysis.polynomials.PolynomialFunction
-import org.ta4j.core.BarSeries
-import org.ta4j.core.BaseStrategy
-import org.ta4j.core.Strategy
+import org.ta4j.core.{BarSeries, BaseStrategy, Strategy, TradingRecord}
 import org.ta4j.core.indicators.AbstractIndicator
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator
 import org.ta4j.core.indicators.helpers.DifferenceIndicator
@@ -31,6 +29,21 @@ object Strategies {
     BooleanRule.FALSE,
     BooleanRule.FALSE
   )
+
+  def random(
+      enterChance: Double,
+      exitChance: Double
+  ): FullStrategy = {
+    def rule(chance: Double) = new AbstractRule {
+      override def isSatisfied(index: Int, tradingRecord: TradingRecord): Boolean =
+        math.random() < chance
+    }
+    val strategy = new BaseStrategy(
+      rule(enterChance),
+      rule(exitChance)
+    )
+    FullStrategy(strategy, strategy, Map.empty, Map.empty)
+  }
 
   val intraChannel: BarSeries => FullStrategy = series => {
     def num(number: Number): Num =
