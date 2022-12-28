@@ -7,10 +7,10 @@ import cats.effect.ExitCode
 import cats.effect.IO
 import cats.effect.IOApp
 import cats.implicits._
+import com.github.ppotseluev.algorate.TradingStats
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.tools.strategy.BarSeriesProvider
 import com.github.ppotseluev.algorate.tools.strategy.StrategyTester
-import com.github.ppotseluev.algorate.trader.TradingStats
 import ru.tinkoff.piapi.contract.v1.Share
 import ru.tinkoff.piapi.core.InvestApi
 import scala.concurrent.duration._

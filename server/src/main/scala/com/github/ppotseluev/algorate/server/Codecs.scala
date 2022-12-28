@@ -1,8 +1,8 @@
 package com.github.ppotseluev.algorate.server
 
 import boopickle.Default._
-import com.github.ppotseluev.algorate.model.Bar
-import com.github.ppotseluev.algorate.model.Price
+import com.github.ppotseluev.algorate.Bar
+import com.github.ppotseluev.algorate.Price
 import com.google.protobuf.util.JsonFormat
 import io.circe.Decoder
 import io.circe.DecodingFailure

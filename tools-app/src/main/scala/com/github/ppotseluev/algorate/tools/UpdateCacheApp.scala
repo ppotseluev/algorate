@@ -2,8 +2,8 @@ package com.github.ppotseluev.algorate.tools
 
 import boopickle.Default.iterablePickler
 import cats.effect._
+import com.github.ppotseluev.algorate.Bar
 import com.github.ppotseluev.algorate.broker.CachedBroker
-import com.github.ppotseluev.algorate.model.Bar
 import com.github.ppotseluev.algorate.redis._
 import com.github.ppotseluev.algorate.redis.codec._
 import com.github.ppotseluev.algorate.server.Codecs._

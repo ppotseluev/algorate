@@ -32,10 +32,12 @@ lazy val root = project
     `math-utils`,
     `redis-utils`,
     `strategy`,
-    `broker`,
+    `broker-lib`,
+    `brokers`,
     `server`,
-    `trader-lib`,
+    `ta4j-model`,
     `trader-charts`,
+    `trader-lib`,
     `trader-app`,
     `tools-app`
   )
@@ -49,9 +51,9 @@ lazy val `model` = project
     )
   )
 
-lazy val `trader-lib` = project
+lazy val `ta4j-model` = project
   .settings(
-    name := "trader-lib",
+    name := "ta4j-model",
     settings,
     libraryDependencies ++= Seq(
       Dependency.ta4j
@@ -68,22 +70,19 @@ lazy val `trader-charts` = project
     )
   )
   .dependsOn(
-    `strategy`,
-    `trader-lib`
+    `strategy`, //TODO charts shouldn't depend on strategy
+    `ta4j-model`
   )
 
 lazy val `trader-app` = project
   .settings(
     name := "trader-app",
     settings,
-    libraryDependencies ++= Seq(
-      Dependency.fs2,
-      Dependency.akka
-    )
+//    libraryDependencies ++= Seq()
   )
   .dependsOn(
     `server`,
-    `trader-charts`
+    `trader-lib`
   )
 
 lazy val `math-utils` = project
@@ -136,15 +135,14 @@ lazy val `server` = project
     )
   )
   .dependsOn(
-    `broker`
+    `brokers`
   )
 
-lazy val `broker` = project
+lazy val `broker-lib` = project
   .settings(
-    name := "broker",
+    name := "broker-lib",
     settings,
     libraryDependencies ++= Seq(
-      Dependency.tinkoffInvestApi,
       Dependency.upperbound,
       Dependency.scalaLogging
     )
@@ -153,4 +151,28 @@ lazy val `broker` = project
     `model`,
     `math-utils`,
     `redis-utils`
+  )
+
+lazy val `brokers` = project
+  .settings(
+    name := "brokers",
+    settings,
+    libraryDependencies ++= Seq(
+      Dependency.tinkoffInvestApi
+    )
+  )
+  .dependsOn(`broker-lib`)
+
+lazy val `trader-lib` = project
+  .settings(
+    name := "trader-lib",
+    settings,
+    libraryDependencies ++= Seq(
+      Dependency.akka,
+      Dependency.fs2
+    )
+  )
+  .dependsOn(
+    `trader-charts`,
+    `broker-lib`
   )

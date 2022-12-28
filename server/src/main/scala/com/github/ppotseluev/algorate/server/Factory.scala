@@ -4,13 +4,10 @@ import boopickle.Default.iterablePickler
 import cats.Parallel
 import cats.effect.Resource
 import cats.effect.kernel.Async
-import com.github.ppotseluev.algorate.broker.Broker
-import com.github.ppotseluev.algorate.broker.CachedBroker
-import com.github.ppotseluev.algorate.broker.LoggingBroker
+import com.github.ppotseluev.algorate.Bar
+import com.github.ppotseluev.algorate.BrokerAccountId
 import com.github.ppotseluev.algorate.broker.tinkoff.TinkoffApi
 import com.github.ppotseluev.algorate.broker.tinkoff.TinkoffBroker
-import com.github.ppotseluev.algorate.model.Bar
-import com.github.ppotseluev.algorate.model.BrokerAccountId
 import com.github.ppotseluev.algorate.redis.RedisCodecs
 import com.github.ppotseluev.algorate.redis.codec._
 import dev.profunktor.redis4cats.Redis
@@ -34,7 +31,7 @@ object Factory {
       accountId: BrokerAccountId,
       investApi: InvestApi,
       candlesMinInterval: FiniteDuration = 300 every 1.minute
-  ): Resource[F, Broker[F]] = {
+  ): Resource[F, TinkoffBroker[F]] = {
     for {
       candlesLimiter <- Limiter.start[F](candlesMinInterval)
       redisClient <- redisClient
@@ -51,10 +48,7 @@ object Factory {
           .wrap[F](investApi)
           .withCandlesLimit(candlesLimiter)
           .withLogging
-        val impl = new TinkoffBroker(tinkoffApi, accountId, ZoneOffset.UTC)
-        new LoggingBroker(
-          new CachedBroker(sharesCache, impl, barsCache)
-        )
+        TinkoffBroker.withLogging(TinkoffBroker[F](tinkoffApi, accountId, ZoneOffset.UTC))
       }
     } yield broker
 
