@@ -1,7 +1,7 @@
 lazy val settings = Seq(
   organization := "com.github.ppotseluev",
   version := "1.0-SNAPSHOT",
-  scalaVersion := "2.13.7",
+  scalaVersion := "2.13.8",
   Compile / scalaSource := baseDirectory.value / "src/main/scala",
   Test / scalaSource := baseDirectory.value / "src/test/scala",
   ThisBuild / scalafixDependencies += Dependency.organizeImports,
@@ -10,6 +10,7 @@ lazy val settings = Seq(
   ThisBuild / resolvers += Resolver.mavenLocal,
   useCoursier := false,
   scalacOptions := Seq(
+    "-target:jvm-17",
     "-Ymacro-annotations",
     "-language:higherKinds",
     "-Xfatal-warnings",
@@ -19,7 +20,16 @@ lazy val settings = Seq(
   libraryDependencies ++= Seq(
     Dependency.kittens
   ),
-  addCompilerPlugin(Dependency.kindProjector)
+  addCompilerPlugin(Dependency.kindProjector),
+  assembly / assemblyMergeStrategy := {
+    case x if x.contains("io.netty.versions.properties")               => MergeStrategy.concat
+    case PathList(ps @ _*) if ps.last endsWith "pom.properties"        => MergeStrategy.first
+    case PathList("module-info.class")                                 => MergeStrategy.discard
+    case PathList("META-INF", "versions", xs @ _, "module-info.class") => MergeStrategy.discard
+    case x =>
+      val oldStrategy = (assembly / assemblyMergeStrategy).value
+      oldStrategy(x)
+  }
 )
 
 lazy val root = project
@@ -78,6 +88,7 @@ lazy val `trader-app` = project
   .settings(
     name := "trader-app",
     settings,
+    assembly / mainClass := Some("com.github.ppotseluev.algorate.trader.app.AkkaTradingApp")
 //    libraryDependencies ++= Seq()
   )
   .dependsOn(
