@@ -4,9 +4,9 @@ import akka.actor.typed.ActorSystem
 import cats.effect.kernel.Sync
 import cats.effect.std.Console
 import cats.implicits._
+import com.github.ppotseluev.algorate.InstrumentId
 import com.github.ppotseluev.algorate.Ticker
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager
-import ru.tinkoff.piapi.contract.v1.Share
 
 sealed trait Command
 
@@ -27,21 +27,16 @@ object Command {
 object CommandHandler {
   def handleUserCommand[F[_]: Console: Sync](
       actorSystem: ActorSystem[TradingManager.Event],
-      shares: List[Share]
-  ): F[Unit] = {
-    val sharesMap = shares.groupMapReduce(_.getTicker)(identity) { (s1, s2) =>
-      throw new IllegalArgumentException(
-        s"Two shares ${s1.getFigi}, ${s2.getFigi} with the same ticker ${s1.getTicker}"
-      )
-    }
+      shares: Map[Ticker, InstrumentId]
+  ): F[Unit] =
     for {
       input <- Console[F].readLine
       _ <- Sync[F].delay {
         Command.parse(input) match {
           case Some(Command.ShowState(ticker)) =>
-            sharesMap.get(ticker) match {
-              case Some(share) =>
-                actorSystem ! TradingManager.Event.ShowStateRequested(share.getFigi)
+            shares.get(ticker) match {
+              case Some(id) =>
+                actorSystem ! TradingManager.Event.ShowStateRequested(id)
               case None =>
                 println(s"Can't find share with ticker $ticker")
             }
@@ -49,5 +44,4 @@ object CommandHandler {
         }
       }
     } yield ()
-  }
 }

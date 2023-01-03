@@ -1,7 +1,7 @@
 import sbt._
 
 object Dependency {
-  val tinkoffInvestApi = "ru.tinkoff.piapi" % "java-sdk-core" % "1.0.19"
+  val tinkoffInvestApi = "ru.tinkoff.piapi" % "java-sdk-core" % "1.1"
 
   val fs2 = "co.fs2" %% "fs2-reactive-streams" % "3.2.3"
 
