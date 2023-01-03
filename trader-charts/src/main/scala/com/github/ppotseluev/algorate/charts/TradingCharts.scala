@@ -7,7 +7,9 @@ import com.github.ppotseluev.algorate.strategy.FullStrategy.Representation
 import com.github.ppotseluev.algorate.strategy.FullStrategy.Representation.Line
 import java.awt.BasicStroke
 import java.awt.Color
+import java.awt.Container
 import java.awt.Dimension
+import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import org.jfree.chart._
@@ -34,7 +36,7 @@ object TradingCharts {
    * @param name      the name of the chart time series
    * @return the JFreeChart time series
    */
-  def buildChartTimeSeries(
+  private def buildChartTimeSeries(
       barSeries: BarSeries,
       indicator: Indicator[Num],
       name: String
@@ -58,7 +60,7 @@ object TradingCharts {
    * @param strategy the trading strategy
    * @param plot     the plot
    */
-  def addBuySellSignals(
+  private def addBuySellSignals(
       series: BarSeries,
       positions: Seq[Position],
       plots: XYPlot*
@@ -104,12 +106,7 @@ object TradingCharts {
     }
   }
 
-  /**
-   * Displays a chart in a frame.
-   *
-   * @param chart the chart to be displayed
-   */
-  def displayChart(chart: JFreeChart, title: String): Unit = {
+  private def buildPanel(chart: JFreeChart): ChartPanel = {
     // Chart panel
     val panel = new ChartPanel(chart)
     val xCrosshair = new Crosshair(Double.NaN, Color.GRAY, new BasicStroke(0f))
@@ -137,6 +134,10 @@ object TradingCharts {
     panel.setFillZoomRectangle(true)
     panel.setMouseWheelEnabled(true)
     panel.setPreferredSize(new Dimension(1024, 400))
+    panel
+  }
+
+  private def display(panel: Container, title: String): Unit = {
     // Application frame
     val frame = new NonClosingApplicationFrame(title)
     frame.setContentPane(panel)
@@ -145,12 +146,12 @@ object TradingCharts {
     frame.setVisible(true)
   }
 
-  def display(
+  private def createChart(
       strategyBuilder: BarSeries => FullStrategy,
       series: BarSeries,
       tradingStats: Option[TradingStats],
       title: String
-  ): Unit = {
+  ): JFreeChart = {
     def addIndicators(
         series: BarSeries,
         dataset: TimeSeriesCollection,
@@ -162,6 +163,7 @@ object TradingCharts {
         )
       }
     }
+
     val mainDataset = new TimeSeriesCollection
     val mainPointsDataset = new TimeSeriesCollection
     val indicatorsDataset = new TimeSeriesCollection
@@ -210,16 +212,30 @@ object TradingCharts {
       TradingCharts.addBuySellSignals(series, stats.long.positions, pricePlot, indicatorPlot)
       TradingCharts.addBuySellSignals(series, stats.short.positions, pricePlot, indicatorPlot)
     }
+    new JFreeChart(title, null, combinedPlot, true)
+  }
 
-    /*
-     * Creating the chart
-     */
-    val chart = new JFreeChart(title, null, combinedPlot, true)
+  def display(
+      strategyBuilder: BarSeries => FullStrategy,
+      series: BarSeries,
+      tradingStats: Option[TradingStats],
+      title: String
+  ): Unit = {
+    val chart = createChart(strategyBuilder, series, tradingStats, title)
+    val panel = buildPanel(chart)
+    display(panel, "Algorate")
+  }
 
-    /*
-     * Displaying the chart
-     */
-    TradingCharts.displayChart(chart, "Algorate")
+  def buildImage(
+      strategyBuilder: BarSeries => FullStrategy,
+      series: BarSeries,
+      tradingStats: Option[TradingStats],
+      title: String
+  ): Array[Byte] = {
+    val chart = createChart(strategyBuilder, series, tradingStats, title)
+    val outputStream = new ByteArrayOutputStream()
+    ChartUtilities.writeChartAsPNG(outputStream, chart, 1024, 400)
+    outputStream.toByteArray
   }
 
 }

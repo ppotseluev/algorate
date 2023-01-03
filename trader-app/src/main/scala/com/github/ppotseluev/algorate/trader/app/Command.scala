@@ -36,7 +36,7 @@ object CommandHandler {
           case Some(Command.ShowState(ticker)) =>
             shares.get(ticker) match {
               case Some(id) =>
-                actorSystem ! TradingManager.Event.ShowStateRequested(id)
+                actorSystem ! TradingManager.Event.TraderSnapshotRequested(id)
               case None =>
                 println(s"Can't find share with ticker $ticker")
             }

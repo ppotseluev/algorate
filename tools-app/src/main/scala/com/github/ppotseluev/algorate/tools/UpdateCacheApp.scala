@@ -3,7 +3,6 @@ package com.github.ppotseluev.algorate.tools
 import boopickle.Default.iterablePickler
 import cats.effect._
 import com.github.ppotseluev.algorate.Bar
-import com.github.ppotseluev.algorate.broker.CachedBroker
 import com.github.ppotseluev.algorate.redis._
 import com.github.ppotseluev.algorate.redis.codec._
 import com.github.ppotseluev.algorate.server.Codecs._
@@ -29,7 +28,7 @@ object UpdateCacheApp extends IOApp.Simple {
     cacheUpdater = new CacheUpdater[F, String, Seq[Bar]](jsonBarsCache, boopickleBarsCache)
   } yield {
     for {
-      keys <- Sync[F].delay(keysSource.getLines().filter(_ != CachedBroker.sharesKey).toList)
+      keys <- Sync[F].delay(keysSource.getLines().filter(_ != "shares").toList)
       _ <- cacheUpdater.update(keys)
     } yield ()
   }

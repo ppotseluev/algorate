@@ -13,13 +13,10 @@ import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
 import com.typesafe.scalalogging.LazyLogging
 import dev.profunktor.redis4cats.RedisCommands
-import scala.concurrent.duration.DurationInt
-import scala.concurrent.duration.FiniteDuration
 
 class CachedBroker[F[_]: Monad: Parallel](
     broker: Broker[F],
-    barsCache: RedisCommands[F, String, List[Bar]],
-    sharesTtl: FiniteDuration = 1.hour
+    barsCache: RedisCommands[F, String, List[Bar]]
 ) extends Broker[F]
     with LazyLogging {
   override def placeOrder(order: Order): F[OrderPlacementInfo] = broker.placeOrder(order)
@@ -53,8 +50,4 @@ class CachedBroker[F[_]: Monad: Parallel](
 
   override def getOrderInfo(orderId: OrderId): F[OrderPlacementInfo] =
     broker.getOrderInfo(orderId)
-}
-
-object CachedBroker {
-  val sharesKey = "shares"
 }

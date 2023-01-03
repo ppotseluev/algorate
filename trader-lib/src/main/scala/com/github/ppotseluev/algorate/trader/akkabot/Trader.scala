@@ -4,9 +4,6 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.ActorContext
 import akka.actor.typed.scaladsl.Behaviors
 import cats.implicits._
-import com.github.ppotseluev.algorate.BarsConverter
-import com.github.ppotseluev.algorate.Stats
-import com.github.ppotseluev.algorate.TradingStats
 import com.github.ppotseluev.algorate._
 import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus
@@ -14,21 +11,41 @@ import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus.Complet
 import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus.Failed
 import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus.Pending
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
-import com.github.ppotseluev.algorate.charts.TradingCharts
 import com.github.ppotseluev.algorate.strategy.FullStrategy
+import com.github.ppotseluev.algorate.trader.akkabot.Trader.Event.OrderUpdated
 import com.github.ppotseluev.algorate.trader.akkabot.Trader.Position.State
+import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.TraderSnapshotEvent
 import com.typesafe.scalalogging.LazyLogging
+import java.time.OffsetDateTime
+import java.time.ZonedDateTime
 import org.ta4j.core.BarSeries
 import org.ta4j.core.BaseBarSeries
 import org.ta4j.core.BaseTradingRecord
 import org.ta4j.core.Trade.TradeType
 import org.ta4j.core.TradingRecord
 import scala.concurrent.Future
+import scala.concurrent.duration._
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
 object Trader extends LazyLogging {
+  case class StateSnapshot(
+      instrumentId: InstrumentId,
+      triggeredBy: Event,
+      strategyBuilder: BarSeries => FullStrategy,
+      state: TraderState,
+      firstBarTs: Option[ZonedDateTime],
+      lastBar: Option[Bar],
+      lag: Option[FiniteDuration],
+      tradingStats: TradingStats,
+      unsafe: StateSnapshot.Unsafe
+  )
+
+  object StateSnapshot {
+    case class Unsafe(barSeries: BarSeries)
+  }
+
   sealed trait Event
   object Event {
     private[Trader] sealed trait OrderPlacementUpdate extends Event {
@@ -38,7 +55,7 @@ object Trader extends LazyLogging {
     private[Trader] case class FailedToPlaceOrder(error: Throwable) extends Event
 
     case class NewData(bar: Bar) extends Event
-    case object ShowStateRequested extends Event
+    case object StateSnapshotRequested extends Event
     case class OrderUpdated(info: OrderPlacementInfo) extends OrderPlacementUpdate
   }
 
@@ -81,7 +98,9 @@ object Trader extends LazyLogging {
       strategyBuilder: BarSeries => FullStrategy,
       broker: Broker[Future],
       keepLastBars: Int,
-      ordersWatcher: OrdersWatcher
+      ordersWatcher: OrdersWatcher,
+      snapshotSink: TraderSnapshotSink,
+      maxLag: Option[FiniteDuration]
   ): Behavior[Event] = {
     def buildOrder(point: Point, operationType: OperationType): Order = Order(
       instrumentId = instrumentId,
@@ -118,6 +137,9 @@ object Trader extends LazyLogging {
           strategy.shortStrategy.shouldExit(barSeries.getEndIndex, shortHistory) -> shortHistory
       }
 
+      def lag(bar: Bar): FiniteDuration =
+        (OffsetDateTime.now.toEpochSecond - bar.endTime.toEpochSecond).seconds
+
       def handleClosedBar(bar: Bar, ctx: ActorContext[Event]): Unit = {
         val ta4jBar = BarsConverter.convertBar(bar)
         barSeries.addBar(ta4jBar)
@@ -136,12 +158,14 @@ object Trader extends LazyLogging {
           placeOrder(order)
         }
         state match {
-          case TraderState.Empty =>
+          case TraderState.Empty if maxLag.forall(_ >= lag(bar)) =>
             if (strategy.longStrategy.shouldEnter(lastIndex)) {
               enter(OperationType.Buy)
             } else if (strategy.shortStrategy.shouldEnter(lastIndex)) {
               enter(OperationType.Sell)
-            } else ()
+            }
+          case TraderState.Empty =>
+            logger.debug(s"Trader $instrumentId is lagging behind, skipping bar")
           case TraderState.Entering(position) =>
             position.state match {
               case State.Initial | State.Placed(Pending) | State.Placed(Failed) => ()
@@ -179,21 +203,8 @@ object Trader extends LazyLogging {
             }
         }
 
-      def visualizeState(): Unit = {
-        val tradingStats = TradingStats(
-          long = Stats.fromRecord(longHistory, barSeries),
-          short = Stats.fromRecord(shortHistory, barSeries)
-        )
-        logger.info(s"$instrumentId $tradingStats")
-        TradingCharts.display(
-          strategyBuilder = strategyBuilder,
-          series = barSeries,
-          tradingStats = Some(tradingStats),
-          title = instrumentId
-        )
-      }
-
-      def handleOrderInfo(placementInfo: OrderPlacementInfo): Unit =
+      def handleOrderInfo(event: OrderUpdated): Unit = {
+        val placementInfo = event.info
         state match {
           case TraderState.Empty =>
             logger.error(
@@ -224,11 +235,36 @@ object Trader extends LazyLogging {
               case State.Placed(Completed) =>
                 logger.info("Position closed")
                 state = TraderState.Empty
+                sinkSnapshot(event)
               case State.Placed(Failed) =>
                 logger.error("CRITICAL ALERT: Failed to exit position, manual action required")
                 state = exiting.copy(position = position)
             }
         }
+      }
+
+      def buildSnapshot(event: Event) = {
+        val tradingStats = TradingStats(
+          long = Stats.fromRecord(longHistory, barSeries),
+          short = Stats.fromRecord(shortHistory, barSeries)
+        )
+        StateSnapshot(
+          instrumentId = instrumentId,
+          triggeredBy = event,
+          strategyBuilder = strategyBuilder,
+          state = state,
+          firstBarTs = Option.unless(barSeries.isEmpty)(barSeries.getFirstBar).map(_.getEndTime),
+          lastBar = currentBar,
+          lag = currentBar.map(lag),
+          tradingStats = tradingStats,
+          unsafe = StateSnapshot.Unsafe(barSeries)
+        )
+      }
+
+      def sinkSnapshot(event: Event): Unit = {
+        val snapshot = buildSnapshot(event)
+        snapshotSink ! TraderSnapshotEvent(snapshot)
+      }
 
       //todo stop-loss & take-profit, check if there is no memory leak caused by indicators caching
 
@@ -237,9 +273,9 @@ object Trader extends LazyLogging {
           case Trader.Event.NewData(bar) => handleBar(bar, ctx)
           case Trader.Event.OrderPlaced(info) =>
             ordersWatcher ! OrdersWatcher.Request.RegisterOrder(info, ctx.self)
-          case Trader.Event.OrderUpdated(info)    => handleOrderInfo(info)
-          case Trader.Event.FailedToPlaceOrder(t) => logger.error(s"Failed to place order", t)
-          case Trader.Event.ShowStateRequested    => visualizeState()
+          case event: Trader.Event.OrderUpdated    => handleOrderInfo(event)
+          case Trader.Event.FailedToPlaceOrder(t)  => logger.error(s"Failed to place order", t)
+          case Trader.Event.StateSnapshotRequested => sinkSnapshot(event)
         }
         Behaviors.same
       }

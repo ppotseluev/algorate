@@ -5,6 +5,7 @@ import cats.effect.ExitCode
 import cats.effect.IO
 import cats.effect.IOApp
 import cats.effect.unsafe.implicits.global
+import cats.implicits._
 import cats.~>
 import com.github.ppotseluev.algorate._
 import com.github.ppotseluev.algorate.broker.Broker
@@ -12,6 +13,8 @@ import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
 import com.github.ppotseluev.algorate.broker.tinkoff.TinkoffBroker
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.Strategies
+import com.github.ppotseluev.algorate.trader.akkabot.Event
+import com.github.ppotseluev.algorate.trader.akkabot.EventsSink
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager
 import com.typesafe.scalalogging.LazyLogging
 import java.time.LocalDate
@@ -23,9 +26,9 @@ object AkkaTradingApp extends IOApp with LazyLogging {
 
   case class StubSettings(
       ticker: Ticker,
-      streamFrom: LocalDate = LocalDate.now.minusDays(5),
+      streamFrom: LocalDate = LocalDate.now.minusDays(10),
       streamTo: LocalDate = LocalDate.now.minusDays(2),
-      rate: FiniteDuration = 10.millis
+      rate: FiniteDuration = 1.millis
   )
 
   val useHistoricalData: Option[StubSettings] = None
@@ -93,45 +96,72 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         toF(broker.getOrderInfo(orderId))
     }
 
+  private def wrapEventsSink[F[_]](toF: IO ~> F)(eventsSink: EventsSink[IO]): EventsSink[F] =
+    (event: Event) => toF(eventsSink.push(event))
+
   override def run(args: List[String]): IO[ExitCode] = {
     val token = args.head
     val accountId = args(1)
+    val telegramBotToken = args(2)
+    val telegramChatId = args(3)
     val investApi = InvestApi.createSandbox(token)
-    Factory
+    val brokerResource = Factory
       .tinkoffBroker[IO](
         accountId = accountId,
         investApi = investApi
       )
       .map(if (useHistoricalData.isDefined) TinkoffBroker.testBroker else identity)
-      .use { broker =>
-        val brokerFuture = wrapBroker(λ[IO ~> Future](_.unsafeToFuture()))(broker)
-        val figiList = tickersMap.values.toList
-        val tradingManager = TradingManager(
-          tradingInstruments = figiList.toSet,
-          broker = brokerFuture,
-          strategy = Strategies.intraChannel,
-          keepLastBars = 100000
-        )
-        for {
-          actorSystem <- IO(ActorSystem(tradingManager, "Algorate"))
-          _ <- useHistoricalData.fold {
-            MarketSubscriber
-              .fromActor(actorSystem)
-              .using[IO](investApi)
-              .subscribe(figiList)
-          } { case StubSettings(ticker, streamFrom, streamTo, rate) =>
-            MarketSubscriber
+    val eventsSinkResource = Factory
+      .telegramEventsSink[IO](
+        botToken = telegramBotToken,
+        chatId = telegramChatId
+      )
+      .map(wrapEventsSink(λ[IO ~> Future](_.unsafeToFuture())))
+    val program = for {
+      broker <- brokerResource
+      eventsSink <- eventsSinkResource
+    } yield {
+      val brokerFuture = wrapBroker(λ[IO ~> Future](_.unsafeToFuture()))(broker)
+      val figiList = tickersMap.values.toList
+      val tradingManager = TradingManager(
+        tradingInstruments = figiList.toSet,
+        broker = brokerFuture,
+        strategy = Strategies.intraChannel,
+        keepLastBars = 100000,
+        eventsSink = eventsSink,
+        maxLag = Option.when(useHistoricalData.isEmpty)(90.seconds)
+      )
+      for {
+        actorSystem <- IO(ActorSystem(tradingManager, "Algorate"))
+        _ <- useHistoricalData.fold {
+          {
+            val subscriber = MarketSubscriber
               .fromActor(actorSystem)
               .stub[IO](
                 broker,
-                rate = rate,
-                streamFrom = streamFrom,
-                streamTo = streamTo
+                rate = 0.millis,
+                streamFrom = LocalDate.now,
+                streamTo = LocalDate.now
               )
-              .subscribe(tickersMap(ticker))
-          } &> CommandHandler.handleUserCommand[IO](actorSystem, tickersMap).foreverM
-        } yield ExitCode.Error
-      }
+            figiList.traverse(subscriber.subscribe).void
+          } *> MarketSubscriber
+            .fromActor(actorSystem)
+            .using[IO](investApi)
+            .subscribe(figiList)
+        } { case StubSettings(ticker, streamFrom, streamTo, rate) =>
+          MarketSubscriber
+            .fromActor(actorSystem)
+            .stub[IO](
+              broker,
+              rate = rate,
+              streamFrom = streamFrom,
+              streamTo = streamTo
+            )
+            .subscribe(tickersMap(ticker))
+        } &> CommandHandler.handleUserCommand[IO](actorSystem, tickersMap).foreverM
+      } yield ExitCode.Error
+    }
+    program.useEval
   }
 
 }
