@@ -10,7 +10,8 @@ ENV TINKOFF_ACCESS_TOKEN UNDEFINED
 ENV ACCOUNT_ID UNDEFINED
 ENV TELEGRAM_BOT_TOKEN UNDEFINED
 ENV TELEGRAM_CHAT_ID UNDEFINED
+ENV JAVA_OPTS ""
 
 #COPY --from=builder /algorate/trader-app/target/scala-2.13/trader-app-assembly-1.0-SNAPSHOT.jar ./
 #CMD java -jar trader-app-assembly-1.0-SNAPSHOT.jar $TINKOFF_ACCESS_TOKEN $ACCOUNT_ID
-CMD java -jar /algorate/trader-app/target/scala-2.13/trader-app-assembly-1.0-SNAPSHOT.jar $TINKOFF_ACCESS_TOKEN $ACCOUNT_ID $TELEGRAM_BOT_TOKEN $TELEGRAM_CHAT_ID
+CMD java $JAVA_OPTS -jar /algorate/trader-app/target/scala-2.13/trader-app-assembly-1.0-SNAPSHOT.jar $TINKOFF_ACCESS_TOKEN $ACCOUNT_ID $TELEGRAM_BOT_TOKEN $TELEGRAM_CHAT_ID
