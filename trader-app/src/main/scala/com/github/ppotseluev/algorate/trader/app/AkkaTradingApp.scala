@@ -100,6 +100,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
     (event: Event) => toF(eventsSink.push(event))
 
   override def run(args: List[String]): IO[ExitCode] = {
+    logger.info("Hello from Algorate!")
     val token = args.head
     val accountId = args(1)
     val telegramBotToken = args(2)
@@ -158,7 +159,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
               streamTo = streamTo
             )
             .subscribe(tickersMap(ticker))
-        } &> CommandHandler.handleUserCommand[IO](actorSystem, tickersMap).foreverM
+        } // &> CommandHandler.handleUserCommand[IO](actorSystem, tickersMap).foreverM FIXME it causes EOFException in Docker
       } yield ExitCode.Error
     }
     program.useEval

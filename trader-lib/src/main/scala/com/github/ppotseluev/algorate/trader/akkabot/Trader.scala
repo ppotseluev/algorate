@@ -195,6 +195,9 @@ object Trader extends LazyLogging {
               currentBar = Some(bar)
             } else if (bar.endTime.isAfter(cur.endTime)) {
               // received data for the new bar, consider current bar as closed
+              if (instrumentId == "BBG006L8G4H1") { //FIXME remove
+                sinkSnapshot(Event.NewData(bar))
+              }
               handleClosedBar(cur, ctx)
               currentBar = Some(bar)
             } else { // bar.time < curBar.time
