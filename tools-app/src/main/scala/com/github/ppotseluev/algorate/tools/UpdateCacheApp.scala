@@ -19,7 +19,7 @@ object UpdateCacheApp extends IOApp.Simple {
   private type F[T] = IO[T]
 
   private val program: Resource[F, F[Unit]] = for {
-    redisClient <- Factory.redisClient[F]
+    redisClient <- Factory.io.redisClient
     jsonBarsCache <- Redis[F].fromClient(redisClient, jsonCodec)
     boopickleBarsCache <- Redis[F].fromClient(redisClient, boopickleCodec)
     keysSource <- Resource.fromAutoCloseable[F, BufferedSource](

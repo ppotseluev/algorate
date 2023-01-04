@@ -13,7 +13,6 @@ import com.github.ppotseluev.algorate.tools.strategy.BarSeriesProvider
 import com.github.ppotseluev.algorate.tools.strategy.StrategyTester
 import com.typesafe.scalalogging.StrictLogging
 import java.time.LocalDate
-import ru.tinkoff.piapi.core.InvestApi
 
 object VisualizeStrategy extends IOApp with StrictLogging {
 
@@ -31,12 +30,7 @@ object VisualizeStrategy extends IOApp with StrictLogging {
   )
 
   override def run(args: List[String]): IO[ExitCode] = {
-    val token = args.head
-    Factory
-      .tinkoffBroker[IO](
-        accountId = "fake_acc_id",
-        investApi = InvestApi.create(token)
-      )
+    Factory.io.tinkoffBroker
       .use { broker =>
         val seriesProvider = new BarSeriesProvider[IO](broker)
         for {

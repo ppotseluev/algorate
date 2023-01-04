@@ -139,7 +139,8 @@ lazy val `server` = project
     settings,
     libraryDependencies ++= Seq(
       Dependency.protobuf,
-      Dependency.logback
+      Dependency.logback,
+      Dependency.pureconfig
     )
   )
   .dependsOn(
@@ -179,7 +180,7 @@ lazy val `trader-lib` = project
     libraryDependencies ++= Seq(
       Dependency.akka,
       Dependency.fs2
-    ) ++ Dependency.sttp.all
+    ) ++ Dependency.sttp.all ++ Dependency.httpServer.all
   )
   .dependsOn(
     `trader-charts`,

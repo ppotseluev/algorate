@@ -1,11 +1,11 @@
 package com.github.ppotseluev.algorate.tools
 
-import ru.tinkoff.piapi.core.InvestApi
+import com.github.ppotseluev.algorate.server.Factory
 import scala.jdk.CollectionConverters._
 
 object GetAccounts extends App {
 
-  val api = InvestApi.create(args.head)
+  val api = Factory.io.investApi
 
   val accounts = api.getUserService.getAccountsSync.asScala
 

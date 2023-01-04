@@ -18,7 +18,6 @@ import com.github.ppotseluev.algorate.trader.akkabot.EventsSink
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager
 import com.typesafe.scalalogging.LazyLogging
 import java.time.LocalDate
-import ru.tinkoff.piapi.core.InvestApi
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
@@ -99,29 +98,18 @@ object AkkaTradingApp extends IOApp with LazyLogging {
   private def wrapEventsSink[F[_]](toF: IO ~> F)(eventsSink: EventsSink[IO]): EventsSink[F] =
     (event: Event) => toF(eventsSink.push(event))
 
-  override def run(args: List[String]): IO[ExitCode] = {
+  override def run(_a: List[String]): IO[ExitCode] = {
     logger.info("Hello from Algorate!")
-    val token = args.head
-    val accountId = args(1)
-    val telegramBotToken = args(2)
-    val telegramChatId = args(3)
-    val investApi = InvestApi.createSandbox(token)
-    val brokerResource = Factory
-      .tinkoffBroker[IO](
-        accountId = accountId,
-        investApi = investApi
-      )
-      .map(if (useHistoricalData.isDefined) TinkoffBroker.testBroker else identity)
-    val eventsSinkResource = Factory
-      .telegramEventsSink[IO](
-        botToken = telegramBotToken,
-        chatId = telegramChatId
-      )
-      .map(wrapEventsSink(λ[IO ~> Future](_.unsafeToFuture())))
+    val factory = Factory.io
+    val brokerResource = factory.tinkoffBroker.map(
+      if (useHistoricalData.isDefined) TinkoffBroker.testBroker else identity
+    )
+    val eventsSinkResource = factory.telegramEventsSink
     val program = for {
       broker <- brokerResource
       eventsSink <- eventsSinkResource
     } yield {
+      val eventsSinkFuture = wrapEventsSink(λ[IO ~> Future](_.unsafeToFuture()))(eventsSink)
       val brokerFuture = wrapBroker(λ[IO ~> Future](_.unsafeToFuture()))(broker)
       val figiList = tickersMap.values.toList
       val tradingManager = TradingManager(
@@ -129,12 +117,14 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         broker = brokerFuture,
         strategy = Strategies.intraChannel,
         keepLastBars = 1000,
-        eventsSink = eventsSink,
+        eventsSink = eventsSinkFuture,
         maxLag = Option.when(useHistoricalData.isEmpty)(90.seconds)
       )
       for {
         actorSystem <- IO(ActorSystem(tradingManager, "Algorate"))
-        _ <- useHistoricalData.fold {
+        requestHandler = factory.traderRequestHandler(actorSystem, tickersMap, eventsSink)
+        api = factory.traderApi(requestHandler)
+        exitCode <- useHistoricalData.fold {
           {
             val subscriber = MarketSubscriber
               .fromActor(actorSystem)
@@ -147,7 +137,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
             figiList.traverse(subscriber.subscribe).void
           } *> MarketSubscriber
             .fromActor(actorSystem)
-            .using[IO](investApi)
+            .using[IO](factory.investApi)
             .subscribe(figiList)
         } { case StubSettings(ticker, streamFrom, streamTo, rate) =>
           MarketSubscriber
@@ -159,9 +149,8 @@ object AkkaTradingApp extends IOApp with LazyLogging {
               streamTo = streamTo
             )
             .subscribe(tickersMap(ticker))
-        } &> IO.never
-        // &> CommandHandler.handleUserCommand[IO](actorSystem, tickersMap).foreverM FIXME it causes EOFException in Docker
-      } yield ExitCode.Error
+        } &> api.runServer
+      } yield exitCode
     }
     program.useEval
   }

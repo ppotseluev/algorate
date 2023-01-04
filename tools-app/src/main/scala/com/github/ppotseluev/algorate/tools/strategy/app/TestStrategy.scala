@@ -12,7 +12,6 @@ import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.tools.strategy.BarSeriesProvider
 import com.github.ppotseluev.algorate.tools.strategy.StrategyTester
 import ru.tinkoff.piapi.contract.v1.Share
-import ru.tinkoff.piapi.core.InvestApi
 import scala.concurrent.duration._
 
 /**
@@ -22,46 +21,40 @@ object TestStrategy extends IOApp {
   import com.github.ppotseluev.algorate.tools.strategy.TestSetup._
 
   override def run(args: List[String]): IO[ExitCode] = {
-    val token = args.head
-    Factory
-      .tinkoffBroker[IO](
-        accountId = "fake_acc_id",
-        investApi = InvestApi.create(token)
-      )
-      .use { broker =>
-        val start = System.currentTimeMillis()
+    Factory.io.tinkoffBroker.use { broker =>
+      val start = System.currentTimeMillis()
 
-        val result: IO[SectorsResults] = {
-          val barSeriesProvider = new BarSeriesProvider(broker)
-          tickers
-            .traverse(broker.getShare)
-            .flatMap {
-              _.parTraverse { share =>
-                barSeriesProvider.getBarSeries(share, interval).map { series =>
-                  val stats = StrategyTester(strategy).test(series)
-                  SectorsResults(share, stats)
-                }
+      val result: IO[SectorsResults] = {
+        val barSeriesProvider = new BarSeriesProvider(broker)
+        tickers
+          .traverse(broker.getShare)
+          .flatMap {
+            _.parTraverse { share =>
+              barSeriesProvider.getBarSeries(share, interval).map { series =>
+                val stats = StrategyTester(strategy).test(series)
+                SectorsResults(share, stats)
               }
             }
-            .map(_.combineAll)
-        }
-        result
-          .map { res =>
-            println(res.show)
-            val allStats = res.sectorsStats.values.flatMap(_.values).toList.combineAll
-            println(s"total: $allStats")
-            println()
-            println("per month statistics")
-            allStats.monthly.foreach { case (month, stats) =>
-              println(s"$month $stats")
-            }
-            println()
-            val end = System.currentTimeMillis()
-            val duration = (end - start).millis
-            println(s"Testing took $duration")
           }
-          .as(ExitCode.Success)
+          .map(_.combineAll)
       }
+      result
+        .map { res =>
+          println(res.show)
+          val allStats = res.sectorsStats.values.flatMap(_.values).toList.combineAll
+          println(s"total: $allStats")
+          println()
+          println("per month statistics")
+          allStats.monthly.foreach { case (month, stats) =>
+            println(s"$month $stats")
+          }
+          println()
+          val end = System.currentTimeMillis()
+          val duration = (end - start).millis
+          println(s"Testing took $duration")
+        }
+        .as(ExitCode.Success)
+    }
   }
 
   implicit val tickersShow: Show[Map[Share, TradingStats]] = (stats: Map[Share, TradingStats]) =>

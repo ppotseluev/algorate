@@ -1,9 +1,8 @@
-package com.github.ppotseluev.algorate.trader
+package com.github.ppotseluev.algorate.trader.telegram
 
 import cats.MonadError
 import cats.implicits._
 import com.github.ppotseluev.algorate.trader.HttpClientUtils.RichResponse
-import com.github.ppotseluev.algorate.trader.TelegramClient.BotToken
 import io.circe.Printer
 import io.circe.syntax._
 import sttp.client3._

@@ -1,6 +1,6 @@
-package com.github.ppotseluev.algorate.trader
+package com.github.ppotseluev.algorate.trader.telegram
 
-import com.github.ppotseluev.algorate.trader.TelegramClient._
+import com.github.ppotseluev.algorate.trader.telegram.TelegramClient._
 import io.circe.Codec
 import io.circe.generic.extras.Configuration
 import io.circe.generic.extras.ConfiguredJsonCodec
@@ -11,7 +11,6 @@ trait TelegramClient[F[_]] {
 }
 
 object TelegramClient {
-  type BotToken = String
   implicit private val circeConfig: Configuration = Configuration.default.withSnakeCaseMemberNames
 
   @ConfiguredJsonCodec

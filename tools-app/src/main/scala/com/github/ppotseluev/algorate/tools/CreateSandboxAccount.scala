@@ -1,11 +1,11 @@
 package com.github.ppotseluev.algorate.tools
 
+import com.github.ppotseluev.algorate.server.Factory
 import ru.tinkoff.piapi.contract.v1.MoneyValue
-import ru.tinkoff.piapi.core.InvestApi
 
 object CreateSandboxAccount extends App {
 
-  val api = InvestApi.create(args.head)
+  val api = Factory.io.investApi
 
   val sandbox = api.getSandboxService
   val accountId = "b24ea732-9ad6-478b-a224-8eefee2e380c"

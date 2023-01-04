@@ -1,13 +1,13 @@
 package com.github.ppotseluev.algorate.tools
 
+import com.github.ppotseluev.algorate.server.Factory
 import ru.tinkoff.piapi.contract.v1.Share
 import ru.tinkoff.piapi.contract.v1.ShareType
-import ru.tinkoff.piapi.core.InvestApi
 import scala.jdk.CollectionConverters._
 
 object SharesFinder extends App {
 
-  val api = InvestApi.create(args.head)
+  val api = Factory.io.investApi
 
   val shareFilter: Share => Boolean = share => {
     share.getApiTradeAvailableFlag &&

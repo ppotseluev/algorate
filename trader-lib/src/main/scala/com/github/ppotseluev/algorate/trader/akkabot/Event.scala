@@ -11,4 +11,6 @@ object Event {
       snapshot: Trader.StateSnapshot,
       aggregatedStats: TradingStats
   ) extends Event
+
+  case class Failure(message: String) extends Event
 }
