@@ -159,7 +159,8 @@ object AkkaTradingApp extends IOApp with LazyLogging {
               streamTo = streamTo
             )
             .subscribe(tickersMap(ticker))
-        } // &> CommandHandler.handleUserCommand[IO](actorSystem, tickersMap).foreverM FIXME it causes EOFException in Docker
+        } &> IO.never
+        // &> CommandHandler.handleUserCommand[IO](actorSystem, tickersMap).foreverM FIXME it causes EOFException in Docker
       } yield ExitCode.Error
     }
     program.useEval
