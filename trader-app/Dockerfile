@@ -13,5 +13,6 @@ ENV TELEGRAM_CHAT_ID UNDEFINED
 ENV JAVA_OPTS ""
 
 COPY --from=builder /algorate/trader-app/target/scala-2.13/trader-app-assembly-1.0-SNAPSHOT.jar ./
+EXPOSE 8080
 CMD java $JAVA_OPTS -jar trader-app-assembly-1.0-SNAPSHOT.jar
 #CMD java $JAVA_OPTS -jar /algorate/trader-app/target/scala-2.13/trader-app-assembly-1.0-SNAPSHOT.jar
