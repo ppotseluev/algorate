@@ -40,17 +40,3 @@ object EventsSink {
     client.send(botToken)(messageSource)
   }
 }
-
-// TODO
-//    val image = TradingCharts.buildImage(
-//      strategyBuilder = snapshot.strategyBuilder,
-//      series = snapshot.unsafe.barSeries,
-//      tradingStats = snapshot.tradingStats.some,
-//      title = snapshot.instrumentId
-//    )
-//    val outputFile = new File("image.png")
-//    if (!outputFile.exists()) {
-//      outputFile.createNewFile()
-//    }
-//    val writer = new FileOutputStream(outputFile)
-//    writer.write(image)

@@ -80,18 +80,4 @@ object TradingManager extends LazyLogging {
         Behaviors.same
     }
   }
-
-//  def visualizeState(): Unit = {
-//    val tradingStats = TradingStats(
-//      long = Stats.fromRecord(longHistory, barSeries),
-//      short = Stats.fromRecord(shortHistory, barSeries)
-//    )
-//    logger.info(s"$instrumentId $tradingStats")
-//    TradingCharts.display(
-//      strategyBuilder = strategyBuilder,
-//      series = barSeries,
-//      tradingStats = Some(tradingStats),
-//      title = instrumentId
-//    )
-//  }
 }
