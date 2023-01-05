@@ -3,7 +3,8 @@ package com.github.ppotseluev.algorate.trader.akkabot
 import akka.actor.typed.ActorSystem
 import cats.effect.kernel.Sync
 import com.github.ppotseluev.algorate._
-import com.github.ppotseluev.algorate.trader.{Request, RequestHandler}
+import com.github.ppotseluev.algorate.trader.Request
+import com.github.ppotseluev.algorate.trader.RequestHandler
 import com.typesafe.scalalogging.LazyLogging
 
 class RequestHandlerImpl[F[_]: Sync](

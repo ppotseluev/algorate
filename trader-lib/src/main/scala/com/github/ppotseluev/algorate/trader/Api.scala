@@ -6,9 +6,11 @@ import cats.effect.ExitCode
 import cats.implicits._
 import com.github.ppotseluev.algorate.trader.telegram.TelegramWebhook
 import com.github.ppotseluev.algorate.trader.telegram.WebhookSecret
-import org.http4s.{HttpApp, HttpRoutes}
+import org.http4s.HttpRoutes
 import org.http4s.blaze.server.BlazeServerBuilder
-import sttp.tapir.server.http4s.{Http4sServerInterpreter, Http4sServerOptions}
+import sttp.tapir.server.ServerEndpoint
+import sttp.tapir.server.http4s.Http4sServerInterpreter
+import sttp.tapir.server.http4s.Http4sServerOptions
 import sttp.tapir.server.metrics.prometheus.PrometheusMetrics
 
 class Api[F[_]: Async: Parallel](
@@ -17,36 +19,35 @@ class Api[F[_]: Async: Parallel](
     prometheusMetrics: PrometheusMetrics[F],
     config: Api.Config
 ) {
-  private val metricRoutes: HttpRoutes[F] = {
-    val serverOptions = Http4sServerOptions.customiseInterceptors
-      .metricsInterceptor(prometheusMetrics.metricsInterceptor())
-      .options
-    Http4sServerInterpreter(serverOptions).toRoutes(prometheusMetrics.metricsEndpoint)
-  }
 
-  private val operationalApp: HttpApp[F] =
-    List(
-      metricRoutes,
-      HealthCheck.routes
-    ).reduce(_ <+> _).orNotFound
+  private val serverOptions = Http4sServerOptions.customiseInterceptors
+    .metricsInterceptor(prometheusMetrics.metricsInterceptor())
+    .options
 
-  private val httpApp: HttpApp[F] =
-    List(
-      TelegramWebhook.routes(telegramHandler, telegramWebhookSecret)
-    ).reduce(_ <+> _).orNotFound
+  private def buildRoutes(endpoints: ServerEndpoint[Any, F]*): HttpRoutes[F] =
+    Http4sServerInterpreter(serverOptions).toRoutes(endpoints.toList)
 
-  private def run(port: Int, app: HttpApp[F]): F[ExitCode] =
+  private val routes: HttpRoutes[F] = buildRoutes(
+    TelegramWebhook.webhookEndpoint(telegramHandler, telegramWebhookSecret)
+  )
+
+  private val operationalRoutes: HttpRoutes[F] = buildRoutes(
+    HealthCheck.healthCheckEndpoint,
+    prometheusMetrics.metricsEndpoint
+  )
+
+  private def run(port: Int, routes: HttpRoutes[F]): F[ExitCode] =
     BlazeServerBuilder
       .apply[F]
       .bindHttp(port = port, host = "0.0.0.0")
-      .withHttpApp(app)
+      .withHttpApp(routes.orNotFound)
       .serve
       .compile
       .drain
       .as(ExitCode.Error)
 
-  val runOperationalServer: F[ExitCode] = run(config.operationalPort, operationalApp)
-  val runServer: F[ExitCode] = run(config.port, httpApp)
+  val runOperationalServer: F[ExitCode] = run(config.operationalPort, operationalRoutes)
+  val runServer: F[ExitCode] = run(config.port, routes)
   val run: F[ExitCode] = runServer &> runOperationalServer
 }
 

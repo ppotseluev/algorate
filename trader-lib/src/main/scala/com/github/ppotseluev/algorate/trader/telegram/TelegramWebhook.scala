@@ -10,11 +10,9 @@ import io.circe.Codec
 import io.circe.generic.extras.Configuration
 import io.circe.generic.extras.ConfiguredJsonCodec
 import io.circe.generic.semiauto.deriveCodec
-import org.http4s.HttpRoutes
 import sttp.tapir._
 import sttp.tapir.generic.auto._
 import sttp.tapir.json.circe.jsonBody
-import sttp.tapir.server.http4s._
 
 object TelegramWebhook {
   implicit private val circeConfig: Configuration = Configuration.default.withSnakeCaseMemberNames
@@ -51,7 +49,7 @@ object TelegramWebhook {
 
   type Error = String
 
-  val webhookEndpoint: Endpoint[WebhookSecret, Update, Error, Unit, Any] =
+  val webhookEndpointDef: Endpoint[WebhookSecret, Update, Error, Unit, Any] =
     baseEndpoint
       .in("telegram")
       .post
@@ -104,16 +102,14 @@ object TelegramWebhook {
 
   }
 
-  def routes[F[_]: Async](
+  def webhookEndpoint[F[_]: Async](
       handler: Handler[F],
       webhookSecret: WebhookSecret
-  ): HttpRoutes[F] = {
-    val endpointLogic = webhookEndpoint
+  ) =
+    webhookEndpointDef
       .serverSecurityLogicPure { secret =>
         if (secret == webhookSecret) ().asRight
         else "Error".asLeft
       }
       .serverLogic(_ => handler.handleTelegramEvent)
-    Http4sServerInterpreter[F]().toRoutes(endpointLogic)
-  }
 }
