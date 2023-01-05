@@ -149,7 +149,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
               streamTo = streamTo
             )
             .subscribe(tickersMap(ticker))
-        } &> api.runServer
+        } &> api.run
       } yield exitCode
     }
     program.useEval

@@ -54,8 +54,9 @@ object Dependency {
     val tapirCore = "com.softwaremill.sttp.tapir" %% "tapir-core" % tapirVersion
     val tapirJsonCirce = "com.softwaremill.sttp.tapir" %% "tapir-json-circe" % tapirVersion
     val tapirHttp4s = "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % tapirVersion
+    val tapirPrometheus = "com.softwaremill.sttp.tapir" %% "tapir-prometheus-metrics" % tapirVersion
     val http4sBlaze = "org.http4s" %% "http4s-blaze-server" % http4sVersion
-    val all = Seq(tapirCore, tapirJsonCirce, tapirHttp4s, http4sBlaze)
+    val all = Seq(tapirCore, tapirJsonCirce, tapirHttp4s, tapirPrometheus, http4sBlaze)
   }
 
   val kindProjector = "org.typelevel" % "kind-projector" % "0.13.2" cross CrossVersion.full

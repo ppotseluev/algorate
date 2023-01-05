@@ -1,5 +1,7 @@
 package com.github.ppotseluev.algorate.server
 
+import com.github.ppotseluev.algorate.trader.Api
+
 import scala.concurrent.duration.FiniteDuration
 
 case class Config(
@@ -10,7 +12,8 @@ case class Config(
     telegramWebhookSecret: String,
     candlesMinInterval: FiniteDuration,
     telegramUrl: String,
-    telegramUsersWhitelist: Set[Int]
+    telegramUsersWhitelist: Set[Int],
+    apiConfig: Api.Config
 ) {
   def telegramTrackedChats: Set[String] = Set(telegramChatId)
 }
