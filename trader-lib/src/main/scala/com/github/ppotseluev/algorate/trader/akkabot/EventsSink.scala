@@ -29,7 +29,6 @@ object EventsSink {
              |
              |--------------------
              |""".stripMargin
-      case Event.Failure(message) => s"Something went wrong: $message"
     }
     val messageSource = TelegramClient.MessageSource(
       chatId = chatId,

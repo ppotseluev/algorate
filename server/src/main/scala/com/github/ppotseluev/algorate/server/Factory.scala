@@ -89,6 +89,7 @@ class Factory[F[_]: Async: Parallel] {
   ): TelegramWebhook.Handler[F] =
     new TelegramWebhook.Handler[F](
       allowedUsers = telegramUsersWhitelist,
+      trackedChats = telegramTrackedChats,
       requestHandler = requestHandler
     )
 

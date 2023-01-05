@@ -78,15 +78,21 @@ object TelegramWebhook {
 
   class Handler[F[_]: Monad](
       allowedUsers: Set[UserId],
+      trackedChats: Set[String],
       requestHandler: RequestHandler[F]
   ) {
     private val success = ().asRight[Error].pure[F]
     private def skip = success
 
-    def handleTelegramEvent(update: Update): F[Either[Error, Unit]] =
+    def handleTelegramEvent(
+        update: Update
+    ): F[Either[Error, Unit]] =
       update.message match {
-        case Some(Message(_, Some(user), _, Some(text))) =>
-          if (allowedUsers.contains(user.id)) {
+        case Some(Message(_, Some(user), chat, Some(text))) =>
+          val shouldReact =
+            allowedUsers.contains(user.id) &&
+              trackedChats.contains(chat.id.toString)
+          if (shouldReact) {
             Command.parse(text).fold(skip) { cmd =>
               requestHandler.handle(cmd.toRequest).map(_.asRight)
             }

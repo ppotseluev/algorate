@@ -11,4 +11,6 @@ case class Config(
     candlesMinInterval: FiniteDuration,
     telegramUrl: String,
     telegramUsersWhitelist: Set[Int]
-)
+) {
+  def telegramTrackedChats: Set[String] = Set(telegramChatId)
+}
