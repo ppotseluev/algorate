@@ -1,6 +1,7 @@
 package com.github.ppotseluev.algorate.broker.tinkoff
 
 import cats.Functor
+import cats.Monad
 import cats.Parallel
 import cats.effect.Sync
 import cats.effect.kernel.Async
@@ -13,9 +14,11 @@ import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.Day
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
+import com.github.ppotseluev.algorate.broker.CachedBroker
 import com.github.ppotseluev.algorate.broker.LoggingBroker
 import com.github.ppotseluev.algorate.broker.TestBroker
 import com.github.ppotseluev.algorate.math._
+import dev.profunktor.redis4cats.RedisCommands
 import java.time.ZoneId
 import ru.tinkoff.piapi.contract.v1.CandleInterval
 import ru.tinkoff.piapi.contract.v1.HistoricCandle
@@ -23,13 +26,20 @@ import ru.tinkoff.piapi.contract.v1.OrderDirection
 import ru.tinkoff.piapi.contract.v1.OrderType
 import ru.tinkoff.piapi.contract.v1.Quotation
 import ru.tinkoff.piapi.contract.v1.Share
+import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
 
 object TinkoffBroker {
   trait Ops[F[_]] {
     def getAllShares: F[List[Share]]
 
-    def getShare(ticker: Ticker): F[Share]
+    final def getShare(ticker: Ticker)(implicit F: Functor[F]): F[Share] =
+      getAllShares
+        .map(_.filter(_.getTicker == ticker))
+        .map { relatedShares =>
+          require(relatedShares.size == 1, s"${relatedShares.size} shares found for ticker $ticker")
+          relatedShares.head
+        }
   }
 
   def apply[F[_]: Functor: Parallel](
@@ -39,14 +49,6 @@ object TinkoffBroker {
   ): TinkoffBroker[F] = new Broker[F] with Ops[F] {
     override def getAllShares: F[List[Share]] =
       api.getAllShares
-
-    override def getShare(ticker: Ticker): F[Share] =
-      getAllShares
-        .map(_.filter(_.getTicker == ticker))
-        .map { relatedShares =>
-          require(relatedShares.size == 1, s"${relatedShares.size} shares found for ticker $ticker")
-          relatedShares.head
-        }
 
     override def getOrderInfo(orderId: OrderId): F[OrderPlacementInfo] =
       api
@@ -139,9 +141,6 @@ object TinkoffBroker {
       override def getAllShares: F[List[Share]] =
         broker.getAllShares
 
-      override def getShare(ticker: Ticker): F[Share] =
-        broker.getShare(ticker)
-
       override def getOrderInfo(orderId: OrderId): F[OrderPlacementInfo] =
         testBroker.getOrderInfo(orderId)
 
@@ -163,8 +162,37 @@ object TinkoffBroker {
       override def getAllShares: F[List[Share]] =
         _broker.getAllShares
 
-      override def getShare(ticker: Ticker): F[Share] =
-        _broker.getShare(ticker)
+      override def getOrderInfo(orderId: OrderId): F[OrderPlacementInfo] =
+        broker.getOrderInfo(orderId)
+
+      override def placeOrder(order: Order): F[OrderPlacementInfo] =
+        broker.placeOrder(order)
+
+      override def getData(
+          instrumentId: InstrumentId,
+          candlesInterval: CandlesInterval
+      ): F[List[Bar]] =
+        broker.getData(instrumentId, candlesInterval)
+    }
+
+  def withCaching[F[_]: Monad: Parallel](
+      _broker: TinkoffBroker[F],
+      barsCache: RedisCommands[F, String, List[Bar]],
+      sharesCache: RedisCommands[F, String, List[Share]],
+      sharesTtl: FiniteDuration = 1.day
+  ): TinkoffBroker[F] =
+    new Broker[F] with Ops[F] {
+      private val sharesKey = "shares"
+      private val broker = new CachedBroker(_broker, barsCache)
+
+      override def getAllShares: F[List[Share]] =
+        sharesCache.get(sharesKey).flatMap {
+          case Some(shares) => shares.pure[F]
+          case None =>
+            _broker.getAllShares.flatMap { s =>
+              sharesCache.setEx(sharesKey, s, sharesTtl).as(s)
+            }
+        }
 
       override def getOrderInfo(orderId: OrderId): F[OrderPlacementInfo] =
         broker.getOrderInfo(orderId)

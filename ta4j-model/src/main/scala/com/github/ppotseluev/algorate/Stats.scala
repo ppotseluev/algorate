@@ -54,7 +54,9 @@ object Stats {
     override val empty: Stats = Stats(Seq.empty)
 
     override def combine(x: Stats, y: Stats): Stats =
-      Stats(x.enrichedPositions ++ y.enrichedPositions)
+      Stats(
+        (x.enrichedPositions ++ y.enrichedPositions).distinctBy(_.entryTime)
+      )
   }
 
   def fromRecord(record: TradingRecord, series: BarSeries): Stats = {

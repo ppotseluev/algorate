@@ -34,9 +34,7 @@ lazy val settings = Seq(
 
 lazy val root = project
   .in(file("."))
-  .settings(
-    name := "algorate"
-  )
+  .settings(name := "algorate")
   .aggregate(
     `model`,
     `math-utils`,
@@ -61,7 +59,7 @@ lazy val `model` = project
     )
   )
 
-lazy val `ta4j-model` = project
+lazy val `ta4j-model` = project //TODO rework
   .settings(
     name := "ta4j-model",
     settings,
@@ -92,8 +90,7 @@ lazy val `trader-app` = project
 //    libraryDependencies ++= Seq()
   )
   .dependsOn(
-    `server`,
-    `trader-lib`
+    `server`
   )
 
 lazy val `math-utils` = project
@@ -142,11 +139,13 @@ lazy val `server` = project
     settings,
     libraryDependencies ++= Seq(
       Dependency.protobuf,
-      Dependency.logback
+      Dependency.logback,
+      Dependency.pureconfig
     )
   )
   .dependsOn(
-    `brokers`
+    `brokers`,
+    `trader-lib`
   )
 
 lazy val `broker-lib` = project
@@ -181,7 +180,7 @@ lazy val `trader-lib` = project
     libraryDependencies ++= Seq(
       Dependency.akka,
       Dependency.fs2
-    )
+    ) ++ Dependency.sttp.all ++ Dependency.httpServer.all
   )
   .dependsOn(
     `trader-charts`,

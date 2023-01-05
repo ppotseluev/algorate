@@ -3,7 +3,6 @@ package com.github.ppotseluev.algorate.tools
 import boopickle.Default.iterablePickler
 import cats.effect._
 import com.github.ppotseluev.algorate.Bar
-import com.github.ppotseluev.algorate.broker.CachedBroker
 import com.github.ppotseluev.algorate.redis._
 import com.github.ppotseluev.algorate.redis.codec._
 import com.github.ppotseluev.algorate.server.Codecs._
@@ -20,7 +19,7 @@ object UpdateCacheApp extends IOApp.Simple {
   private type F[T] = IO[T]
 
   private val program: Resource[F, F[Unit]] = for {
-    redisClient <- Factory.redisClient[F]
+    redisClient <- Factory.io.redisClient
     jsonBarsCache <- Redis[F].fromClient(redisClient, jsonCodec)
     boopickleBarsCache <- Redis[F].fromClient(redisClient, boopickleCodec)
     keysSource <- Resource.fromAutoCloseable[F, BufferedSource](
@@ -29,7 +28,7 @@ object UpdateCacheApp extends IOApp.Simple {
     cacheUpdater = new CacheUpdater[F, String, Seq[Bar]](jsonBarsCache, boopickleBarsCache)
   } yield {
     for {
-      keys <- Sync[F].delay(keysSource.getLines().filter(_ != CachedBroker.sharesKey).toList)
+      keys <- Sync[F].delay(keysSource.getLines().filter(_ != "shares").toList)
       _ <- cacheUpdater.update(keys)
     } yield ()
   }
