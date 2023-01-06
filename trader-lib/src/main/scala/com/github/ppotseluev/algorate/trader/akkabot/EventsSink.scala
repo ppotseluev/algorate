@@ -19,13 +19,14 @@ object EventsSink {
         s"""
              |--------------------
              |
-             |instrument: ${snapshot.instrumentId}
+             |instrument: ${snapshot.ticker}
              |state: ${snapshot.state}
              |stats: ${snapshot.tradingStats}
              |start time: ${snapshot.firstBarTs}
              |last data: ${snapshot.lastBar.map(_.endTime).fold("?")(_.toString)}
              |lag: ${snapshot.lag}
              |aggregated stats: $aggregatedStats
+             |triggeredBy: ${snapshot.triggeredBy}
              |
              |--------------------
              |""".stripMargin

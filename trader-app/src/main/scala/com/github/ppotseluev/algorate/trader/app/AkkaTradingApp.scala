@@ -113,7 +113,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
       val brokerFuture = wrapBroker(λ[IO ~> Future](_.unsafeToFuture()))(broker)
       val figiList = tickersMap.values.toList
       val tradingManager = TradingManager(
-        tradingInstruments = figiList.toSet,
+        tradingInstruments = tickersMap.map(_.swap),
         broker = brokerFuture,
         strategy = Strategies.intraChannel,
         keepLastBars = 1000,
