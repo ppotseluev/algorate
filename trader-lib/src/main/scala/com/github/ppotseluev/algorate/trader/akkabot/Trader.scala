@@ -1,37 +1,39 @@
 package com.github.ppotseluev.algorate.trader.akkabot
 
 import akka.actor.typed.Behavior
-import akka.actor.typed.scaladsl.ActorContext
-import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import cats.implicits._
 import com.github.ppotseluev.algorate._
 import com.github.ppotseluev.algorate.broker.Broker
-import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus
-import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus.Completed
-import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus.Failed
-import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus.Pending
-import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
+import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus.{Completed, Failed, Pending}
+import com.github.ppotseluev.algorate.broker.Broker.{OrderExecutionStatus, OrderPlacementInfo}
 import com.github.ppotseluev.algorate.strategy.FullStrategy
 import com.github.ppotseluev.algorate.trader.LoggingSupport
 import com.github.ppotseluev.algorate.trader.akkabot.Trader.Event.OrderUpdated
 import com.github.ppotseluev.algorate.trader.akkabot.Trader.Position.State
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.TraderSnapshotEvent
-
-import java.time.OffsetDateTime
-import java.time.ZonedDateTime
-import org.ta4j.core.BarSeries
-import org.ta4j.core.BaseBarSeries
-import org.ta4j.core.BaseTradingRecord
+import io.prometheus.client.Gauge
 import org.ta4j.core.Trade.TradeType
-import org.ta4j.core.TradingRecord
+import org.ta4j.core.{BarSeries, BaseBarSeries, BaseTradingRecord, TradingRecord}
 
+import java.time.{OffsetDateTime, ZonedDateTime}
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 object Trader extends LoggingSupport {
+  private def gauge(name: String) =
+    Gauge
+      .build()
+      .namespace("algorate")
+      .name(name)
+      .help(name)
+      .labelNames("ticker")
+      .register()
+
+  val priceMetric = gauge("price")
+  val timeMetric = gauge("time")
+
   case class StateSnapshot(
       ticker: Ticker,
       triggeredBy: Event,
@@ -146,6 +148,9 @@ object Trader extends LoggingSupport {
         (OffsetDateTime.now.toEpochSecond - bar.endTime.toEpochSecond).seconds
 
       def handleClosedBar(bar: Bar, ctx: ActorContext[Event]): Unit = {
+        priceMetric.labels(ticker).set(bar.closePrice.doubleValue)
+        timeMetric.labels(ticker).set(bar.endTime.toEpochSecond.toDouble)
+
         val ta4jBar = BarsConverter.convertBar(bar)
         barSeries.addBar(ta4jBar)
         val point = Point(

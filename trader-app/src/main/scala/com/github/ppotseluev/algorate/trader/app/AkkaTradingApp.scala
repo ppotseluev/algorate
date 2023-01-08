@@ -24,16 +24,11 @@ import scala.concurrent.duration._
 object AkkaTradingApp extends IOApp with LazyLogging {
 
   case class StubSettings(
-      ticker: Ticker,
+      tickersMap: Map[Ticker, InstrumentId],
       streamFrom: LocalDate = LocalDate.now.minusDays(10),
       streamTo: LocalDate = LocalDate.now.minusDays(2),
-      rate: FiniteDuration = 1.millis
+      rate: FiniteDuration = 1.second
   )
-
-  val useHistoricalData: Option[StubSettings] = None
-//    Some( //None to stream realtime market data
-//    StubSettings("CSCO")
-//  )
 
   val tickersMap: Map[Ticker, InstrumentId] = Map(
     "LUV" -> "BBG000BNJHS8",
@@ -80,6 +75,12 @@ object AkkaTradingApp extends IOApp with LazyLogging {
     //    "PHOR",
     //    "LKOH",
   )
+
+  val useHistoricalData: Option[StubSettings] = //None
+    Some( //None to stream realtime market data
+      StubSettings(tickersMap)
+    ) //TODO
+
   private def wrapBroker[F[_]](toF: IO ~> F)(broker: Broker[IO]): Broker[F] =
     new Broker[F] {
       override def placeOrder(order: Order): F[OrderPlacementInfo] =
@@ -139,8 +140,8 @@ object AkkaTradingApp extends IOApp with LazyLogging {
             .fromActor(actorSystem)
             .using[IO](factory.investApi)
             .subscribe(figiList)
-        } { case StubSettings(ticker, streamFrom, streamTo, rate) =>
-          MarketSubscriber
+        } { case StubSettings(instruments, streamFrom, streamTo, rate) =>
+          val subscriber = MarketSubscriber
             .fromActor(actorSystem)
             .stub[IO](
               broker,
@@ -148,7 +149,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
               streamFrom = streamFrom,
               streamTo = streamTo
             )
-            .subscribe(tickersMap(ticker))
+          instruments.values.toList.traverse(subscriber.subscribe).void
         } &> api.run
       } yield exitCode
     }
