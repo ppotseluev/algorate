@@ -135,8 +135,8 @@ object AkkaTradingApp extends IOApp with LazyLogging {
                 streamFrom = LocalDate.now,
                 streamTo = LocalDate.now
               )
-            figiList.traverse(subscriber.subscribe).void
-          } *> MarketSubscriber
+            figiList.parTraverse(subscriber.subscribe).void
+          } *> MarketSubscriber //TODO fix gap between historical and realtime data
             .fromActor(actorSystem)
             .using[IO](factory.investApi)
             .subscribe(figiList)
@@ -149,7 +149,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
               streamFrom = streamFrom,
               streamTo = streamTo
             )
-          instruments.values.toList.traverse(subscriber.subscribe).void
+          instruments.values.toList.parTraverse(subscriber.subscribe).void
         } &> api.run
       } yield exitCode
     }
