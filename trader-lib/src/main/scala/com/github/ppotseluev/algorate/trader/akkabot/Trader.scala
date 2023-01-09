@@ -28,11 +28,12 @@ object Trader extends LoggingSupport {
       .namespace("algorate")
       .name(name)
       .help(name)
-      .labelNames("ticker")
+      .labelNames("ticker", "type")
       .register()
 
-  val priceMetric = gauge("price")
-  val timeMetric = gauge("time")
+  val traderGauge = gauge("trader_data")
+//  val priceMetric = gauge("price")
+//  val timeMetric = gauge("time")
 
   case class StateSnapshot(
       ticker: Ticker,
@@ -148,8 +149,8 @@ object Trader extends LoggingSupport {
         (OffsetDateTime.now.toEpochSecond - bar.endTime.toEpochSecond).seconds
 
       def handleClosedBar(bar: Bar, ctx: ActorContext[Event]): Unit = {
-        priceMetric.labels(ticker).set(bar.closePrice.doubleValue)
-        timeMetric.labels(ticker).set(bar.endTime.toEpochSecond.toDouble)
+        traderGauge.labels(ticker, "price").set(bar.closePrice.doubleValue)
+        traderGauge.labels(ticker, "time").set(bar.endTime.toEpochSecond.toDouble)
 
         val ta4jBar = BarsConverter.convertBar(bar)
         barSeries.addBar(ta4jBar)
