@@ -76,10 +76,10 @@ object AkkaTradingApp extends IOApp with LazyLogging {
     //    "LKOH",
   )
 
-  val useHistoricalData: Option[StubSettings] = //None
-    Some( //None to stream realtime market data
-      StubSettings(tickersMap)
-    ) //TODO
+  val useHistoricalData: Option[StubSettings] = None
+//    Some( //None to stream realtime market data
+//      StubSettings(tickersMap)
+//    )
 
   private def wrapBroker[F[_]](toF: IO ~> F)(broker: Broker[IO]): Broker[F] =
     new Broker[F] {

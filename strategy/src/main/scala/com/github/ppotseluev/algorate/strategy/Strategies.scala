@@ -37,7 +37,7 @@ object Strategies {
   def random(
       enterChance: Double,
       exitChance: Double
-  ): FullStrategy = {
+  ): BarSeries => FullStrategy = _ => {
     def rule(chance: Double) = new AbstractRule {
       override def isSatisfied(index: Int, tradingRecord: TradingRecord): Boolean =
         math.random() < chance

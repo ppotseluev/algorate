@@ -1,25 +1,34 @@
 package com.github.ppotseluev.algorate.trader.akkabot
 
 import akka.actor.typed.Behavior
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import akka.actor.typed.scaladsl.ActorContext
+import akka.actor.typed.scaladsl.Behaviors
 import cats.implicits._
 import com.github.ppotseluev.algorate._
 import com.github.ppotseluev.algorate.broker.Broker
-import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus.{Completed, Failed, Pending}
-import com.github.ppotseluev.algorate.broker.Broker.{OrderExecutionStatus, OrderPlacementInfo}
+import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus
+import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus.Completed
+import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus.Failed
+import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus.Pending
+import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
 import com.github.ppotseluev.algorate.strategy.FullStrategy
 import com.github.ppotseluev.algorate.trader.LoggingSupport
 import com.github.ppotseluev.algorate.trader.akkabot.Trader.Event.OrderUpdated
 import com.github.ppotseluev.algorate.trader.akkabot.Trader.Position.State
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.TraderSnapshotEvent
 import io.prometheus.client.Gauge
+import java.time.OffsetDateTime
+import java.time.ZonedDateTime
+import org.ta4j.core.BarSeries
+import org.ta4j.core.BaseBarSeries
+import org.ta4j.core.BaseTradingRecord
 import org.ta4j.core.Trade.TradeType
-import org.ta4j.core.{BarSeries, BaseBarSeries, BaseTradingRecord, TradingRecord}
-
-import java.time.{OffsetDateTime, ZonedDateTime}
+import org.ta4j.core.TradingRecord
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 object Trader extends LoggingSupport {
   private def gauge(name: String) =
@@ -232,6 +241,7 @@ object Trader extends LoggingSupport {
                 logger.error("Failed to enter")
                 state = TraderState.Empty
               case _ =>
+                logger.info(s"Entering order update: $placementInfo")
                 state = TraderState.Entering(updatedPosition)
             }
           case exiting @ TraderState.Exiting(pos, _) =>
@@ -252,6 +262,7 @@ object Trader extends LoggingSupport {
                 state = exiting.copy(position = position)
             }
         }
+        sinkSnapshot(event)
       }
 
       def buildSnapshot(event: Event) = {
