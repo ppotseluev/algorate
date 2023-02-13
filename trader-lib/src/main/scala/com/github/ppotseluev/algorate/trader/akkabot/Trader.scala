@@ -256,7 +256,6 @@ object Trader extends LoggingSupport {
               case State.Placed(Completed) =>
                 logger.info("Position closed")
                 state = TraderState.Empty
-                sinkSnapshot(event)
               case State.Placed(Failed) =>
                 logger.error("CRITICAL ALERT: Failed to exit position, manual action required")
                 state = exiting.copy(position = position)
