@@ -44,15 +44,22 @@ object MarketSubscriber extends LazyLogging {
               } else
                 ()
             }
-          val logErrorsHandler: Consumer[Throwable] = t => {
-            logger.error("Something went wrong", t)
+          def makeStreamAndSubscribe(): Unit = {
+            val stream = investApi.getMarketDataStreamService.newStream(
+              "market-data-stream",
+              streamProcessor,
+              logErrorsHandler
+            )
+            stream.subscribeCandles(
+              instruments.asJava,
+              SubscriptionInterval.SUBSCRIPTION_INTERVAL_ONE_MINUTE
+            )
           }
-          val stream = investApi.getMarketDataStreamService
-            .newStream("market-data-stream", streamProcessor, logErrorsHandler)
-          stream.subscribeCandles(
-            instruments.asJava,
-            SubscriptionInterval.SUBSCRIPTION_INTERVAL_ONE_MINUTE
-          )
+          def logErrorsHandler: Consumer[Throwable] = t => {
+            logger.error("Something went wrong, trying to re-subscribe", t)
+            makeStreamAndSubscribe()
+          }
+          makeStreamAndSubscribe()
         }
 
     def stub[F[_]: Temporal: Sync](
