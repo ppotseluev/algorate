@@ -1,8 +1,11 @@
 package com.github.ppotseluev.algorate.trader.akkabot
 
+import com.github.ppotseluev.algorate.charts.TradingCharts
 import com.github.ppotseluev.algorate.trader.akkabot.Event.TradingSnapshot
 import com.github.ppotseluev.algorate.trader.telegram.BotToken
 import com.github.ppotseluev.algorate.trader.telegram.TelegramClient
+
+//import java.io.{File, FileOutputStream}
 
 trait EventsSink[F[_]] {
   def push(event: Event): F[Unit]
@@ -14,9 +17,9 @@ object EventsSink {
       chatId: String,
       client: TelegramClient[F]
   ): EventsSink[F] = event => {
-    val text = event match {
+    val (text, image) = event match {
       case TradingSnapshot(snapshot, aggregatedStats) =>
-        s"""
+        val msg = s"""
              |--------------------
              |
              |instrument: ${snapshot.ticker}
@@ -30,11 +33,18 @@ object EventsSink {
              |
              |--------------------
              |""".stripMargin
+        val img = TradingCharts.buildImage(
+          strategyBuilder = snapshot.strategyBuilder,
+          series = snapshot.unsafe.barSeries,
+          tradingStats = Some(snapshot.tradingStats),
+          title = s"${snapshot.ticker}"
+        )
+        (msg, img)
     }
     val messageSource = TelegramClient.MessageSource(
       chatId = chatId,
       text = text,
-      photo = None,
+      photo = image,
       replyMarkup = None,
       parseMode = None
     )

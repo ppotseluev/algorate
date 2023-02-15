@@ -185,7 +185,7 @@ object Trader extends LoggingSupport {
               enter(OperationType.Sell)
             }
           case TraderState.Empty =>
-            logger.debug(s"Lag is too big, skipping bar")
+            logger.debug(s"Lag is too big, skipping bar") //TODO always ignore on too big lag?
           case TraderState.Entering(position) =>
             position.state match {
               case State.Initial | State.Placed(Pending) | State.Placed(Failed) => ()
