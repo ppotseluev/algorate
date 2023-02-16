@@ -20,8 +20,6 @@ object EventsSink {
     val (text, image) = event match {
       case TradingSnapshot(snapshot, aggregatedStats) =>
         val msg = s"""
-             |--------------------
-             |
              |instrument: ${snapshot.ticker}
              |state: ${snapshot.state}
              |stats: ${snapshot.tradingStats}
@@ -30,8 +28,6 @@ object EventsSink {
              |lag: ${snapshot.lag}
              |aggregated stats: $aggregatedStats
              |triggeredBy: ${snapshot.triggeredBy}
-             |
-             |--------------------
              |""".stripMargin
         val img = TradingCharts.buildImage(
           strategyBuilder = snapshot.strategyBuilder,
