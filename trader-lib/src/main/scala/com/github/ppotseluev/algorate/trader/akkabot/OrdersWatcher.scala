@@ -18,6 +18,8 @@ import scala.concurrent.duration.FiniteDuration
 import scala.util.Failure
 import scala.util.Success
 
+//TODO cancel orders on timeout
+//TODO feature to disable orders placement
 object OrdersWatcher extends LazyLogging {
 
   sealed trait Request
