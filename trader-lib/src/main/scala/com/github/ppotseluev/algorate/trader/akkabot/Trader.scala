@@ -12,10 +12,11 @@ import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus.Failed
 import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus.Pending
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
 import com.github.ppotseluev.algorate.strategy.FullStrategy
+import com.github.ppotseluev.algorate.trader.LoggingSupport
 import com.github.ppotseluev.algorate.trader.akkabot.Trader.Event.OrderUpdated
 import com.github.ppotseluev.algorate.trader.akkabot.Trader.Position.State
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.TraderSnapshotEvent
-import com.typesafe.scalalogging.LazyLogging
+import io.prometheus.client.Gauge
 import java.time.OffsetDateTime
 import java.time.ZonedDateTime
 import org.ta4j.core.BarSeries
@@ -29,9 +30,22 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-object Trader extends LazyLogging {
+object Trader extends LoggingSupport {
+  private def gauge(name: String) =
+    Gauge
+      .build()
+      .namespace("algorate")
+      .name(name)
+      .help(name)
+      .labelNames("ticker", "type")
+      .register()
+
+  val traderGauge = gauge("trader_data")
+//  val priceMetric = gauge("price")
+//  val timeMetric = gauge("time")
+
   case class StateSnapshot(
-      instrumentId: InstrumentId,
+      ticker: Ticker,
       triggeredBy: Event,
       strategyBuilder: BarSeries => FullStrategy,
       state: TraderState,
@@ -43,7 +57,11 @@ object Trader extends LazyLogging {
   )
 
   object StateSnapshot {
-    case class Unsafe(barSeries: BarSeries)
+    case class Unsafe(
+        barSeries: BarSeries,
+        longHistory: TradingRecord,
+        shortHistory: TradingRecord
+    )
   }
 
   sealed trait Event
@@ -52,7 +70,7 @@ object Trader extends LazyLogging {
       def info: OrderPlacementInfo
     }
     private[Trader] case class OrderPlaced(info: OrderPlacementInfo) extends OrderPlacementUpdate
-    private[Trader] case class FailedToPlaceOrder(error: Throwable) extends Event
+    private[Trader] case class FailedToPlaceOrder(order: Order, error: Throwable) extends Event
 
     case class NewData(bar: Bar) extends Event
     case object StateSnapshotRequested extends Event
@@ -95,6 +113,7 @@ object Trader extends LazyLogging {
 
   def apply(
       instrumentId: InstrumentId,
+      ticker: Ticker,
       strategyBuilder: BarSeries => FullStrategy,
       broker: Broker[Future],
       keepLastBars: Int,
@@ -102,6 +121,8 @@ object Trader extends LazyLogging {
       snapshotSink: TraderSnapshotSink,
       maxLag: Option[FiniteDuration]
   ): Behavior[Event] = {
+    val logger = getLogger(s"Trader-$ticker")
+
     def buildOrder(point: Point, operationType: OperationType): Order = Order(
       instrumentId = instrumentId,
       lots = 1, //TODO
@@ -110,9 +131,9 @@ object Trader extends LazyLogging {
       info = Order.Info(point, closingOrderType = None)
     )
 
-    def orderPlacedEvent(result: Try[OrderPlacementInfo]): Event =
+    def orderPlacedEvent(order: Order)(result: Try[OrderPlacementInfo]): Event =
       result match {
-        case Failure(exception) => Trader.Event.FailedToPlaceOrder(exception)
+        case Failure(exception) => Trader.Event.FailedToPlaceOrder(order, exception)
         case Success(info)      => Trader.Event.OrderPlaced(info)
       }
 
@@ -141,6 +162,9 @@ object Trader extends LazyLogging {
         (OffsetDateTime.now.toEpochSecond - bar.endTime.toEpochSecond).seconds
 
       def handleClosedBar(bar: Bar, ctx: ActorContext[Event]): Unit = {
+        traderGauge.labels(ticker, "price").set(bar.closePrice.doubleValue)
+        traderGauge.labels(ticker, "time").set(bar.endTime.toEpochSecond.toDouble)
+
         val ta4jBar = BarsConverter.convertBar(bar)
         barSeries.addBar(ta4jBar)
         val point = Point(
@@ -150,7 +174,7 @@ object Trader extends LazyLogging {
         val lastIndex = barSeries.getEndIndex
         val lastPrice = barSeries.getBar(lastIndex).getClosePrice
         def placeOrder(order: Order): Unit =
-          ctx.pipeToSelf(broker.placeOrder(order))(orderPlacedEvent)
+          ctx.pipeToSelf(broker.placeOrder(order))(orderPlacedEvent(order))
         def enter(operationType: OperationType): Unit = {
           val order = buildOrder(point, operationType)
           state = TraderState.enter(order)
@@ -165,7 +189,7 @@ object Trader extends LazyLogging {
               enter(OperationType.Sell)
             }
           case TraderState.Empty =>
-            logger.debug(s"Trader $instrumentId is lagging behind, skipping bar")
+            logger.debug(s"Lag is too big, skipping bar") //TODO always ignore on too big lag?
           case TraderState.Entering(position) =>
             position.state match {
               case State.Initial | State.Placed(Pending) | State.Placed(Failed) => ()
@@ -221,6 +245,7 @@ object Trader extends LazyLogging {
                 logger.error("Failed to enter")
                 state = TraderState.Empty
               case _ =>
+                logger.info(s"Entering order update: $placementInfo")
                 state = TraderState.Entering(updatedPosition)
             }
           case exiting @ TraderState.Exiting(pos, _) =>
@@ -235,12 +260,12 @@ object Trader extends LazyLogging {
               case State.Placed(Completed) =>
                 logger.info("Position closed")
                 state = TraderState.Empty
-                sinkSnapshot(event)
               case State.Placed(Failed) =>
                 logger.error("CRITICAL ALERT: Failed to exit position, manual action required")
                 state = exiting.copy(position = position)
             }
         }
+        sinkSnapshot(event)
       }
 
       def buildSnapshot(event: Event) = {
@@ -249,7 +274,7 @@ object Trader extends LazyLogging {
           short = Stats.fromRecord(shortHistory, barSeries)
         )
         StateSnapshot(
-          instrumentId = instrumentId,
+          ticker = ticker,
           triggeredBy = event,
           strategyBuilder = strategyBuilder,
           state = state,
@@ -257,7 +282,11 @@ object Trader extends LazyLogging {
           lastBar = currentBar,
           lag = currentBar.map(lag),
           tradingStats = tradingStats,
-          unsafe = StateSnapshot.Unsafe(barSeries)
+          unsafe = StateSnapshot.Unsafe(
+            barSeries,
+            longHistory = longHistory,
+            shortHistory = shortHistory
+          )
         )
       }
 
@@ -270,12 +299,16 @@ object Trader extends LazyLogging {
 
       Behaviors.receive { (ctx, event) =>
         event match {
-          case Trader.Event.NewData(bar) => handleBar(bar, ctx)
+          case Trader.Event.NewData(bar) =>
+            handleBar(bar, ctx)
           case Trader.Event.OrderPlaced(info) =>
             ordersWatcher ! OrdersWatcher.Request.RegisterOrder(info, ctx.self)
-          case event: Trader.Event.OrderUpdated    => handleOrderInfo(event)
-          case Trader.Event.FailedToPlaceOrder(t)  => logger.error(s"Failed to place order", t)
-          case Trader.Event.StateSnapshotRequested => sinkSnapshot(event)
+          case event: Trader.Event.OrderUpdated =>
+            handleOrderInfo(event)
+          case Trader.Event.FailedToPlaceOrder(order, t) =>
+            logger.error(s"Failed to place order $order", t)
+          case Trader.Event.StateSnapshotRequested =>
+            sinkSnapshot(event)
         }
         Behaviors.same
       }

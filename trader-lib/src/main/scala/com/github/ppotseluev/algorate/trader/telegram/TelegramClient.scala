@@ -34,7 +34,7 @@ object TelegramClient {
   case class MessageSource(
       chatId: String,
       text: String,
-      photo: Option[Array[Byte]],
+      @transient photo: Array[Byte],
       replyMarkup: Option[ReplyMarkup],
       parseMode: Option[String] = Some("MarkdownV2")
   )

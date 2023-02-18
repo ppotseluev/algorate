@@ -17,7 +17,7 @@ import java.time.LocalDate
 object VisualizeStrategy extends IOApp with StrictLogging {
 
   val strategy = Strategies.intraChannel
-  val tester = new StrategyTester(strategy)
+  val tester = StrategyTester(strategy)
   //  val ticker = "YNDX"
   //  val ticker = "CHMF"
   val ticker = "CSCO"

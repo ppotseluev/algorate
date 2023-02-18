@@ -37,16 +37,21 @@ object Strategies {
   def random(
       enterChance: Double,
       exitChance: Double
-  ): FullStrategy = {
+  ): BarSeries => FullStrategy = barSeries => {
     def rule(chance: Double) = new AbstractRule {
       override def isSatisfied(index: Int, tradingRecord: TradingRecord): Boolean =
-        math.random() < chance
+        math.random() < chance && barSeries.getBarCount > 30
     }
     val strategy = new BaseStrategy(
       rule(enterChance),
       rule(exitChance)
     )
-    FullStrategy(strategy, strategy, Map.empty, Map.empty)
+    FullStrategy(
+      strategy,
+      strategy,
+      Map("price" -> IndicatorInfo(new ClosePriceIndicator(barSeries))),
+      Map.empty
+    )
   }
 
   val intraChannel: BarSeries => FullStrategy = series => {

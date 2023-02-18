@@ -12,10 +12,13 @@ import ru.tinkoff.piapi.contract.v1.HistoricCandle
 import ru.tinkoff.piapi.contract.v1.OrderDirection
 import ru.tinkoff.piapi.contract.v1.OrderState
 import ru.tinkoff.piapi.contract.v1.OrderType
+import ru.tinkoff.piapi.contract.v1.OrdersServiceGrpc.OrdersServiceStub
+import ru.tinkoff.piapi.contract.v1.PostOrderRequest
 import ru.tinkoff.piapi.contract.v1.PostOrderResponse
 import ru.tinkoff.piapi.contract.v1.Quotation
 import ru.tinkoff.piapi.contract.v1.Share
 import ru.tinkoff.piapi.core.InvestApi
+import ru.tinkoff.piapi.core.utils.Helpers
 import scala.jdk.CollectionConverters._
 import upperbound.Limiter
 
@@ -51,6 +54,17 @@ object TinkoffApi {
     Async[F].fromCompletableFuture(Sync[F].delay(future))
 
   def wrap[F[_]: Async](investApi: InvestApi): TinkoffApi[F] = new TinkoffApi[F] {
+    private val ordersStub: OrdersServiceStub = {
+      val orderService = investApi.getOrdersService
+      val field = orderService.getClass.getDeclaredField("ordersStub")
+      field.setAccessible(true)
+      try {
+        field.get(orderService).asInstanceOf[OrdersServiceStub]
+      } finally {
+        field.setAccessible(false)
+      }
+    }
+
     override def postOrder(
         figi: String,
         quantity: Long,
@@ -60,15 +74,17 @@ object TinkoffApi {
         orderType: OrderType,
         orderId: String
     ): F[PostOrderResponse] = fromJavaFuture {
-      investApi.getOrdersService.postOrder(
-        figi,
-        quantity,
-        price,
-        direction,
-        accountId,
-        orderType,
-        orderId
-      )
+      val request = PostOrderRequest.newBuilder
+        .setInstrumentId(figi)
+        .setQuantity(quantity)
+        .setPrice(price)
+        .setDirection(direction)
+        .setAccountId(accountId)
+        .setOrderType(orderType)
+        .setOrderId(Helpers.preprocessInputOrderId(orderId))
+        .setFigi(figi)
+        .build
+      Helpers.unaryAsyncCall(ordersStub.postOrder(request, _))
     }
 
     override def getCandles(

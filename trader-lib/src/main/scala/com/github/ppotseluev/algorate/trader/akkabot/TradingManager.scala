@@ -6,6 +6,7 @@ import cats.implicits._
 import cats.kernel.Monoid
 import com.github.ppotseluev.algorate.BarInfo
 import com.github.ppotseluev.algorate.InstrumentId
+import com.github.ppotseluev.algorate.Ticker
 import com.github.ppotseluev.algorate.TradingStats
 import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.strategy.FullStrategy
@@ -27,7 +28,7 @@ object TradingManager extends LazyLogging {
   }
 
   def apply(
-      tradingInstruments: Set[InstrumentId],
+      tradingInstruments: Map[InstrumentId, Ticker],
       broker: Broker[Future],
       strategy: BarSeries => FullStrategy,
       keepLastBars: Int,
@@ -43,6 +44,7 @@ object TradingManager extends LazyLogging {
     def trader(instrumentId: InstrumentId): Behavior[Trader.Event] =
       Trader(
         instrumentId = instrumentId,
+        ticker = tradingInstruments(instrumentId),
         strategyBuilder = strategy,
         broker = broker,
         keepLastBars = keepLastBars,
@@ -50,7 +52,7 @@ object TradingManager extends LazyLogging {
         snapshotSink = ctx.self,
         maxLag = maxLag
       )
-    val traders = tradingInstruments.map { instrumentId =>
+    val traders = tradingInstruments.keys.map { instrumentId =>
       instrumentId -> ctx.spawn(trader(instrumentId), s"$instrumentId-trader")
     }.toMap
 
