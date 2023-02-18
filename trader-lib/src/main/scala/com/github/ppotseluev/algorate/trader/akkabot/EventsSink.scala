@@ -1,11 +1,10 @@
 package com.github.ppotseluev.algorate.trader.akkabot
 
 import com.github.ppotseluev.algorate.charts.TradingCharts
+import com.github.ppotseluev.algorate.math.PrettyDuration._
 import com.github.ppotseluev.algorate.trader.akkabot.Event.TradingSnapshot
 import com.github.ppotseluev.algorate.trader.telegram.BotToken
 import com.github.ppotseluev.algorate.trader.telegram.TelegramClient
-
-//import java.io.{File, FileOutputStream}
 
 trait EventsSink[F[_]] {
   def push(event: Event): F[Unit]
@@ -25,7 +24,7 @@ object EventsSink {
              |stats: ${snapshot.tradingStats}
              |start time: ${snapshot.firstBarTs}
              |last data: ${snapshot.lastBar.map(_.endTime).fold("?")(_.toString)}
-             |lag: ${snapshot.lag}
+             |lag: ${snapshot.lag.map(_.pretty)}
              |aggregated stats: $aggregatedStats
              |triggeredBy: ${snapshot.triggeredBy}
              |""".stripMargin
