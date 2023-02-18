@@ -117,7 +117,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         tradingInstruments = tickersMap.map(_.swap),
         broker = brokerFuture,
         strategy = Strategies.intraChannel,
-        keepLastBars = 1000,
+        keepLastBars = 12 * 60,
         eventsSink = eventsSinkFuture,
         maxLag = Option.when(useHistoricalData.isEmpty)(90.seconds)
       )

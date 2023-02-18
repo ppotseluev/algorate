@@ -1,5 +1,6 @@
 package com.github.ppotseluev.algorate.charts
 
+import com.github.ppotseluev.algorate.Ta4jUtils.BarSeriesOps
 import com.github.ppotseluev.algorate.TradingStats
 import com.github.ppotseluev.algorate.strategy.FullStrategy
 import com.github.ppotseluev.algorate.strategy.FullStrategy.IndicatorInfo
@@ -42,7 +43,7 @@ object TradingCharts {
       name: String
   ): TimeSeries = {
     val chartTimeSeries = new TimeSeries(name)
-    for (i <- 0 until barSeries.getBarCount) {
+    for (i <- barSeries.getStartIndex to barSeries.getEndIndex) {
       val bar = barSeries.getBar(i)
       chartTimeSeries.addOrUpdate(
         new Minute(Date.from(bar.getEndTime.toInstant)),
