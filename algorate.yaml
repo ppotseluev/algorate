@@ -1,0 +1,60 @@
+alerts:
+- rule: DEPLOYMENT_FAILED
+- rule: DOMAIN_FAILED
+- rule: DEPLOYMENT_LIVE
+envs:
+- key: TELEGRAM_CHAT_ID
+  scope: RUN_AND_BUILD_TIME
+  type: SECRET
+  value: EV[1:XMo+nGS78O0l25ulsTFPXEVtZk7wMTSy:GmvsHOWxAuzECnlj9hCpZ6NGsgL4ZnCvR/w=]
+- key: TELEGRAM_BOT_TOKEN
+  scope: RUN_AND_BUILD_TIME
+  type: SECRET
+  value: EV[1:y2pwfRgRXqUzWZP9sHXdLgKKINXy/sX3:IaIzqsS0+FesPRBsKQYv0QJiYLofNmVUNLZyzyLEAVx5EkCCcaM6xxY6L6m+F2aW1XTTaCYHCB6A/ed+NKI=]
+name: algorate
+region: fra
+services:
+- dockerfile_path: trader-app/Dockerfile
+  envs:
+  - key: TINKOFF_ACCESS_TOKEN
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:cu4JtaE8zyKNPS42NMctv3+jTJdzJS3I:Zih73bcZJ9Ir3XEMPMmxypH1J5tJLvS7IfLTnQdk5QrwcK6tzMxAzvif4Ytg5JndQWsQqmRtA3+Phe/A1jLtEECgWgrh0nQ7BhBa3gKOScFTtZHyGp3XTCk9ytnKxUVn+8zHJM3FuKg=]
+  - key: ACCOUNT_ID
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:S4vJAaEhGY+ipFT0fn3wllCEPUAMp+PS:3vC1BglY44WHEofmpAjmkHSOnbGN41MFbOLlaV41uP2GHQz08vc1ugekI1WwNF6pr0o2hQ==]
+  - key: JAVA_OPTS
+    scope: RUN_AND_BUILD_TIME
+  - key: TELEGRAM_WEBHOOK_SECRET
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:UkGjU5XT/kUzgUwv1Pkd2M+48q+/sruy:dnlahmN8rQn7Wz3xb7S2Agq0xi9XhMojM+/rKE8tTnvNWKwekoaPYbk1g6LEu/qA]
+  github:
+    branch: ALGOR-27-trader-metrics
+    repo: ppotseluev/algorate
+  health_check:
+    failure_threshold: 3
+    http_path: /healthcheck
+    period_seconds: 5
+    port: 54611
+  http_port: 8080
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  internal_ports:
+  - 54611
+  name: algorate-trader-app
+  routes:
+  - path: /algorate
+  source_dir: /
+- dockerfile_path: prometheus/Dockerfile
+  github:
+    branch: ALGOR-27-trader-metrics
+    repo: ppotseluev/algorate
+  http_port: 9090
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  name: algorate-prometheus
+  routes:
+  - path: /prometheus
+  source_dir: prometheus
