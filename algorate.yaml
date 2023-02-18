@@ -47,14 +47,3 @@ services:
   routes:
   - path: /algorate
   source_dir: /
-- dockerfile_path: prometheus/Dockerfile
-  github:
-    branch: ALGOR-27-trader-metrics
-    repo: ppotseluev/algorate
-  http_port: 9090
-  instance_count: 1
-  instance_size_slug: basic-xxs
-  name: algorate-prometheus
-  routes:
-  - path: /prometheus
-  source_dir: prometheus
