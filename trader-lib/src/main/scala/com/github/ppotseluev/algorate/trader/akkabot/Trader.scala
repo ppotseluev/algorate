@@ -57,7 +57,11 @@ object Trader extends LoggingSupport {
   )
 
   object StateSnapshot {
-    case class Unsafe(barSeries: BarSeries)
+    case class Unsafe(
+        barSeries: BarSeries,
+        longHistory: TradingRecord,
+        shortHistory: TradingRecord
+    )
   }
 
   sealed trait Event
@@ -278,7 +282,11 @@ object Trader extends LoggingSupport {
           lastBar = currentBar,
           lag = currentBar.map(lag),
           tradingStats = tradingStats,
-          unsafe = StateSnapshot.Unsafe(barSeries)
+          unsafe = StateSnapshot.Unsafe(
+            barSeries,
+            longHistory = longHistory,
+            shortHistory = shortHistory
+          )
         )
       }
 

@@ -5,6 +5,7 @@ import com.github.ppotseluev.algorate.math.PrettyDuration._
 import com.github.ppotseluev.algorate.trader.akkabot.Event.TradingSnapshot
 import com.github.ppotseluev.algorate.trader.telegram.BotToken
 import com.github.ppotseluev.algorate.trader.telegram.TelegramClient
+import org.ta4j.core.analysis.criteria.pnl.GrossProfitCriterion
 
 trait EventsSink[F[_]] {
   def push(event: Event): F[Unit]
@@ -18,12 +19,14 @@ object EventsSink {
   ): EventsSink[F] = event => {
     val (text, image) = event match {
       case TradingSnapshot(snapshot, aggregatedStats) =>
+        val profit = new GrossProfitCriterion()
+        val longProfit = profit.calculate(snapshot.unsafe.barSeries, snapshot.unsafe.longHistory)
+        val shortProfit = profit.calculate(snapshot.unsafe.barSeries, snapshot.unsafe.shortHistory)
         val msg = s"""
              |instrument: ${snapshot.ticker}
              |state: ${snapshot.state}
              |stats: ${snapshot.tradingStats}
-             |start time: ${snapshot.firstBarTs}
-             |last data: ${snapshot.lastBar.map(_.endTime).fold("?")(_.toString)}
+             |long profit: $longProfit, short profit: $shortProfit
              |lag: ${snapshot.lag.map(_.pretty)}
              |aggregated stats: $aggregatedStats
              |triggeredBy: ${snapshot.triggeredBy}
