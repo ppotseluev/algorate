@@ -295,8 +295,6 @@ object Trader extends LoggingSupport {
         snapshotSink ! TraderSnapshotEvent(snapshot)
       }
 
-      //todo stop-loss & take-profit, check if there is no memory leak caused by indicators caching
-
       Behaviors.receive { (ctx, event) =>
         event match {
           case Trader.Event.NewData(bar) =>
