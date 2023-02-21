@@ -1,3 +1,9 @@
+val isCI = sys.env.get("CI").contains("true")
+
+val ciScalacOptions = Seq(
+  "-Wunused:imports"
+)
+
 lazy val settings = Seq(
   organization := "com.github.ppotseluev",
   version := "1.0-SNAPSHOT",
@@ -14,9 +20,8 @@ lazy val settings = Seq(
     "-Ymacro-annotations",
     "-language:higherKinds",
     "-Xfatal-warnings",
-    "-deprecation",
-    "-Wunused:imports"
-  ),
+    "-deprecation"
+  ) ++ (if (isCI) ciScalacOptions else Seq.empty),
   libraryDependencies ++= Seq(
     Dependency.kittens
   ),
@@ -38,6 +43,7 @@ lazy val root = project
   .aggregate(
     `model`,
     `math-utils`,
+    `cats-utils`,
     `redis-utils`,
     `strategy`,
     `broker-lib`,
@@ -103,6 +109,15 @@ lazy val `math-utils` = project
     )
   )
 
+lazy val `cats-utils` = project
+  .settings(
+    name := "cats-utils",
+    settings,
+    libraryDependencies ++= Seq(
+      Dependency.fs2
+    )
+  )
+
 lazy val `redis-utils` = project
   .settings(
     name := "redis-utils",
@@ -160,7 +175,8 @@ lazy val `broker-lib` = project
   .dependsOn(
     `model`,
     `math-utils`,
-    `redis-utils`
+    `redis-utils`,
+    `cats-utils`
   )
 
 lazy val `brokers` = project

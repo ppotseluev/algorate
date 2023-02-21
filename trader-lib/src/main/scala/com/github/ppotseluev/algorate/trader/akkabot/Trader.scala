@@ -17,6 +17,7 @@ import com.github.ppotseluev.algorate.trader.akkabot.Trader.Event.OrderUpdated
 import com.github.ppotseluev.algorate.trader.akkabot.Trader.Position.State
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.TraderSnapshotEvent
 import io.prometheus.client.Gauge
+
 import java.time.OffsetDateTime
 import java.time.ZonedDateTime
 import org.ta4j.core.BarSeries
@@ -24,6 +25,8 @@ import org.ta4j.core.BaseBarSeries
 import org.ta4j.core.BaseTradingRecord
 import org.ta4j.core.Trade.TradeType
 import org.ta4j.core.TradingRecord
+import org.ta4j.core.cost.{LinearTransactionCostModel, ZeroCostModel}
+
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Failure
@@ -31,6 +34,9 @@ import scala.util.Success
 import scala.util.Try
 
 object Trader extends LoggingSupport {
+  private val feeModel = new LinearTransactionCostModel(0.0005)
+  private val zeroCost = new ZeroCostModel()
+
   private def gauge(name: String) =
     Gauge
       .build()
@@ -143,8 +149,8 @@ object Trader extends LoggingSupport {
       val strategy = strategyBuilder(barSeries)
       var currentBar: Option[Bar] = None
       var state: TraderState = TraderState.Empty
-      val longHistory = new BaseTradingRecord()
-      val shortHistory = new BaseTradingRecord(TradeType.SELL)
+      val longHistory = new BaseTradingRecord(TradeType.BUY, feeModel, zeroCost)
+      val shortHistory = new BaseTradingRecord(TradeType.SELL, feeModel, zeroCost)
 
       def historyRecord(operationType: OperationType) = operationType match {
         case OperationType.Buy  => longHistory
