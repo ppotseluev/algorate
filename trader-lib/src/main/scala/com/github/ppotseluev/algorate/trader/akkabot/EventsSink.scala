@@ -25,7 +25,7 @@ object EventsSink extends LoggingSupport {
     ApplicativeThrow[F]
       .catchNonFatal {
         val (text, image) = event match {
-          case TradingSnapshot(snapshot, aggregatedStats) =>
+          case TradingSnapshot(snapshot, aggregatedStats, money) =>
             val profit = new ProfitLossPercentageCriterion()
             val longProfit =
               profit.calculate(snapshot.unsafe.barSeries, snapshot.unsafe.longHistory)
@@ -39,6 +39,7 @@ object EventsSink extends LoggingSupport {
              |lag: ${snapshot.lag.map(_.pretty)}
              |aggregated stats: $aggregatedStats
              |triggeredBy: ${snapshot.triggeredBy}
+             |money: $money
              |""".stripMargin
             val img = TradingCharts.buildImage(
               strategyBuilder = snapshot.strategyBuilder,

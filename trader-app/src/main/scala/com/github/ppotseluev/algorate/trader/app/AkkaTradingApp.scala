@@ -126,6 +126,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         tradingInstruments = tickersMap,
         broker = brokerFuture,
         strategy = Strategies.intraChannel,
+        moneyTracker = moneyTracker,
         policy = policy,
         keepLastBars = 12 * 60,
         eventsSink = eventsSinkFuture,

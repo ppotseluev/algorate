@@ -5,7 +5,7 @@ import akka.actor.typed.scaladsl.Behaviors
 import cats.implicits._
 import cats.kernel.Monoid
 import com.github.ppotseluev.algorate.{BarInfo, Currency, InstrumentId, Ticker, TradingAsset, TradingStats}
-import com.github.ppotseluev.algorate.broker.Broker
+import com.github.ppotseluev.algorate.broker.{Broker, MoneyTracker}
 import com.github.ppotseluev.algorate.strategy.FullStrategy
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.CandleData
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.TraderSnapshotRequested
@@ -26,10 +26,11 @@ object TradingManager extends LazyLogging {
     case class TraderSnapshotEvent(snapshot: Trader.StateSnapshot) extends Event
   }
 
-  def apply(
+  def apply[F[_]](
       tradingInstruments: Map[InstrumentId, TradingAsset],
       broker: Broker[Future],
       strategy: BarSeries => FullStrategy,
+      moneyTracker: MoneyTracker[F],
       policy: Policy,
       keepLastBars: Int,
       eventsSink: EventsSink[Future],
@@ -81,7 +82,8 @@ object TradingManager extends LazyLogging {
         tradingStats = tradingStats |+| snapshot.tradingStats
         val event = com.github.ppotseluev.algorate.trader.akkabot.Event.TradingSnapshot(
           snapshot,
-          tradingStats
+          tradingStats,
+          moneyTracker.getM
         )
         eventsSink.push(event) //TODO check future's result?
         Behaviors.same
