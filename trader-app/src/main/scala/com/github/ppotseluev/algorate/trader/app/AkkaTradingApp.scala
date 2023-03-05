@@ -16,7 +16,9 @@ import com.github.ppotseluev.algorate.strategy.Strategies
 import com.github.ppotseluev.algorate.trader.akkabot.Event
 import com.github.ppotseluev.algorate.trader.akkabot.EventsSink
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager
+import com.github.ppotseluev.algorate.trader.policy.MoneyManagementPolicy
 import com.typesafe.scalalogging.LazyLogging
+
 import java.time.LocalDate
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -30,51 +32,50 @@ object AkkaTradingApp extends IOApp with LazyLogging {
       rate: FiniteDuration = 1.second
   )
 
-  val tickersMap: Map[Ticker, InstrumentId] = Map(
-    "LUV" -> "BBG000BNJHS8",
-    "FDX" -> "BBG000BJF1Z8",
-    "DAL" -> "BBG000R7Z112",
-    "LYB" -> "BBG000WCFV84",
-    "CHMF" -> "BBG00475K6C3",
-    "POLY" -> "BBG004PYF2N3",
-    "QRVO" -> "BBG007TJF1N7",
-    "MU" -> "BBG000C5Z1S3",
-    "LRCX" -> "BBG000BNFLM9",
-    "NVDA" -> "BBG000BBJQV0",
-    "XRX" -> "BBG00NNG2ZJ8",
-    "CSCO" -> "BBG000C3J3C9",
-    "PINS" -> "BBG002583CV8",
-    "WDC" -> "BBG000BWNFZ9",
-    "QCOM" -> "BBG000CGC1X8",
-    "GLW" -> "BBG000BKFZM4",
-    "XOM" -> "BBG000GZQ728",
-    "ROSN" -> "BBG004731354",
-    "CVX" -> "BBG000K4ND22",
-    "OXY" -> "BBG000BQQ2S6",
-    "PPL" -> "BBG000BRJL00",
-    "CNP" -> "BBG000FDBX90",
-    "NKE" -> "BBG000C5HS04",
-    "TGT" -> "BBG000H8TVT2",
-    "MDLZ" -> "BBG000D4LWF6",
-    "MCD" -> "BBG000BNSZP1",
-    "RL" -> "BBG000BS0ZF1",
-    "NFLX" -> "BBG000CL9VN6",
-    "YNDX" -> "BBG006L8G4H1",
-    "TRIP" -> "BBG001M8HHB7",
-    "MET" -> "BBG000BB6KF5",
-    "KEY" -> "BBG000BMQPL1",
-    "V" -> "BBG000PSKYX7",
-    "CFG" -> "BBG006Q0HY77",
-    "BAC" -> "BBG000BCTLF6",
-    "HIG" -> "BBG000G0Z878",
-    "RF" -> "BBG000Q3JN03",
-    "BIIB" -> "BBG000C17X76",
-    "AMGN" -> "BBG000BBS2Y0",
-    "CVS" -> "BBG000BGRY34",
-    "ABBV" -> "BBG0025Y4RY4"
-    //    "PHOR",
-    //    "LKOH",
-  )
+  val tickersMap: Map[InstrumentId, TradingAsset] =
+    Map(
+      "BBG000BNJHS8" -> TradingAsset("LUV", "usd"),
+      "BBG000BRJL00" -> TradingAsset("PPL", "usd"),
+      "BBG000BBJQV0" -> TradingAsset("NVDA", "usd"),
+      "BBG000BBS2Y0" -> TradingAsset("AMGN", "usd"),
+      "BBG006Q0HY77" -> TradingAsset("CFG", "usd"),
+      "BBG00NNG2ZJ8" -> TradingAsset("XRX", "usd"),
+      "BBG000BNSZP1" -> TradingAsset("MCD", "usd"),
+      "BBG000K4ND22" -> TradingAsset("CVX", "usd"),
+      "BBG000BGRY34" -> TradingAsset("CVS", "usd"),
+      "BBG006L8G4H1" -> TradingAsset("YNDX", "rub"),
+      "BBG007TJF1N7" -> TradingAsset("QRVO", "usd"),
+      "BBG004PYF2N3" -> TradingAsset("POLY", "rub"),
+      "BBG0025Y4RY4" -> TradingAsset("ABBV", "usd"),
+      "BBG000C17X76" -> TradingAsset("BIIB", "usd"),
+      "BBG000CL9VN6" -> TradingAsset("NFLX", "usd"),
+      "BBG001M8HHB7" -> TradingAsset("TRIP", "usd"),
+      "BBG000H8TVT2" -> TradingAsset("TGT", "usd"),
+      "BBG000PSKYX7" -> TradingAsset("V", "usd"),
+      "BBG000BB6KF5" -> TradingAsset("MET", "usd"),
+      "BBG000C3J3C9" -> TradingAsset("CSCO", "usd"),
+      "BBG000BKFZM4" -> TradingAsset("GLW", "usd"),
+      "BBG000D4LWF6" -> TradingAsset("MDLZ", "usd"),
+      "BBG004731354" -> TradingAsset("ROSN", "rub"),
+      "BBG000GZQ728" -> TradingAsset("XOM", "usd"),
+      "BBG000CGC1X8" -> TradingAsset("QCOM", "usd"),
+      "BBG000R7Z112" -> TradingAsset("DAL", "usd"),
+      "BBG000BQQ2S6" -> TradingAsset("OXY", "usd"),
+      "BBG000WCFV84" -> TradingAsset("LYB", "usd"),
+      "BBG000C5Z1S3" -> TradingAsset("MU", "usd"),
+      "BBG000BCTLF6" -> TradingAsset("BAC", "usd"),
+      "BBG000BJF1Z8" -> TradingAsset("FDX", "usd"),
+      "BBG000Q3JN03" -> TradingAsset("RF", "usd"),
+      "BBG000BNFLM9" -> TradingAsset("LRCX", "usd"),
+      "BBG000BWNFZ9" -> TradingAsset("WDC", "usd"),
+      "BBG000FDBX90" -> TradingAsset("CNP", "usd"),
+      "BBG000BS0ZF1" -> TradingAsset("RL", "usd"),
+      "BBG00475K6C3" -> TradingAsset("CHMF", "rub"),
+      "BBG002583CV8" -> TradingAsset("PINS", "usd"),
+      "BBG000C5HS04" -> TradingAsset("NKE", "usd"),
+      "BBG000G0Z878" -> TradingAsset("HIG", "usd"),
+      "BBG000BMQPL1" -> TradingAsset("KEY", "usd")
+    )
 
   val useHistoricalData: Option[StubSettings] = None
 //    Some( //None to stream realtime market data
@@ -112,18 +113,31 @@ object AkkaTradingApp extends IOApp with LazyLogging {
     } yield {
       val eventsSinkFuture = wrapEventsSink(λ[IO ~> Future](_.unsafeToFuture()))(eventsSink)
       val brokerFuture = wrapBroker(λ[IO ~> Future](_.unsafeToFuture()))(broker)
-      val figiList = tickersMap.values.toList
+      val figiList = tickersMap.keys.toList
+      val moneyTracker = TinkoffBroker.moneyTracker(broker)
+      val policy = new MoneyManagementPolicy(moneyTracker)(
+        maxPercentage = 0.01,
+        maxAbsolute = Map(
+          "usd" -> 100,
+          "rub" -> 7000
+        )
+      )
       val tradingManager = TradingManager(
-        tradingInstruments = tickersMap.map(_.swap),
+        tradingInstruments = tickersMap,
         broker = brokerFuture,
         strategy = Strategies.intraChannel,
+        policy = policy,
         keepLastBars = 12 * 60,
         eventsSink = eventsSinkFuture,
         maxLag = Option.when(useHistoricalData.isEmpty)(90.seconds)
       )
       for {
         actorSystem <- IO(ActorSystem(tradingManager, "Algorate"))
-        requestHandler = factory.traderRequestHandler(actorSystem, tickersMap, eventsSink)
+        requestHandler = factory.traderRequestHandler(
+          actorSystem = actorSystem,
+          shares = tickersMap.map { case (id, asset) => asset.ticker -> id },
+          eventsSink = eventsSink
+        )
         api = factory.traderApi(requestHandler)
         exitCode <- useHistoricalData.fold {
           {
@@ -150,7 +164,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
               streamTo = streamTo
             )
           instruments.values.toList.parTraverse(subscriber.subscribe).void
-        } &> api.run
+        } &> moneyTracker.run &> api.run
       } yield exitCode
     }
     program.useEval

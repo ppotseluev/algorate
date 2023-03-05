@@ -16,6 +16,8 @@ import com.github.ppotseluev.algorate.trader.LoggingSupport
 import com.github.ppotseluev.algorate.trader.akkabot.Trader.Event.OrderUpdated
 import com.github.ppotseluev.algorate.trader.akkabot.Trader.Position.State
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.TraderSnapshotEvent
+import com.github.ppotseluev.algorate.trader.policy.Policy
+import com.github.ppotseluev.algorate.trader.policy.Policy.{Decision, TradeRequest}
 import io.prometheus.client.Gauge
 
 import java.time.OffsetDateTime
@@ -120,7 +122,9 @@ object Trader extends LoggingSupport {
   def apply(
       instrumentId: InstrumentId,
       ticker: Ticker,
+      currency: Currency,
       strategyBuilder: BarSeries => FullStrategy,
+      policy: Policy,
       broker: Broker[Future],
       keepLastBars: Int,
       ordersWatcher: OrdersWatcher,
@@ -129,9 +133,13 @@ object Trader extends LoggingSupport {
   ): Behavior[Event] = {
     val logger = getLogger(s"Trader-$ticker")
 
-    def buildOrder(point: Point, operationType: OperationType): Order = Order(
+    def buildOrder(
+        point: Point,
+        operationType: OperationType,
+        lots: Int
+    ): Order = Order(
       instrumentId = instrumentId,
-      lots = 1, //TODO
+      lots = lots,
       operationType = operationType,
       details = Order.Details.Market, //TODO
       info = Order.Info(point, closingOrderType = None)
@@ -181,18 +189,26 @@ object Trader extends LoggingSupport {
         val lastPrice = barSeries.getBar(lastIndex).getClosePrice
         def placeOrder(order: Order): Unit =
           ctx.pipeToSelf(broker.placeOrder(order))(orderPlacedEvent(order))
-        def enter(operationType: OperationType): Unit = {
-          val order = buildOrder(point, operationType)
-          state = TraderState.enter(order)
-          historyRecord(operationType).enter(lastIndex, lastPrice, barSeries.numOf(order.lots))
-          placeOrder(order)
+        def tryEnter(operationType: OperationType): Unit = {
+          val trade = TradeRequest(
+            currency = currency,
+            price = point.value
+          )
+          policy.apply(trade) match {
+            case Decision.Allowed(lots) =>
+              val order = buildOrder(point, operationType, lots)
+              state = TraderState.enter(order)
+              historyRecord(operationType).enter(lastIndex, lastPrice, barSeries.numOf(order.lots))
+              placeOrder(order)
+            case Decision.Denied(message) => logger.warn(message)
+          }
         }
         state match {
           case TraderState.Empty if maxLag.forall(_ >= lag(bar)) =>
             if (strategy.longStrategy.shouldEnter(lastIndex)) {
-              enter(OperationType.Buy)
+              tryEnter(OperationType.Buy)
             } else if (strategy.shortStrategy.shouldEnter(lastIndex)) {
-              enter(OperationType.Sell)
+              tryEnter(OperationType.Sell)
             }
           case TraderState.Empty =>
             logger.debug(s"Lag is too big, skipping bar") //TODO always ignore on too big lag?

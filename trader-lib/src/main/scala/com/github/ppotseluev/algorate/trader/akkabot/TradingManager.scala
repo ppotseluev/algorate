@@ -4,16 +4,15 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import cats.implicits._
 import cats.kernel.Monoid
-import com.github.ppotseluev.algorate.BarInfo
-import com.github.ppotseluev.algorate.InstrumentId
-import com.github.ppotseluev.algorate.Ticker
-import com.github.ppotseluev.algorate.TradingStats
+import com.github.ppotseluev.algorate.{BarInfo, Currency, InstrumentId, Ticker, TradingAsset, TradingStats}
 import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.strategy.FullStrategy
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.CandleData
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.TraderSnapshotRequested
+import com.github.ppotseluev.algorate.trader.policy.Policy
 import com.typesafe.scalalogging.LazyLogging
 import org.ta4j.core.BarSeries
+
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration._
@@ -28,9 +27,10 @@ object TradingManager extends LazyLogging {
   }
 
   def apply(
-      tradingInstruments: Map[InstrumentId, Ticker],
+      tradingInstruments: Map[InstrumentId, TradingAsset],
       broker: Broker[Future],
       strategy: BarSeries => FullStrategy,
+      policy: Policy,
       keepLastBars: Int,
       eventsSink: EventsSink[Future],
       checkOrdersStatusEvery: FiniteDuration = 3.seconds,
@@ -41,17 +41,22 @@ object TradingManager extends LazyLogging {
       "orders-watcher"
     )
 
-    def trader(instrumentId: InstrumentId): Behavior[Trader.Event] =
+    def trader(instrumentId: InstrumentId): Behavior[Trader.Event] = {
+      val asset = tradingInstruments(instrumentId)
       Trader(
         instrumentId = instrumentId,
-        ticker = tradingInstruments(instrumentId),
+        ticker = asset.ticker,
+        currency = asset.currency,
         strategyBuilder = strategy,
+        policy = policy,
         broker = broker,
         keepLastBars = keepLastBars,
         ordersWatcher = ordersWatcher,
         snapshotSink = ctx.self,
         maxLag = maxLag
       )
+    }
+
     val traders = tradingInstruments.keys.map { instrumentId =>
       instrumentId -> ctx.spawn(trader(instrumentId), s"$instrumentId-trader")
     }.toMap

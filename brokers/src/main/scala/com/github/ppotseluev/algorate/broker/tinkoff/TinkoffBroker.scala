@@ -4,28 +4,38 @@ import cats.Functor
 import cats.Monad
 import cats.Parallel
 import cats.effect.Sync
+import cats.effect.Temporal
 import cats.effect.kernel.Async
 import cats.implicits._
 import com.github.ppotseluev.algorate.Bar
 import com.github.ppotseluev.algorate.Order.Type
 import com.github.ppotseluev.algorate._
-import com.github.ppotseluev.algorate.broker.Broker
+import com.github.ppotseluev.algorate.broker.{
+  Broker,
+  CachedBroker,
+  LoggingBroker,
+  MoneyTracker,
+  TestBroker
+}
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.Day
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
-import com.github.ppotseluev.algorate.broker.CachedBroker
-import com.github.ppotseluev.algorate.broker.LoggingBroker
-import com.github.ppotseluev.algorate.broker.TestBroker
+import com.github.ppotseluev.algorate.cats.Provider
 import com.github.ppotseluev.algorate.math._
 import dev.profunktor.redis4cats.RedisCommands
+
 import java.time.ZoneId
 import ru.tinkoff.piapi.contract.v1.CandleInterval
 import ru.tinkoff.piapi.contract.v1.HistoricCandle
 import ru.tinkoff.piapi.contract.v1.OrderDirection
 import ru.tinkoff.piapi.contract.v1.OrderType
 import ru.tinkoff.piapi.contract.v1.Quotation
+
+import scala.jdk.CollectionConverters._
 import ru.tinkoff.piapi.contract.v1.Share
+import ru.tinkoff.piapi.core.models.{Position, Positions}
+
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
 
@@ -40,6 +50,8 @@ object TinkoffBroker {
           require(relatedShares.size == 1, s"${relatedShares.size} shares found for ticker $ticker")
           relatedShares.head
         }
+
+    def getPositions: F[Positions]
   }
 
   def apply[F[_]: Functor: Parallel](
@@ -132,6 +144,8 @@ object TinkoffBroker {
 
       candlesInterval.interval.days.parTraverse(get).map(_.flatten)
     }
+
+    override def getPositions: F[Positions] = api.getPositions(brokerAccountId)
   }
 
   def testBroker[F[_]: Async: Parallel](broker: TinkoffBroker[F]): TinkoffBroker[F] = {
@@ -152,6 +166,8 @@ object TinkoffBroker {
           candlesInterval: CandlesInterval
       ): F[List[Bar]] =
         testBroker.getData(instrumentId, candlesInterval)
+
+      override def getPositions: F[Positions] = broker.getPositions
     }
   }
 
@@ -173,6 +189,8 @@ object TinkoffBroker {
           candlesInterval: CandlesInterval
       ): F[List[Bar]] =
         broker.getData(instrumentId, candlesInterval)
+
+      override def getPositions: F[Positions] = _broker.getPositions
     }
 
   def withCaching[F[_]: Monad: Parallel](
@@ -205,5 +223,14 @@ object TinkoffBroker {
           candlesInterval: CandlesInterval
       ): F[List[Bar]] =
         broker.getData(instrumentId, candlesInterval)
+
+      override def getPositions: F[Positions] = _broker.getPositions
     }
+
+  def moneyTracker[F[_]: Sync: Temporal](broker: TinkoffBroker[F]): MoneyTracker[F] = {
+    val getMoney = Sync[F].map(broker.getPositions) { positions =>
+      positions.getMoney.asScala.groupMapReduce(_.getCurrency)(x => BigDecimal(x.getValue))(_ + _)
+    }
+    new Provider(getMoney)
+  }
 }

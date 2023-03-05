@@ -6,4 +6,5 @@ package object algorate {
   type OrderId = String
   type Price = BigDecimal
   type Ticker = String
+  type Currency = String
 }

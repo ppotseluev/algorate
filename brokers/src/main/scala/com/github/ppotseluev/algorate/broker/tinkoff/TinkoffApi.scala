@@ -5,6 +5,7 @@ import cats.effect.kernel.Async
 import cats.syntax.functor._
 import com.github.ppotseluev.algorate.BrokerAccountId
 import com.github.ppotseluev.algorate.OrderId
+
 import java.time.Instant
 import java.util.concurrent.CompletableFuture
 import ru.tinkoff.piapi.contract.v1.CandleInterval
@@ -18,7 +19,9 @@ import ru.tinkoff.piapi.contract.v1.PostOrderResponse
 import ru.tinkoff.piapi.contract.v1.Quotation
 import ru.tinkoff.piapi.contract.v1.Share
 import ru.tinkoff.piapi.core.InvestApi
+import ru.tinkoff.piapi.core.models.{Position, Positions}
 import ru.tinkoff.piapi.core.utils.Helpers
+
 import scala.jdk.CollectionConverters._
 import upperbound.Limiter
 
@@ -45,6 +48,8 @@ trait TinkoffApi[F[_]] {
   ): F[List[HistoricCandle]]
 
   def getAllShares: F[List[Share]]
+
+  def getPositions(accountId: BrokerAccountId): F[Positions]
 
   def getOderState(accountId: BrokerAccountId, orderId: OrderId): F[OrderState]
 }
@@ -103,6 +108,10 @@ object TinkoffApi {
       fromJavaFuture {
         investApi.getOrdersService.getOrderState(accountId, orderId)
       }
+
+    override def getPositions(accountId: BrokerAccountId): F[Positions] = fromJavaFuture {
+      investApi.getOperationsService.getPositions(accountId)
+    }
   }
 
   implicit class Syntax[F[_]](val api: TinkoffApi[F]) extends AnyVal {
