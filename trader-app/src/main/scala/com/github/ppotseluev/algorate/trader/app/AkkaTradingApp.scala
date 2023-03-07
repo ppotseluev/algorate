@@ -116,10 +116,10 @@ object AkkaTradingApp extends IOApp with LazyLogging {
       val figiList = tickersMap.keys.toList
       val moneyTracker = TinkoffBroker.moneyTracker(broker)
       val policy = new MoneyManagementPolicy(moneyTracker)(
-        maxPercentage = 0.01,
+        maxPercentage = 0.025,
         maxAbsolute = Map(
-          "usd" -> 100,
-          "rub" -> 7000
+          "usd" -> 200,
+          "rub" -> 15000
         )
       )
       val tradingManager = TradingManager(
