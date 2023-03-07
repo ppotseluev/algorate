@@ -32,7 +32,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
       rate: FiniteDuration = 1.second
   )
 
-  val tickersMap: Map[InstrumentId, TradingAsset] =
+  val assets: Map[InstrumentId, TradingAsset] =
     Map(
       "BBG000BNJHS8" -> TradingAsset("LUV", "usd"),
       "BBG000BRJL00" -> TradingAsset("PPL", "usd"),
@@ -113,7 +113,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
     } yield {
       val eventsSinkFuture = wrapEventsSink(λ[IO ~> Future](_.unsafeToFuture()))(eventsSink)
       val brokerFuture = wrapBroker(λ[IO ~> Future](_.unsafeToFuture()))(broker)
-      val figiList = tickersMap.keys.toList
+      val figiList = assets.keys.toList
       val moneyTracker = TinkoffBroker.moneyTracker(broker)
       val policy = new MoneyManagementPolicy(moneyTracker)(
         maxPercentage = 0.025,
@@ -123,7 +123,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         )
       )
       val tradingManager = TradingManager(
-        tradingInstruments = tickersMap,
+        assets = assets,
         broker = brokerFuture,
         strategy = Strategies.intraChannel,
         moneyTracker = moneyTracker,
@@ -136,7 +136,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         actorSystem <- IO(ActorSystem(tradingManager, "Algorate"))
         requestHandler = factory.traderRequestHandler(
           actorSystem = actorSystem,
-          shares = tickersMap.map { case (id, asset) => asset.ticker -> id },
+          assets = assets.map { case (id, asset) => asset.ticker -> id },
           eventsSink = eventsSink
         )
         api = factory.traderApi(requestHandler)

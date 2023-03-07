@@ -82,10 +82,10 @@ class Factory[F[_]: Async: Parallel] {
 
   def traderRequestHandler(
       actorSystem: ActorSystem[TradingManager.Event],
-      shares: Map[Ticker, InstrumentId],
+      assets: Map[Ticker, InstrumentId],
       eventsSink: EventsSink[F]
   ): RequestHandler[F] =
-    new RequestHandlerImpl[F](actorSystem, shares, eventsSink)
+    new RequestHandlerImpl[F](actorSystem, assets, eventsSink)
 
   def telegramWebhookHandler(
       requestHandler: RequestHandler[F]

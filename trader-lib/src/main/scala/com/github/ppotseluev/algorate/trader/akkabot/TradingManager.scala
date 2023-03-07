@@ -4,7 +4,14 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import cats.implicits._
 import cats.kernel.Monoid
-import com.github.ppotseluev.algorate.{BarInfo, Currency, InstrumentId, Ticker, TradingAsset, TradingStats}
+import com.github.ppotseluev.algorate.{
+  BarInfo,
+  Currency,
+  InstrumentId,
+  Ticker,
+  TradingAsset,
+  TradingStats
+}
 import com.github.ppotseluev.algorate.broker.{Broker, MoneyTracker}
 import com.github.ppotseluev.algorate.strategy.FullStrategy
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.CandleData
@@ -27,7 +34,7 @@ object TradingManager extends LazyLogging {
   }
 
   def apply[F[_]](
-      tradingInstruments: Map[InstrumentId, TradingAsset],
+      assets: Map[InstrumentId, TradingAsset],
       broker: Broker[Future],
       strategy: BarSeries => FullStrategy,
       moneyTracker: MoneyTracker[F],
@@ -43,7 +50,7 @@ object TradingManager extends LazyLogging {
     )
 
     def trader(instrumentId: InstrumentId): Behavior[Trader.Event] = {
-      val asset = tradingInstruments(instrumentId)
+      val asset = assets(instrumentId)
       Trader(
         instrumentId = instrumentId,
         asset = asset,
@@ -57,7 +64,7 @@ object TradingManager extends LazyLogging {
       )
     }
 
-    val traders = tradingInstruments.keys.map { instrumentId =>
+    val traders = assets.keys.map { instrumentId =>
       instrumentId -> ctx.spawn(trader(instrumentId), s"$instrumentId-trader")
     }.toMap
 
