@@ -39,7 +39,7 @@ object EventsSink extends LoggingSupport {
              |lag: ${snapshot.lag.map(_.pretty)}
              |aggregated stats: $aggregatedStats
              |triggeredBy: ${snapshot.triggeredBy}
-             |money: $money
+             |money: ${money.view.mapValues(_.setScale(1)).toMap}
              |""".stripMargin
             val img = TradingCharts.buildImage(
               strategyBuilder = snapshot.strategyBuilder,
