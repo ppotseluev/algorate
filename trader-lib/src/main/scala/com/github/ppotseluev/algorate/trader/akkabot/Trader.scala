@@ -53,7 +53,7 @@ object Trader extends LoggingSupport {
 //  val timeMetric = gauge("time")
 
   case class StateSnapshot(
-      ticker: Ticker,
+      asset: TradingAsset,
       triggeredBy: Event,
       strategyBuilder: BarSeries => FullStrategy,
       state: TraderState,
@@ -121,8 +121,7 @@ object Trader extends LoggingSupport {
 
   def apply(
       instrumentId: InstrumentId,
-      ticker: Ticker,
-      currency: Currency,
+      asset: TradingAsset,
       strategyBuilder: BarSeries => FullStrategy,
       policy: Policy,
       broker: Broker[Future],
@@ -131,7 +130,7 @@ object Trader extends LoggingSupport {
       snapshotSink: TraderSnapshotSink,
       maxLag: Option[FiniteDuration]
   ): Behavior[Event] = {
-    val logger = getLogger(s"Trader-$ticker")
+    val logger = getLogger(s"Trader-${asset.ticker}")
 
     def buildOrder(
         point: Point,
@@ -176,8 +175,8 @@ object Trader extends LoggingSupport {
         (OffsetDateTime.now.toEpochSecond - bar.endTime.toEpochSecond).seconds
 
       def handleClosedBar(bar: Bar, ctx: ActorContext[Event]): Unit = {
-        traderGauge.labels(ticker, "price").set(bar.closePrice.doubleValue)
-        traderGauge.labels(ticker, "time").set(bar.endTime.toEpochSecond.toDouble)
+        traderGauge.labels(asset.ticker, "price").set(bar.closePrice.doubleValue)
+        traderGauge.labels(asset.ticker, "time").set(bar.endTime.toEpochSecond.toDouble)
 
         val ta4jBar = BarsConverter.convertBar(bar)
         barSeries.addBar(ta4jBar)
@@ -191,7 +190,7 @@ object Trader extends LoggingSupport {
           ctx.pipeToSelf(broker.placeOrder(order))(orderPlacedEvent(order))
         def tryEnter(operationType: OperationType): Unit = {
           val trade = TradeRequest(
-            currency = currency,
+            currency = asset.currency,
             price = point.value
           )
           policy.apply(trade) match {
@@ -296,7 +295,7 @@ object Trader extends LoggingSupport {
           short = Stats.fromRecord(shortHistory, barSeries)
         )
         StateSnapshot(
-          ticker = ticker,
+          asset = asset,
           triggeredBy = event,
           strategyBuilder = strategyBuilder,
           state = state,

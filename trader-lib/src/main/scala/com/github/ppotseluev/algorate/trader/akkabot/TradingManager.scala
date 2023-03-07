@@ -46,8 +46,7 @@ object TradingManager extends LazyLogging {
       val asset = tradingInstruments(instrumentId)
       Trader(
         instrumentId = instrumentId,
-        ticker = asset.ticker,
-        currency = asset.currency,
+        asset = asset,
         strategyBuilder = strategy,
         policy = policy,
         broker = broker,
