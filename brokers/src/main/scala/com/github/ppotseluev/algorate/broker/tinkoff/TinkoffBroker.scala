@@ -23,6 +23,7 @@ import com.github.ppotseluev.algorate.broker.Broker.Day
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
 import com.github.ppotseluev.algorate.cats.Provider
 import com.github.ppotseluev.algorate.math._
+import com.typesafe.scalalogging.LazyLogging
 import dev.profunktor.redis4cats.RedisCommands
 
 import java.time.ZoneId
@@ -54,17 +55,26 @@ object TinkoffBroker {
     def getPositions: F[Positions]
   }
 
-  def apply[F[_]: Functor: Parallel](
+  def apply[F[_]: Sync: Parallel](
       api: TinkoffApi[F],
       brokerAccountId: BrokerAccountId,
       zoneId: ZoneId
-  ): TinkoffBroker[F] = new Broker[F] with Ops[F] {
+  ): TinkoffBroker[F] = new Broker[F] with Ops[F] with LazyLogging {
     override def getAllShares: F[List[Share]] =
       api.getAllShares
 
     override def getOrderInfo(orderId: OrderId): F[OrderPlacementInfo] =
       api
         .getOderState(brokerAccountId, orderId)
+        .flatMap { orderState =>
+          Sync[F]
+            .delay {
+              logger.info(
+                s"Order $orderId, commission: ${orderState.getInitialCommission}, ${orderState.getServiceCommission}, ${orderState.getExecutedCommission}"
+              )
+            }
+            .as(orderState)
+        }
         .map(_.getExecutionReportStatus)
         .map(TinkoffConverters.convert)
         .map(OrderPlacementInfo(orderId, _))
