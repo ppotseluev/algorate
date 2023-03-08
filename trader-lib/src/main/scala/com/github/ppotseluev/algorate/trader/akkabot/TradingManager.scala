@@ -89,7 +89,7 @@ object TradingManager extends LazyLogging {
         val event = com.github.ppotseluev.algorate.trader.akkabot.Event.TradingSnapshot(
           snapshot,
           tradingStats,
-          moneyTracker.getM
+          moneyTracker.get.orEmpty
         )
         eventsSink.push(event) //TODO check future's result?
         Behaviors.same

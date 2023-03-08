@@ -1,7 +1,6 @@
 package com.github.ppotseluev.algorate.cats
 
 import cats.effect.{Sync, Temporal}
-import cats.kernel.Monoid
 import fs2.Stream
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
@@ -23,5 +22,4 @@ class Provider[F[_]: Sync: Temporal, T](
 
   def get: Option[T] = value
   def getOrElse(default: => T): T = value.getOrElse(default)
-  def getM(implicit m: Monoid[T]): T = getOrElse(m.empty)
 }
