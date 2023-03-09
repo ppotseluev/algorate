@@ -1,6 +1,7 @@
 package com.github.ppotseluev.algorate.trader.akkabot
 
-import com.github.ppotseluev.algorate.{Currency, TradingStats}
+import com.github.ppotseluev.algorate.Currency
+import com.github.ppotseluev.algorate.TradingStats
 
 /**
  * Common internal event model

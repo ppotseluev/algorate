@@ -1,9 +1,10 @@
 package com.github.ppotseluev.algorate.cats
 
-import cats.effect.{Sync, Temporal}
+import cats.effect.Sync
+import cats.effect.Temporal
 import fs2.Stream
-
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.FiniteDuration
 
 class Provider[F[_]: Sync: Temporal, T](
     pull: F[T],

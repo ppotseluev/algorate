@@ -7,7 +7,8 @@ import com.github.ppotseluev.algorate.charts.TradingCharts
 import com.github.ppotseluev.algorate.math.PrettyDuration._
 import com.github.ppotseluev.algorate.trader.LoggingSupport
 import com.github.ppotseluev.algorate.trader.akkabot.Event.TradingSnapshot
-import com.github.ppotseluev.algorate.trader.telegram.{BotToken, TelegramClient}
+import com.github.ppotseluev.algorate.trader.telegram.BotToken
+import com.github.ppotseluev.algorate.trader.telegram.TelegramClient
 import org.ta4j.core.analysis.criteria.pnl.ProfitLossPercentageCriterion
 
 trait EventsSink[F[_]] {

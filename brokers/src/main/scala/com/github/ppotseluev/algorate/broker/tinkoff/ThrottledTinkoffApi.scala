@@ -2,7 +2,6 @@ package com.github.ppotseluev.algorate.broker.tinkoff
 
 import com.github.ppotseluev.algorate.BrokerAccountId
 import com.github.ppotseluev.algorate.OrderId
-
 import java.time.Instant
 import ru.tinkoff.piapi.contract.v1._
 import ru.tinkoff.piapi.core.models.Positions

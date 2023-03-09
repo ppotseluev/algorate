@@ -5,7 +5,6 @@ import cats.implicits._
 import com.github.ppotseluev.algorate.BrokerAccountId
 import com.github.ppotseluev.algorate.OrderId
 import com.typesafe.scalalogging.StrictLogging
-
 import java.time.Instant
 import ru.tinkoff.piapi.contract.v1._
 import ru.tinkoff.piapi.core.models.Positions

@@ -3,8 +3,10 @@ package com.github.ppotseluev.algorate.trader.policy
 import cats.Semigroup
 import cats.data.NonEmptyList
 import cats.implicits._
-import com.github.ppotseluev.algorate.trader.policy.Policy.{Decision, TradeRequest}
-import com.github.ppotseluev.algorate.{Currency, Price}
+import com.github.ppotseluev.algorate.Currency
+import com.github.ppotseluev.algorate.Price
+import com.github.ppotseluev.algorate.trader.policy.Policy.Decision
+import com.github.ppotseluev.algorate.trader.policy.Policy.TradeRequest
 
 trait Policy {
   def apply(request: TradeRequest): Decision

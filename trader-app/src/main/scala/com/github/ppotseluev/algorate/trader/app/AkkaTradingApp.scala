@@ -18,7 +18,6 @@ import com.github.ppotseluev.algorate.trader.akkabot.EventsSink
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager
 import com.github.ppotseluev.algorate.trader.policy.MoneyManagementPolicy
 import com.typesafe.scalalogging.LazyLogging
-
 import java.time.LocalDate
 import scala.concurrent.Future
 import scala.concurrent.duration._

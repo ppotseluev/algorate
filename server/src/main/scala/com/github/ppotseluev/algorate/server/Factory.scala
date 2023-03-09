@@ -5,11 +5,10 @@ import cats.Parallel
 import cats.effect.IO
 import cats.effect.Resource
 import cats.effect.kernel.Async
-import com.github.ppotseluev.algorate.{Bar, InstrumentId, Ticker}
+import com.github.ppotseluev.algorate.InstrumentId
+import com.github.ppotseluev.algorate.Ticker
 import com.github.ppotseluev.algorate.broker.tinkoff.TinkoffApi
 import com.github.ppotseluev.algorate.broker.tinkoff.TinkoffBroker
-import com.github.ppotseluev.algorate.redis.RedisCodecs
-import com.github.ppotseluev.algorate.redis.codec._
 import com.github.ppotseluev.algorate.trader.Api
 import com.github.ppotseluev.algorate.trader.RequestHandler
 import com.github.ppotseluev.algorate.trader.akkabot.EventsSink
@@ -18,16 +17,11 @@ import com.github.ppotseluev.algorate.trader.akkabot.TradingManager
 import com.github.ppotseluev.algorate.trader.telegram.HttpTelegramClient
 import com.github.ppotseluev.algorate.trader.telegram.TelegramClient
 import com.github.ppotseluev.algorate.trader.telegram.TelegramWebhook
-import dev.profunktor.redis4cats.Redis
 import dev.profunktor.redis4cats.connection.RedisClient
 import dev.profunktor.redis4cats.effect.Log.Stdout.instance
-
 import java.time.ZoneOffset
 import pureconfig.ConfigSource
 import pureconfig.generic.auto._
-import ru.tinkoff.piapi.contract.v1.Share
-import com.github.ppotseluev.algorate.server.Codecs._
-import boopickle.Default.iterablePickler
 import ru.tinkoff.piapi.core.InvestApi
 import sttp.client3.httpclient.fs2.HttpClientFs2Backend
 import sttp.tapir.server.metrics.prometheus.PrometheusMetrics

@@ -3,7 +3,8 @@ package com.github.ppotseluev.algorate.trader.policy
 import cats.implicits._
 import com.github.ppotseluev.algorate.Currency
 import com.github.ppotseluev.algorate.broker.MoneyTracker
-import com.github.ppotseluev.algorate.trader.policy.Policy.{Decision, TradeRequest}
+import com.github.ppotseluev.algorate.trader.policy.Policy.Decision
+import com.github.ppotseluev.algorate.trader.policy.Policy.TradeRequest
 
 class MoneyManagementPolicy[F[_]](moneyTracker: MoneyTracker[F])(
     maxPercentage: Double,

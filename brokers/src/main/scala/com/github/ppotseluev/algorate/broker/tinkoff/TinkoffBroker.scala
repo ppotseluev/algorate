@@ -10,35 +10,30 @@ import cats.implicits._
 import com.github.ppotseluev.algorate.Bar
 import com.github.ppotseluev.algorate.Order.Type
 import com.github.ppotseluev.algorate._
-import com.github.ppotseluev.algorate.broker.{
-  Broker,
-  CachedBroker,
-  LoggingBroker,
-  MoneyTracker,
-  TestBroker
-}
+import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.Day
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
+import com.github.ppotseluev.algorate.broker.CachedBroker
+import com.github.ppotseluev.algorate.broker.LoggingBroker
+import com.github.ppotseluev.algorate.broker.MoneyTracker
+import com.github.ppotseluev.algorate.broker.TestBroker
 import com.github.ppotseluev.algorate.cats.Provider
 import com.github.ppotseluev.algorate.math._
 import com.typesafe.scalalogging.LazyLogging
 import dev.profunktor.redis4cats.RedisCommands
-
 import java.time.ZoneId
 import ru.tinkoff.piapi.contract.v1.CandleInterval
 import ru.tinkoff.piapi.contract.v1.HistoricCandle
 import ru.tinkoff.piapi.contract.v1.OrderDirection
 import ru.tinkoff.piapi.contract.v1.OrderType
 import ru.tinkoff.piapi.contract.v1.Quotation
-
-import scala.jdk.CollectionConverters._
 import ru.tinkoff.piapi.contract.v1.Share
 import ru.tinkoff.piapi.core.models.Positions
-
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
+import scala.jdk.CollectionConverters._
 
 object TinkoffBroker {
   trait Ops[F[_]] {

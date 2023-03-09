@@ -4,8 +4,6 @@ import cats.implicits._
 import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.server.Factory
 import ru.tinkoff.piapi.contract.v1.Share
-import ru.tinkoff.piapi.contract.v1.ShareType
-
 import scala.jdk.CollectionConverters._
 
 object SharesFinder extends App {

@@ -2,8 +2,6 @@ package com.github.ppotseluev.algorate.tools
 
 import com.github.ppotseluev.algorate.server.Factory
 import ru.tinkoff.piapi.contract.v1.MoneyValue
-
-import scala.jdk.CollectionConverters._
 //import ru.tinkoff.piapi.contract.v1.MoneyValue
 
 object CreateSandboxAccount extends App {
