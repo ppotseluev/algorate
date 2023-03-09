@@ -29,7 +29,9 @@ import upperbound.Limiter
 
 class Factory[F[_]: Async: Parallel] {
 
-  val config: Config = ConfigSource.default
+  val config: Config = ConfigSource
+    .resources("application.local.conf")
+    .withFallback(ConfigSource.resources("application.conf"))
     .load[Config]
     .fold(
       error => throw new RuntimeException(error.prettyPrint()),
