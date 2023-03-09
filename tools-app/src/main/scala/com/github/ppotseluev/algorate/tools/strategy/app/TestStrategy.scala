@@ -26,8 +26,8 @@ object TestStrategy extends IOApp {
 
       val result: IO[SectorsResults] = {
         val barSeriesProvider = new BarSeriesProvider(broker)
-        tickers
-          .traverse(broker.getShare)
+        ids
+          .traverse(broker.getShareById)
           .flatMap {
             _.parTraverse { share =>
               barSeriesProvider.getBarSeries(share, interval).map { series =>

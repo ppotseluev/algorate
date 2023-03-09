@@ -44,7 +44,15 @@ object TinkoffBroker {
   trait Ops[F[_]] {
     def getAllShares: F[List[Share]]
 
-    final def getShare(ticker: Ticker)(implicit F: Functor[F]): F[Share] =
+    final def getShareById(id: InstrumentId)(implicit F: Functor[F]): F[Share] =
+      getAllShares
+        .map(_.filter(_.getFigi == id))
+        .map { relatedShares =>
+          require(relatedShares.size == 1, s"${relatedShares.size} shares found for figi $id")
+          relatedShares.head
+        }
+
+    final def getShareByTicker(ticker: Ticker)(implicit F: Functor[F]): F[Share] =
       getAllShares
         .map(_.filter(_.getTicker == ticker))
         .map { relatedShares =>
