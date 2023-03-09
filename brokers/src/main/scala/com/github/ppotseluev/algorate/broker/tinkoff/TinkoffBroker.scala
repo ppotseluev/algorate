@@ -35,7 +35,7 @@ import ru.tinkoff.piapi.contract.v1.Quotation
 
 import scala.jdk.CollectionConverters._
 import ru.tinkoff.piapi.contract.v1.Share
-import ru.tinkoff.piapi.core.models.{Position, Positions}
+import ru.tinkoff.piapi.core.models.Positions
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration

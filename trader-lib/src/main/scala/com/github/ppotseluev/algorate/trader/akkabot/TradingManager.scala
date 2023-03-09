@@ -4,25 +4,16 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import cats.implicits._
 import cats.kernel.Monoid
-import com.github.ppotseluev.algorate.{
-  BarInfo,
-  Currency,
-  InstrumentId,
-  Ticker,
-  TradingAsset,
-  TradingStats
-}
 import com.github.ppotseluev.algorate.broker.{Broker, MoneyTracker}
 import com.github.ppotseluev.algorate.strategy.FullStrategy
-import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.CandleData
-import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.TraderSnapshotRequested
+import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.{CandleData, TraderSnapshotRequested}
 import com.github.ppotseluev.algorate.trader.policy.Policy
+import com.github.ppotseluev.algorate.{BarInfo, InstrumentId, TradingAsset, TradingStats}
 import com.typesafe.scalalogging.LazyLogging
 import org.ta4j.core.BarSeries
 
 import scala.concurrent.Future
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration._
+import scala.concurrent.duration.{FiniteDuration, _}
 
 object TradingManager extends LazyLogging {
 
