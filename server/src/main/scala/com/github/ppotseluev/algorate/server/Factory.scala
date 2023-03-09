@@ -31,6 +31,7 @@ class Factory[F[_]: Async: Parallel] {
 
   val config: Config = ConfigSource
     .resources("application.local.conf")
+    .optional
     .withFallback(ConfigSource.resources("application.conf"))
     .load[Config]
     .fold(
