@@ -34,7 +34,7 @@ object VisualizeStrategy extends IOApp with StrictLogging {
       .use { broker =>
         val seriesProvider = new BarSeriesProvider[IO](broker)
         for {
-          share <- broker.getShare(ticker)
+          share <- broker.getShareByTicker(ticker)
           series <- seriesProvider.getBarSeries(share, interval)
           _ <- IO {
             logger.info(s"Data has been collected (${series.getBarCount} bars), start testing...")

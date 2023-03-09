@@ -4,6 +4,7 @@ import cats.Functor
 import cats.Monad
 import cats.Parallel
 import cats.effect.Sync
+import cats.effect.Temporal
 import cats.effect.kernel.Async
 import cats.implicits._
 import com.github.ppotseluev.algorate.Bar
@@ -16,8 +17,11 @@ import com.github.ppotseluev.algorate.broker.Broker.Day
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
 import com.github.ppotseluev.algorate.broker.CachedBroker
 import com.github.ppotseluev.algorate.broker.LoggingBroker
+import com.github.ppotseluev.algorate.broker.MoneyTracker
 import com.github.ppotseluev.algorate.broker.TestBroker
+import com.github.ppotseluev.algorate.cats.Provider
 import com.github.ppotseluev.algorate.math._
+import com.typesafe.scalalogging.LazyLogging
 import dev.profunktor.redis4cats.RedisCommands
 import java.time.ZoneId
 import ru.tinkoff.piapi.contract.v1.CandleInterval
@@ -26,33 +30,54 @@ import ru.tinkoff.piapi.contract.v1.OrderDirection
 import ru.tinkoff.piapi.contract.v1.OrderType
 import ru.tinkoff.piapi.contract.v1.Quotation
 import ru.tinkoff.piapi.contract.v1.Share
+import ru.tinkoff.piapi.core.models.Positions
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
+import scala.jdk.CollectionConverters._
 
 object TinkoffBroker {
   trait Ops[F[_]] {
     def getAllShares: F[List[Share]]
 
-    final def getShare(ticker: Ticker)(implicit F: Functor[F]): F[Share] =
+    final def getShareById(id: InstrumentId)(implicit F: Functor[F]): F[Share] =
+      getAllShares
+        .map(_.filter(_.getFigi == id))
+        .map { relatedShares =>
+          require(relatedShares.size == 1, s"${relatedShares.size} shares found for figi $id")
+          relatedShares.head
+        }
+
+    final def getShareByTicker(ticker: Ticker)(implicit F: Functor[F]): F[Share] =
       getAllShares
         .map(_.filter(_.getTicker == ticker))
         .map { relatedShares =>
           require(relatedShares.size == 1, s"${relatedShares.size} shares found for ticker $ticker")
           relatedShares.head
         }
+
+    def getPositions: F[Positions]
   }
 
-  def apply[F[_]: Functor: Parallel](
+  def apply[F[_]: Sync: Parallel](
       api: TinkoffApi[F],
       brokerAccountId: BrokerAccountId,
       zoneId: ZoneId
-  ): TinkoffBroker[F] = new Broker[F] with Ops[F] {
+  ): TinkoffBroker[F] = new Broker[F] with Ops[F] with LazyLogging {
     override def getAllShares: F[List[Share]] =
       api.getAllShares
 
     override def getOrderInfo(orderId: OrderId): F[OrderPlacementInfo] =
       api
         .getOderState(brokerAccountId, orderId)
+        .flatMap { orderState =>
+          Sync[F]
+            .delay {
+              logger.info(
+                s"Order $orderId, commission: ${orderState.getInitialCommission}, ${orderState.getServiceCommission}, ${orderState.getExecutedCommission}"
+              )
+            }
+            .as(orderState)
+        }
         .map(_.getExecutionReportStatus)
         .map(TinkoffConverters.convert)
         .map(OrderPlacementInfo(orderId, _))
@@ -132,6 +157,8 @@ object TinkoffBroker {
 
       candlesInterval.interval.days.parTraverse(get).map(_.flatten)
     }
+
+    override def getPositions: F[Positions] = api.getPositions(brokerAccountId)
   }
 
   def testBroker[F[_]: Async: Parallel](broker: TinkoffBroker[F]): TinkoffBroker[F] = {
@@ -152,6 +179,8 @@ object TinkoffBroker {
           candlesInterval: CandlesInterval
       ): F[List[Bar]] =
         testBroker.getData(instrumentId, candlesInterval)
+
+      override def getPositions: F[Positions] = broker.getPositions
     }
   }
 
@@ -173,6 +202,8 @@ object TinkoffBroker {
           candlesInterval: CandlesInterval
       ): F[List[Bar]] =
         broker.getData(instrumentId, candlesInterval)
+
+      override def getPositions: F[Positions] = _broker.getPositions
     }
 
   def withCaching[F[_]: Monad: Parallel](
@@ -205,5 +236,14 @@ object TinkoffBroker {
           candlesInterval: CandlesInterval
       ): F[List[Bar]] =
         broker.getData(instrumentId, candlesInterval)
+
+      override def getPositions: F[Positions] = _broker.getPositions
     }
+
+  def moneyTracker[F[_]: Sync: Temporal](broker: TinkoffBroker[F]): MoneyTracker[F] = {
+    val getMoney = Sync[F].map(broker.getPositions) { positions =>
+      positions.getMoney.asScala.groupMapReduce(_.getCurrency)(x => BigDecimal(x.getValue))(_ + _)
+    }
+    new Provider(getMoney)
+  }
 }

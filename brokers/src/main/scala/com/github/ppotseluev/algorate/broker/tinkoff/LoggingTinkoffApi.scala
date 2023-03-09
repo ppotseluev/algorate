@@ -7,6 +7,7 @@ import com.github.ppotseluev.algorate.OrderId
 import com.typesafe.scalalogging.StrictLogging
 import java.time.Instant
 import ru.tinkoff.piapi.contract.v1._
+import ru.tinkoff.piapi.core.models.Positions
 
 class LoggingTinkoffApi[F[_]: Sync](api: TinkoffApi[F]) extends TinkoffApi[F] with StrictLogging {
   override def postOrder(
@@ -34,4 +35,7 @@ class LoggingTinkoffApi[F[_]: Sync](api: TinkoffApi[F]) extends TinkoffApi[F] wi
 
   override def getOderState(accountId: BrokerAccountId, orderId: OrderId): F[OrderState] =
     api.getOderState(accountId, orderId)
+
+  override def getPositions(accountId: BrokerAccountId): F[Positions] =
+    api.getPositions(accountId)
 }

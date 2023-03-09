@@ -6,12 +6,14 @@ import cats.implicits._
 import cats.kernel.Monoid
 import com.github.ppotseluev.algorate.BarInfo
 import com.github.ppotseluev.algorate.InstrumentId
-import com.github.ppotseluev.algorate.Ticker
+import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.TradingStats
 import com.github.ppotseluev.algorate.broker.Broker
+import com.github.ppotseluev.algorate.broker.MoneyTracker
 import com.github.ppotseluev.algorate.strategy.FullStrategy
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.CandleData
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.TraderSnapshotRequested
+import com.github.ppotseluev.algorate.trader.policy.Policy
 import com.typesafe.scalalogging.LazyLogging
 import org.ta4j.core.BarSeries
 import scala.concurrent.Future
@@ -27,10 +29,12 @@ object TradingManager extends LazyLogging {
     case class TraderSnapshotEvent(snapshot: Trader.StateSnapshot) extends Event
   }
 
-  def apply(
-      tradingInstruments: Map[InstrumentId, Ticker],
+  def apply[F[_]](
+      assets: Map[InstrumentId, TradingAsset],
       broker: Broker[Future],
       strategy: BarSeries => FullStrategy,
+      moneyTracker: MoneyTracker[F],
+      policy: Policy,
       keepLastBars: Int,
       eventsSink: EventsSink[Future],
       checkOrdersStatusEvery: FiniteDuration = 3.seconds,
@@ -41,18 +45,22 @@ object TradingManager extends LazyLogging {
       "orders-watcher"
     )
 
-    def trader(instrumentId: InstrumentId): Behavior[Trader.Event] =
+    def trader(instrumentId: InstrumentId): Behavior[Trader.Event] = {
+      val asset = assets(instrumentId)
       Trader(
         instrumentId = instrumentId,
-        ticker = tradingInstruments(instrumentId),
+        asset = asset,
         strategyBuilder = strategy,
+        policy = policy,
         broker = broker,
         keepLastBars = keepLastBars,
         ordersWatcher = ordersWatcher,
         snapshotSink = ctx.self,
         maxLag = maxLag
       )
-    val traders = tradingInstruments.keys.map { instrumentId =>
+    }
+
+    val traders = assets.keys.map { instrumentId =>
       instrumentId -> ctx.spawn(trader(instrumentId), s"$instrumentId-trader")
     }.toMap
 
@@ -76,7 +84,8 @@ object TradingManager extends LazyLogging {
         tradingStats = tradingStats |+| snapshot.tradingStats
         val event = com.github.ppotseluev.algorate.trader.akkabot.Event.TradingSnapshot(
           snapshot,
-          tradingStats
+          tradingStats,
+          moneyTracker.get.orEmpty
         )
         eventsSink.push(event) //TODO check future's result?
         Behaviors.same

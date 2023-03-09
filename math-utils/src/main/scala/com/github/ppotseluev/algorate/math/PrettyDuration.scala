@@ -1,7 +1,8 @@
 package com.github.ppotseluev.algorate.math
 
-import concurrent.duration._
 import scala.annotation.tailrec
+
+import concurrent.duration._
 
 object PrettyDuration {
   val timeUnitList: List[TimeUnit] =

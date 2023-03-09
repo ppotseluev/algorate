@@ -16,6 +16,9 @@ import com.github.ppotseluev.algorate.trader.LoggingSupport
 import com.github.ppotseluev.algorate.trader.akkabot.Trader.Event.OrderUpdated
 import com.github.ppotseluev.algorate.trader.akkabot.Trader.Position.State
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.TraderSnapshotEvent
+import com.github.ppotseluev.algorate.trader.policy.Policy
+import com.github.ppotseluev.algorate.trader.policy.Policy.Decision
+import com.github.ppotseluev.algorate.trader.policy.Policy.TradeRequest
 import io.prometheus.client.Gauge
 import java.time.OffsetDateTime
 import java.time.ZonedDateTime
@@ -24,6 +27,8 @@ import org.ta4j.core.BaseBarSeries
 import org.ta4j.core.BaseTradingRecord
 import org.ta4j.core.Trade.TradeType
 import org.ta4j.core.TradingRecord
+import org.ta4j.core.cost.LinearTransactionCostModel
+import org.ta4j.core.cost.ZeroCostModel
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Failure
@@ -31,6 +36,9 @@ import scala.util.Success
 import scala.util.Try
 
 object Trader extends LoggingSupport {
+  private val feeModel = new LinearTransactionCostModel(0.0005)
+  private val zeroCost = new ZeroCostModel()
+
   private def gauge(name: String) =
     Gauge
       .build()
@@ -45,7 +53,7 @@ object Trader extends LoggingSupport {
 //  val timeMetric = gauge("time")
 
   case class StateSnapshot(
-      ticker: Ticker,
+      asset: TradingAsset,
       triggeredBy: Event,
       strategyBuilder: BarSeries => FullStrategy,
       state: TraderState,
@@ -113,19 +121,24 @@ object Trader extends LoggingSupport {
 
   def apply(
       instrumentId: InstrumentId,
-      ticker: Ticker,
+      asset: TradingAsset,
       strategyBuilder: BarSeries => FullStrategy,
+      policy: Policy,
       broker: Broker[Future],
       keepLastBars: Int,
       ordersWatcher: OrdersWatcher,
       snapshotSink: TraderSnapshotSink,
       maxLag: Option[FiniteDuration]
   ): Behavior[Event] = {
-    val logger = getLogger(s"Trader-$ticker")
+    val logger = getLogger(s"Trader-${asset.ticker}")
 
-    def buildOrder(point: Point, operationType: OperationType): Order = Order(
+    def buildOrder(
+        point: Point,
+        operationType: OperationType,
+        lots: Int
+    ): Order = Order(
       instrumentId = instrumentId,
-      lots = 1, //TODO
+      lots = lots,
       operationType = operationType,
       details = Order.Details.Market, //TODO
       info = Order.Info(point, closingOrderType = None)
@@ -143,8 +156,8 @@ object Trader extends LoggingSupport {
       val strategy = strategyBuilder(barSeries)
       var currentBar: Option[Bar] = None
       var state: TraderState = TraderState.Empty
-      val longHistory = new BaseTradingRecord()
-      val shortHistory = new BaseTradingRecord(TradeType.SELL)
+      val longHistory = new BaseTradingRecord(TradeType.BUY, feeModel, zeroCost)
+      val shortHistory = new BaseTradingRecord(TradeType.SELL, feeModel, zeroCost)
 
       def historyRecord(operationType: OperationType) = operationType match {
         case OperationType.Buy  => longHistory
@@ -162,8 +175,8 @@ object Trader extends LoggingSupport {
         (OffsetDateTime.now.toEpochSecond - bar.endTime.toEpochSecond).seconds
 
       def handleClosedBar(bar: Bar, ctx: ActorContext[Event]): Unit = {
-        traderGauge.labels(ticker, "price").set(bar.closePrice.doubleValue)
-        traderGauge.labels(ticker, "time").set(bar.endTime.toEpochSecond.toDouble)
+        traderGauge.labels(asset.ticker, "price").set(bar.closePrice.doubleValue)
+        traderGauge.labels(asset.ticker, "time").set(bar.endTime.toEpochSecond.toDouble)
 
         val ta4jBar = BarsConverter.convertBar(bar)
         barSeries.addBar(ta4jBar)
@@ -175,18 +188,26 @@ object Trader extends LoggingSupport {
         val lastPrice = barSeries.getBar(lastIndex).getClosePrice
         def placeOrder(order: Order): Unit =
           ctx.pipeToSelf(broker.placeOrder(order))(orderPlacedEvent(order))
-        def enter(operationType: OperationType): Unit = {
-          val order = buildOrder(point, operationType)
-          state = TraderState.enter(order)
-          historyRecord(operationType).enter(lastIndex, lastPrice, barSeries.numOf(order.lots))
-          placeOrder(order)
+        def tryEnter(operationType: OperationType): Unit = {
+          val trade = TradeRequest(
+            currency = asset.currency,
+            price = point.value
+          )
+          policy.apply(trade) match {
+            case Decision.Allowed(lots) =>
+              val order = buildOrder(point, operationType, lots)
+              state = TraderState.enter(order)
+              historyRecord(operationType).enter(lastIndex, lastPrice, barSeries.numOf(order.lots))
+              placeOrder(order)
+            case Decision.Denied(message) => logger.warn(message)
+          }
         }
         state match {
           case TraderState.Empty if maxLag.forall(_ >= lag(bar)) =>
             if (strategy.longStrategy.shouldEnter(lastIndex)) {
-              enter(OperationType.Buy)
+              tryEnter(OperationType.Buy)
             } else if (strategy.shortStrategy.shouldEnter(lastIndex)) {
-              enter(OperationType.Sell)
+              tryEnter(OperationType.Sell)
             }
           case TraderState.Empty =>
             logger.debug(s"Lag is too big, skipping bar") //TODO always ignore on too big lag?
@@ -274,7 +295,7 @@ object Trader extends LoggingSupport {
           short = Stats.fromRecord(shortHistory, barSeries)
         )
         StateSnapshot(
-          ticker = ticker,
+          asset = asset,
           triggeredBy = event,
           strategyBuilder = strategyBuilder,
           state = state,

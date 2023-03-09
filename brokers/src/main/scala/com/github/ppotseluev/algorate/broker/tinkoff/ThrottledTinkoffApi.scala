@@ -4,6 +4,7 @@ import com.github.ppotseluev.algorate.BrokerAccountId
 import com.github.ppotseluev.algorate.OrderId
 import java.time.Instant
 import ru.tinkoff.piapi.contract.v1._
+import ru.tinkoff.piapi.core.models.Positions
 import upperbound.Limiter
 
 class ThrottledTinkoffApi[F[_]](
@@ -35,4 +36,7 @@ class ThrottledTinkoffApi[F[_]](
 
   override def getOderState(accountId: BrokerAccountId, orderId: OrderId): F[OrderState] =
     delegate.getOderState(accountId, orderId)
+
+  override def getPositions(accountId: BrokerAccountId): F[Positions] =
+    delegate.getPositions(accountId)
 }

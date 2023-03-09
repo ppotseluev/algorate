@@ -91,10 +91,10 @@ class ChannelIndicator private (
 
   override protected def calculate(index: Int): ChannelState = {
     def actualizeLastChannel(channel: Channel): ChannelState = {
-      val lastMin = collectExtremums[Extremum.Min](index, 1).head
-      val lastMax = collectExtremums[Extremum.Max](index, 1).head
+      val lastMin = collectExtremums[Extremum.Min](index, 1).headOption
+      val lastMax = collectExtremums[Extremum.Max](index, 1).headOption
 //      isInsideChannel(channel, lastMin) && isInsideChannel(channel, lastMax) || TODO
-      val lastExtrFit = isFit(channel, lastMin) && isFit(channel, lastMax)
+      val lastExtrFit = lastMin.exists(isFit(channel, _)) && lastMax.exists(isFit(channel, _))
       val curValue = baseIndicator.getValue(index)
       val curPoint = index -> curValue.doubleValue
       val curPointFit = isInsideChannel(channel, curPoint) ||
