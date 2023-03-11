@@ -40,6 +40,8 @@ class Factory[F[_]: Async: Parallel] {
     )
   import config._
 
+  println(s"Account id: $accountId")
+
   lazy val prometheusMetrics: PrometheusMetrics[F] = PrometheusMetrics.default[F]()
 
   lazy val investApi: InvestApi = InvestApi.createSandbox(tinkoffAccessToken)
