@@ -12,6 +12,7 @@ project/plugins/project/
 .cache
 .lib/
 **/application.local.conf
+tools-app/data/archive/
 
 ### Scala template
 *.class

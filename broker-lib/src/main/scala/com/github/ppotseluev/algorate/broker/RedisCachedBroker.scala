@@ -14,7 +14,7 @@ import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
 import com.typesafe.scalalogging.LazyLogging
 import dev.profunktor.redis4cats.RedisCommands
 
-class CachedBroker[F[_]: Monad: Parallel](
+class RedisCachedBroker[F[_]: Monad: Parallel](
     broker: Broker[F],
     barsCache: RedisCommands[F, String, List[Bar]]
 ) extends Broker[F]

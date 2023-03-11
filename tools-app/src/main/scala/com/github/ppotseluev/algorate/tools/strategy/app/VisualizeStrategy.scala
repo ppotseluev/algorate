@@ -20,10 +20,10 @@ object VisualizeStrategy extends IOApp with StrictLogging {
   val tester = StrategyTester(strategy)
   //  val ticker = "YNDX"
   //  val ticker = "CHMF"
-  val ticker = "CSCO"
+  val ticker = "POLY"
   val interval = CandlesInterval(
     interval = DaysInterval(
-      LocalDate.now.minusDays(5),
+      LocalDate.now.minusDays(60),
       LocalDate.now.minusDays(2)
     ),
     resolution = OneMinute

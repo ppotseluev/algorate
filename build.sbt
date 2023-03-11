@@ -170,7 +170,7 @@ lazy val `broker-lib` = project
     libraryDependencies ++= Seq(
       Dependency.upperbound,
       Dependency.scalaLogging
-    )
+    ) ++ Dependency.kantanCsv.all
   )
   .dependsOn(
     `model`,

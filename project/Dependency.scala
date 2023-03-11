@@ -65,4 +65,10 @@ object Dependency {
 
   val pureconfig = "com.github.pureconfig" %% "pureconfig" % "0.17.2"
 
+  object kantanCsv {
+    val version = "0.7.0"
+    val csv = "com.nrinaudo" %% "kantan.csv" % version
+    val csvGeneric = "com.nrinaudo" %% "kantan.csv-generic" % version
+    val all = Seq(csv, csvGeneric)
+  }
 }

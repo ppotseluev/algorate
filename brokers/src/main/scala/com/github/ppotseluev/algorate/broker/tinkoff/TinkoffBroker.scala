@@ -10,19 +10,16 @@ import cats.implicits._
 import com.github.ppotseluev.algorate.Bar
 import com.github.ppotseluev.algorate.Order.Type
 import com.github.ppotseluev.algorate._
-import com.github.ppotseluev.algorate.broker.Broker
+import com.github.ppotseluev.algorate.broker.{ArchiveCachedBroker, Broker, LoggingBroker, MoneyTracker, RedisCachedBroker, TestBroker}
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.Day
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
-import com.github.ppotseluev.algorate.broker.CachedBroker
-import com.github.ppotseluev.algorate.broker.LoggingBroker
-import com.github.ppotseluev.algorate.broker.MoneyTracker
-import com.github.ppotseluev.algorate.broker.TestBroker
 import com.github.ppotseluev.algorate.cats.Provider
 import com.github.ppotseluev.algorate.math._
 import com.typesafe.scalalogging.LazyLogging
 import dev.profunktor.redis4cats.RedisCommands
+
 import java.time.ZoneId
 import ru.tinkoff.piapi.contract.v1.CandleInterval
 import ru.tinkoff.piapi.contract.v1.HistoricCandle
@@ -31,6 +28,8 @@ import ru.tinkoff.piapi.contract.v1.OrderType
 import ru.tinkoff.piapi.contract.v1.Quotation
 import ru.tinkoff.piapi.contract.v1.Share
 import ru.tinkoff.piapi.core.models.Positions
+
+import java.nio.file.Path
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
@@ -206,16 +205,20 @@ object TinkoffBroker {
       override def getPositions: F[Positions] = _broker.getPositions
     }
 
-  def withCaching[F[_]: Monad: Parallel](
+  def withCaching[F[_]: Sync: Parallel](
       _broker: TinkoffBroker[F],
-      barsCache: RedisCommands[F, String, List[Bar]],
+      barsCache: Either[Path, RedisCommands[F, String, List[Bar]]],
       sharesCache: RedisCommands[F, String, List[Share]],
       sharesTtl: FiniteDuration = 1.day
   ): TinkoffBroker[F] =
     new Broker[F] with Ops[F] {
       private val sharesKey = "shares"
-      private val broker = new CachedBroker(_broker, barsCache)
-
+      private val broker = barsCache match {
+        case Left(archiveDir) =>
+          new ArchiveCachedBroker(_broker, archiveDir)
+        case Right(redisCache) =>
+          new RedisCachedBroker(_broker, redisCache)
+      }
       override def getAllShares: F[List[Share]] =
         sharesCache.get(sharesKey).flatMap {
           case Some(shares) => shares.pure[F]
