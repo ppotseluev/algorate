@@ -23,7 +23,7 @@ function download {
     rm "${figi}_${year}.zip"
     cd "${target_dir}" || exit 1
     for file in ./*; do
-      mv -- "$file" "${file:39}"
+      mv -- "$file" "${file:39}" #TODO improve prefix removing
     done
   fi
   # Если превышен лимит запросов в минуту (30) - повторяем запрос.

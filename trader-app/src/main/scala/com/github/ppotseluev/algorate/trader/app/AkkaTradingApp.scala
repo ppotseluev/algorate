@@ -17,6 +17,7 @@ import com.github.ppotseluev.algorate.trader.akkabot.Event
 import com.github.ppotseluev.algorate.trader.akkabot.EventsSink
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager
 import com.github.ppotseluev.algorate.trader.policy.MoneyManagementPolicy
+import com.github.ppotseluev.algorate.trader.policy.Policy.Decision
 import com.typesafe.scalalogging.LazyLogging
 import java.time.LocalDate
 import scala.concurrent.Future
@@ -393,7 +394,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
           "usd" -> 200,
           "rub" -> 15000
         )
-      )
+      ).andThen(_.allowedOrElse(Decision.Allowed(1))) //TODO remove this temporary experiment
       val tradingManager = TradingManager(
         assets = assets,
         broker = brokerFuture,
