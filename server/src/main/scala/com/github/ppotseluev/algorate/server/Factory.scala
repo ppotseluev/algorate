@@ -2,16 +2,19 @@ package com.github.ppotseluev.algorate.server
 
 import akka.actor.typed.ActorSystem
 import boopickle.Default.iterablePickler
-import cats.implicits._
 import cats.Parallel
 import cats.effect.IO
 import cats.effect.Resource
 import cats.effect.kernel.Async
-import com.github.ppotseluev.algorate.{Bar, InstrumentId, Ticker}
+import cats.implicits._
+import com.github.ppotseluev.algorate.Bar
+import com.github.ppotseluev.algorate.InstrumentId
+import com.github.ppotseluev.algorate.Ticker
 import com.github.ppotseluev.algorate.broker.tinkoff.TinkoffApi
 import com.github.ppotseluev.algorate.broker.tinkoff.TinkoffBroker
 import com.github.ppotseluev.algorate.redis.RedisCodecs
 import com.github.ppotseluev.algorate.redis.codec._
+import com.github.ppotseluev.algorate.server.Codecs._
 import com.github.ppotseluev.algorate.trader.Api
 import com.github.ppotseluev.algorate.trader.RequestHandler
 import com.github.ppotseluev.algorate.trader.akkabot.EventsSink
@@ -23,20 +26,15 @@ import com.github.ppotseluev.algorate.trader.telegram.TelegramWebhook
 import dev.profunktor.redis4cats.Redis
 import dev.profunktor.redis4cats.connection.RedisClient
 import dev.profunktor.redis4cats.effect.Log.Stdout.instance
-
+import java.io.File
 import java.time.ZoneOffset
 import pureconfig.ConfigSource
 import pureconfig.generic.auto._
+import ru.tinkoff.piapi.contract.v1.Share
 import ru.tinkoff.piapi.core.InvestApi
 import sttp.client3.httpclient.fs2.HttpClientFs2Backend
 import sttp.tapir.server.metrics.prometheus.PrometheusMetrics
 import upperbound.Limiter
-import com.github.ppotseluev.algorate.server.Codecs._
-import ru.tinkoff.piapi.contract.v1.Share
-
-import java.io.File
-import java.net.URI
-import java.nio.file.{Files, Path, Paths}
 
 class Factory[F[_]: Async: Parallel] {
 
@@ -82,7 +80,7 @@ class Factory[F[_]: Async: Parallel] {
           )
           cache = historicalDataArchive match {
             case Some(path) => new File(path).toPath.asLeft
-            case None => barsCache.asRight
+            case None       => barsCache.asRight
           }
         } yield TinkoffBroker.withCaching[F](broker, cache, sharesCache)
       } else {

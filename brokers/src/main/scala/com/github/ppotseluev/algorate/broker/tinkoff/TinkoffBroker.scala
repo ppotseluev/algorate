@@ -1,7 +1,6 @@
 package com.github.ppotseluev.algorate.broker.tinkoff
 
 import cats.Functor
-import cats.Monad
 import cats.Parallel
 import cats.effect.Sync
 import cats.effect.Temporal
@@ -10,16 +9,21 @@ import cats.implicits._
 import com.github.ppotseluev.algorate.Bar
 import com.github.ppotseluev.algorate.Order.Type
 import com.github.ppotseluev.algorate._
-import com.github.ppotseluev.algorate.broker.{ArchiveCachedBroker, Broker, LoggingBroker, MoneyTracker, RedisCachedBroker, TestBroker}
+import com.github.ppotseluev.algorate.broker.ArchiveCachedBroker
+import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.Day
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
+import com.github.ppotseluev.algorate.broker.LoggingBroker
+import com.github.ppotseluev.algorate.broker.MoneyTracker
+import com.github.ppotseluev.algorate.broker.RedisCachedBroker
+import com.github.ppotseluev.algorate.broker.TestBroker
 import com.github.ppotseluev.algorate.cats.Provider
 import com.github.ppotseluev.algorate.math._
 import com.typesafe.scalalogging.LazyLogging
 import dev.profunktor.redis4cats.RedisCommands
-
+import java.nio.file.Path
 import java.time.ZoneId
 import ru.tinkoff.piapi.contract.v1.CandleInterval
 import ru.tinkoff.piapi.contract.v1.HistoricCandle
@@ -28,8 +32,6 @@ import ru.tinkoff.piapi.contract.v1.OrderType
 import ru.tinkoff.piapi.contract.v1.Quotation
 import ru.tinkoff.piapi.contract.v1.Share
 import ru.tinkoff.piapi.core.models.Positions
-
-import java.nio.file.Path
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
@@ -44,6 +46,19 @@ object TinkoffBroker {
         .map { relatedShares =>
           require(relatedShares.size == 1, s"${relatedShares.size} shares found for figi $id")
           relatedShares.head
+        }
+
+    final def getSharesById(ids: Set[InstrumentId])(implicit F: Functor[F]): F[List[Share]] =
+      getAllShares
+        .map(_.filter(s => ids.contains(s.getFigi)))
+        .map {
+          _.groupBy(_.getFigi).map { case (id, sharesWithSameId) =>
+            require(
+              sharesWithSameId.size == 1,
+              s"${sharesWithSameId.size} shares found for figi $id"
+            )
+            sharesWithSameId.head
+          }.toList
         }
 
     final def getShareByTicker(ticker: Ticker)(implicit F: Functor[F]): F[Share] =
