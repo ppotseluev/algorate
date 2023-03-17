@@ -54,6 +54,8 @@ if [ $# -eq 0 ]; then
   exit 1
 fi
 
+current_dir="$(pwd)"
 while read -r figi; do
   download "$figi" "$1"
+  cd "$current_dir" || exit 1
 done <${figi_list}
