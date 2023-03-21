@@ -47,7 +47,9 @@ class ArchiveCachedBroker[F[_]: Sync](broker: Broker[F], archiveDir: Path)
         val targetFile = basePath.resolve(s"$dayId.csv").toFile
         Either.cond(
           basePath.toFile.exists(),
-          right = Option.when(targetFile.exists())(targetFile),
+          right = Option.when(targetFile.exists())(
+            targetFile
+          ), //TODO handle cases when concrete day is missed or the whole archive is missed
           left = ArchiveNotFound(instrumentId, year)
         )
       }

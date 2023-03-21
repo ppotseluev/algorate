@@ -23,8 +23,8 @@ object VisualizeStrategy extends IOApp with StrictLogging {
   val ticker = "POLY"
   val interval = CandlesInterval(
     interval = DaysInterval(
-      LocalDate.now.minusDays(60),
-      LocalDate.now.minusDays(2)
+      LocalDate.of(2023, 1, 1),
+      LocalDate.of(2023, 3, 11)
     ),
     resolution = OneMinute
   )
@@ -34,7 +34,7 @@ object VisualizeStrategy extends IOApp with StrictLogging {
       .use { broker =>
         val seriesProvider = new BarSeriesProvider[IO](broker)
         for {
-          share <- broker.getShareByTicker(ticker)
+          share <- broker.getShareById("BBG004PYF2N3")
           series <- seriesProvider.getBarSeries(share, interval)
           _ <- IO {
             logger.info(s"Data has been collected (${series.getBarCount} bars), start testing...")

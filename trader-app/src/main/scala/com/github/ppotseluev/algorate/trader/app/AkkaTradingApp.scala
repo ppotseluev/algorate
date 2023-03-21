@@ -45,7 +45,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
       "BBG000BGRY34" -> TradingAsset("CVS", "usd"),
       "BBG006L8G4H1" -> TradingAsset("YNDX", "rub"),
       "BBG007TJF1N7" -> TradingAsset("QRVO", "usd"),
-      "BBG004PYF2N3" -> TradingAsset("POLY", "rub"),
+      "BBG004PYF2N3" -> TradingAsset("POLY", "rub"), //TODO 2 shares fount for ticker, investigate the reason
       "BBG0025Y4RY4" -> TradingAsset("ABBV", "usd"),
       "BBG000C17X76" -> TradingAsset("BIIB", "usd"),
       "BBG000CL9VN6" -> TradingAsset("NFLX", "usd"),
