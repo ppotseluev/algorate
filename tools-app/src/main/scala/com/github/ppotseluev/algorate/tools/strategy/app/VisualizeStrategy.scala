@@ -15,7 +15,7 @@ import com.typesafe.scalalogging.StrictLogging
 import java.time.LocalDate
 
 object VisualizeStrategy extends IOApp with StrictLogging {
-
+//TODO check discrepancy when use archive data
   val strategy = Strategies.intraChannel
   val tester = StrategyTester(strategy)
   //  val ticker = "YNDX"
