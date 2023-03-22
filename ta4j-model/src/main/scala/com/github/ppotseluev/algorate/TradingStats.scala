@@ -1,7 +1,9 @@
 package com.github.ppotseluev.algorate
 
-import cats.Monoid
+import cats.implicits._
+import cats.{Monoid, Show}
 import cats.derived.semiauto
+
 import java.time.YearMonth
 import scala.collection.immutable.SeqMap
 
@@ -9,6 +11,24 @@ case class TradingStats(
     long: Stats,
     short: Stats
 ) {
+  def totalPositions: Int = long.totalClosedPositions + short.totalClosedPositions
+
+  def totalWinRatio(fee: Boolean): Double = {
+    val totalWon = long.winningPositions(fee) + short.winningPositions(fee)
+    totalWon.toDouble / totalPositions
+  }
+
+  def profit(fee: Boolean): Map[Currency, Double] =
+    (long.enrichedPositions ++ short.enrichedPositions)
+      .groupBy(_.asset.currency)
+      .view
+      .mapValues(_.map(_.position))
+      .mapValues { positions =>
+        if (fee) positions.foldMap(_.getProfit.doubleValue)
+        else positions.foldMap(_.getGrossProfit.doubleValue)
+      }
+      .toMap
+
   def monthly: SeqMap[YearMonth, TradingStats] = {
     val l = long.monthly
     val s = short.monthly
@@ -20,15 +40,21 @@ case class TradingStats(
     }
     SeqMap.from(stats)
   }
-
-  override def toString: String = {
-    val totalPositions = long.totalClosedPositions + short.totalClosedPositions
-    val totalWon = long.winningPositions + short.winningPositions
-    val winRatio = totalWon.toDouble / totalPositions
-    s"LONG (${long.totalClosedPositions}, ${long.winRatio}), SHORT (${short.totalClosedPositions}, ${short.winRatio}), SUM ($totalPositions, $winRatio)"
-  }
 }
 
 object TradingStats {
-  implicit val Monoid: Monoid[TradingStats] = semiauto.monoid
+  implicit val monoid: Monoid[TradingStats] = semiauto.monoid
+  implicit val show: Show[TradingStats] = Show.show { s =>
+    import s._
+    val totalNoFee = totalWinRatio(false)
+    val totalReal = totalWinRatio(true)
+    val diff = (totalNoFee - totalReal) / totalNoFee * 100
+    s"""
+       |LONG (${long.totalClosedPositions}, no_fee ${long.winRatio(false)}, real ${long.winRatio(true)}),
+       |SHORT (${short.totalClosedPositions}, no_fee ${short.winRatio(false)}, real ${short.winRatio(true)}),
+       |SUM ($totalPositions, no_fee $totalNoFee, real $totalReal),
+       |NO_FEE_PROFIT: ${profit(fee = false)}, REAL_PROFIT: ${profit(fee = true)},
+       |DIFF: $diff%
+       |""".stripMargin //.replaceAll("\n", "")
+  }
 }

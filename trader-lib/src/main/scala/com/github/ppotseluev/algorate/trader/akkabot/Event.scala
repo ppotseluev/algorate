@@ -1,7 +1,6 @@
 package com.github.ppotseluev.algorate.trader.akkabot
 
-import com.github.ppotseluev.algorate.Currency
-import com.github.ppotseluev.algorate.TradingStats
+import com.github.ppotseluev.algorate.{Currency, Money, TradingStats}
 
 /**
  * Common internal event model
@@ -11,6 +10,6 @@ object Event {
   case class TradingSnapshot(
       snapshot: Trader.StateSnapshot,
       aggregatedStats: TradingStats,
-      money: Map[Currency, BigDecimal]
+      money: Money
   ) extends Event
 }

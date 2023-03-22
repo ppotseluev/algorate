@@ -36,7 +36,7 @@ private[strategy] class BarSeriesProvider[F[_]: Async: Parallel](broker: Broker[
       .parEvalMapUnordered[F, Option[(Share, BarSeries)]](maxConcurrent) { share =>
         getBarSeries(share, interval)
           .map { d =>
-            println(s"fetched: ${fetched.incrementAndGet()}")
+//            println(s"fetched: ${fetched.incrementAndGet()}")
             (share -> d).some
           }
           .recover { case _: ArchiveNotFound if skipNotFound => None }

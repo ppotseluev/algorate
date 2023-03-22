@@ -292,8 +292,8 @@ object Trader extends LoggingSupport {
 
       def buildSnapshot(event: Event) = {
         val tradingStats = TradingStats(
-          long = Stats.fromRecord(longHistory, barSeries),
-          short = Stats.fromRecord(shortHistory, barSeries)
+          long = Stats.fromRecord(longHistory, barSeries, asset),
+          short = Stats.fromRecord(shortHistory, barSeries, asset)
         )
         StateSnapshot(
           asset = asset,

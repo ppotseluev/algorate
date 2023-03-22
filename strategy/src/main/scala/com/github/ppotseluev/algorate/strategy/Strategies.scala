@@ -82,7 +82,7 @@ object Strategies {
 //        minIndexDelta = 10,
 //        minPercent = 0.01
 //      )
-    val minRelativeWidth = num(0.002) //todo...
+//    val minRelativeWidth = num(0.002) //todo...
     val channel: AbstractIndicator[Option[Channel]] = ChannelIndicator(
       baseIndicator = closePrice,
       extremumIndicator = extremum,
@@ -94,6 +94,9 @@ object Strategies {
 
     //TODO was (6, 0.5). (2, 0.2) - better?
 
+    val feeFraction = 0.0005
+    val leastFeeFactor = 2
+
     val lowerBoundIndicator = channel.map(_.map(_.section.lowerBound).getOrElse(NaN.NaN))
     val upperBoundIndicator = channel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
 
@@ -102,6 +105,18 @@ object Strategies {
     val halfChannel = channelDiffIndicator.map(_.dividedBy(num(2)))
 
     val channelIsDefinedRule = new BooleanIndicatorRule(channel.map(_.isDefined))
+
+    val leastLongTarget = (closePrice: AbstractIndicator[Num]).map { price =>
+      price.multipliedBy(num(1 + leastFeeFactor * feeFraction))
+    }
+
+    val leastShortTarget = (closePrice: AbstractIndicator[Num]).map { price =>
+      price.multipliedBy(num(1 - leastFeeFactor * feeFraction))
+    }
+
+    val midChannelIndicator: AbstractIndicator[Num] =
+      new SumIndicator(lowerBoundIndicator, halfChannel)
+
     val exitLongRule =
       //todo consider channel width
       new StopLossRule(closePrice, 1)
@@ -109,9 +124,12 @@ object Strategies {
           new StopGainRule(closePrice, 1)
         )
         .or(
-          new CrossedUpIndicatorRule(
+          new OverIndicatorRule(
             closePrice,
-            new SumIndicator(lowerBoundIndicator, halfChannel)
+            midChannelIndicator
+          ) & new StopGainRule(
+            closePrice,
+            leastFeeFactor * feeFraction * 100
           )
         )
         .or(
@@ -124,17 +142,10 @@ object Strategies {
           channelIsDefinedRule.negation
         )
 
-    val relativeWidthIndicator: AbstractIndicator[Num] =
-      for {
-        l <- lowerBoundIndicator
-        u <- upperBoundIndicator
-      } yield u.minus(l).dividedBy(u)
-
     val priceIsNotTooHigh: AbstractIndicator[java.lang.Boolean] =
       for {
-        price <- closePrice: AbstractIndicator[Num]
-        bound <-
-          lowerBoundIndicator \+\ halfChannel //channelDiffIndicator.map(_.dividedBy(num(10)))
+        price <- leastLongTarget
+        bound <- midChannelIndicator
       } yield price.isLessThan(bound)
 
     val coreLongRule =
@@ -153,14 +164,12 @@ object Strategies {
         new BooleanIndicatorRule(priceIsNotTooHigh) &
         new BooleanIndicatorRule(
           volumeIndicator.map(_.isGreaterThan(num(500)))
-        ) & //TODO research... maybe use some derived ind?
-        new BooleanIndicatorRule(relativeWidthIndicator.map(_.isGreaterThan(minRelativeWidth)))
+        ) //TODO research... maybe use some derived ind?
     val coreShortRule = {
       val priceIsNotTooLow: AbstractIndicator[java.lang.Boolean] =
         for {
-          price <- closePrice: AbstractIndicator[Num]
-          bound <-
-            upperBoundIndicator \-\ halfChannel //channelDiffIndicator.map(_.dividedBy(num(10)))
+          price <- leastShortTarget
+          bound <- midChannelIndicator
         } yield price.isGreaterThan(bound)
       channelIsDefinedRule &
         new BooleanIndicatorRule(
@@ -177,8 +186,7 @@ object Strategies {
         new BooleanIndicatorRule(priceIsNotTooLow) &
         new BooleanIndicatorRule(
           volumeIndicator.map(_.isGreaterThan(num(500)))
-        ) &
-        new BooleanIndicatorRule(relativeWidthIndicator.map(_.isGreaterThan(minRelativeWidth)))
+        )
     }
 //    val timeRule =
 //      new TimeRangeRule(Seq(tradeTimeRange).asJava, time.asInstanceOf[DateTimeIndicator])
@@ -198,9 +206,12 @@ object Strategies {
           new StopGainRule(closePrice, 1)
         )
         .or(
-          new CrossedDownIndicatorRule(
+          new UnderIndicatorRule(
             closePrice,
-            new DifferenceIndicator(upperBoundIndicator, halfChannel)
+            midChannelIndicator
+          ) & new StopGainRule(
+            closePrice,
+            leastFeeFactor * feeFraction * 100
           )
         )
         .or(
@@ -227,6 +238,14 @@ object Strategies {
         visualChannel.map(_.map(_.section.lowerBound).getOrElse(NaN.NaN))
       val visualUpperBoundIndicator =
         visualChannel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
+      val leastTargetIndicator = (closePrice: AbstractIndicator[Num]).zipWithIndex
+        .map { case (index, price) =>
+          if (entryShortRule.isSatisfied(index))
+            price.multipliedBy(num(1 - leastFeeFactor * feeFraction))
+          else if (entryLongRule.isSatisfied(index))
+            price.multipliedBy(num(1 + leastFeeFactor * feeFraction))
+          else NaN.NaN
+        }
       Map(
         "close price" -> IndicatorInfo(closePrice),
         "extrMin" -> IndicatorInfo(
@@ -244,7 +263,9 @@ object Strategies {
           Representation.Points
         ),
         "lowerBound" -> IndicatorInfo(visualLowerBoundIndicator),
-        "upperBound" -> IndicatorInfo(visualUpperBoundIndicator)
+        "upperBound" -> IndicatorInfo(visualUpperBoundIndicator),
+        "leastTarget" -> IndicatorInfo(leastTargetIndicator, Representation.Points),
+        "mid" -> IndicatorInfo(midChannelIndicator)
       )
     }
     FullStrategy(

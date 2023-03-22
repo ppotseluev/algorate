@@ -15,7 +15,7 @@ class VisualChannelIndicator(channelIndicator: Indicator[Option[Channel]])
     }
 
   private val approximations = channels.map(_._2.lowerBoundApproximation).toSet
-  log.debug(s"${approximations.size} channels found")
+  log.info(s"${approximations.size} channels found")
 
   override protected def calculate(index: Int): Option[Channel] = {
     channels

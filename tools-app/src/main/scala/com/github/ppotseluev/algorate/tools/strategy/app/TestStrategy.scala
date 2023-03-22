@@ -7,13 +7,15 @@ import cats.effect.ExitCode
 import cats.effect.IO
 import cats.effect.IOApp
 import cats.implicits._
-import com.github.ppotseluev.algorate.TradingStats
+import com.github.ppotseluev.algorate.{TradingAsset, TradingStats}
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.tools.strategy.BarSeriesProvider
 import com.github.ppotseluev.algorate.tools.strategy.StrategyTester
+
 import java.util.concurrent.atomic.AtomicInteger
 import org.ta4j.core.BarSeries
 import ru.tinkoff.piapi.contract.v1.Share
+
 import scala.concurrent.duration._
 
 /**
@@ -22,17 +24,19 @@ import scala.concurrent.duration._
 object TestStrategy extends IOApp {
   import com.github.ppotseluev.algorate.tools.strategy.TestSetup._
 
-  val countDone = new AtomicInteger()
-  val countStarted = new AtomicInteger()
+  val done = new AtomicInteger()
+  val started = new AtomicInteger()
 
   private val test = (share: Share, series: BarSeries) =>
     IO.blocking {
-      val started = countStarted.incrementAndGet()
-      println(s"started: $started")
-      val stats = StrategyTester(strategy).test(series)
+      val asset = TradingAsset(
+        ticker = share.getTicker,
+        currency = share.getCurrency
+      )
+//      println(s"started: ${started.incrementAndGet()}")
+      val stats = StrategyTester(strategy).test(series, asset)
       val results = SectorsResults(share, stats)
-      val done = countDone.incrementAndGet()
-      println(s"done: $done")
+      println(s"done: ${done.incrementAndGet()}")
       results
     }
 
@@ -58,12 +62,12 @@ object TestStrategy extends IOApp {
         .map { res =>
           println(res.show)
           val allStats = res.sectorsStats.values.flatMap(_.values).toList.combineAll
-          println(s"total: $allStats")
+//          println("per month statistics")
+//          allStats.monthly.foreach { case (month, stats) =>
+//            println(s"$month $stats")
+//          }
           println()
-          println("per month statistics")
-          allStats.monthly.foreach { case (month, stats) =>
-            println(s"$month $stats")
-          }
+          println(s"total: ${allStats.show}")
           println()
           val end = System.currentTimeMillis()
           val duration = (end - start).millis
@@ -76,7 +80,7 @@ object TestStrategy extends IOApp {
   implicit val tickersShow: Show[Map[Share, TradingStats]] = (stats: Map[Share, TradingStats]) =>
     stats
       .map { case (share, stats) =>
-        s"${share.getTicker} (${share.getName}): $stats"
+        s"${share.getTicker} (${share.getName}): ${stats.show}"
       }
       .mkString("\n")
 

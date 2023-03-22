@@ -115,7 +115,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
       val brokerFuture = wrapBroker(λ[IO ~> Future](_.unsafeToFuture()))(broker)
       val figiList = assets.keys.toList
       val moneyTracker = TinkoffBroker.moneyTracker(broker)
-      val policy = new MoneyManagementPolicy(moneyTracker)(
+      val policy = new MoneyManagementPolicy(() => moneyTracker.get)(
         maxPercentage = 0.025,
         maxAbsolute = Map(
           "usd" -> 200,
