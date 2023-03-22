@@ -2,13 +2,7 @@ package com.github.ppotseluev.algorate.tools.strategy
 
 import cats.Id
 import com.github.ppotseluev.algorate.cats.Provider
-import com.github.ppotseluev.algorate.{
-  Currency,
-  Money,
-  Stats,
-  TradingAsset,
-  TradingStats
-}
+import com.github.ppotseluev.algorate.{Currency, Money, Stats, TradingAsset, TradingStats}
 import com.github.ppotseluev.algorate.strategy.FullStrategy
 import com.github.ppotseluev.algorate.trader.policy.Policy.{Decision, TradeRequest}
 import com.github.ppotseluev.algorate.trader.policy.{MoneyManagementPolicy, Policy}
@@ -19,7 +13,7 @@ import org.ta4j.core.cost.{CostModel, LinearTransactionCostModel, ZeroCostModel}
 
 private[strategy] case class StrategyTester(
     strategyBuilder: BarSeries => FullStrategy,
-    tradingPolicy: Policy = StrategyTester.oneLotPolicy, //StrategyTester.fixedTradeCostPolicy()
+    tradingPolicy: Policy = StrategyTester.fixedTradeCostPolicy().andThen(_.allowedOrElse(Decision.Allowed(1)))
 ) {
   def test(series: BarSeries, asset: TradingAsset): TradingStats = {
     val strategy = strategyBuilder(series)
@@ -44,8 +38,8 @@ private[strategy] object StrategyTester {
   val oneLotPolicy: Policy = _ => Decision.Allowed(1)
 
   def fixedTradeCostPolicy(
-      usdTrade: Int = 200,
-      rubTrade: Int = 15000
+      usdTrade: Int = 10_000,
+      rubTrade: Int = 770_000
   ): Policy = {
     val money: Money = Map("usd" -> Int.MaxValue, "rub" -> Int.MaxValue)
     new MoneyManagementPolicy(() => Some(money))(
@@ -54,6 +48,6 @@ private[strategy] object StrategyTester {
         "usd" -> usdTrade,
         "rub" -> rubTrade
       )
-    ).andThen(_.allowedOrElse(Decision.Allowed(1)))
+    )
   }
 }

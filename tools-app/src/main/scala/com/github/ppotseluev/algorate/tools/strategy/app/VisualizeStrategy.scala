@@ -23,11 +23,11 @@ object VisualizeStrategy extends IOApp with StrictLogging {
   val tester = StrategyTester(strategy)
   //  val ticker = "YNDX"
   //  val ticker = "CHMF"
-  val id = "BBG000BBS2Y0"
+  val id = "BBG000PSKYX7"
   val interval = CandlesInterval(
     interval = DaysInterval(
-      LocalDate.of(2022, 6, 8),
-      LocalDate.of(2022, 6, 8)
+      LocalDate.of(2022, 9, 1),
+      LocalDate.of(2022, 9, 30)
     ),
     resolution = OneMinute
   )
@@ -48,6 +48,10 @@ object VisualizeStrategy extends IOApp with StrictLogging {
           )
           result = tester.test(series, asset)
           _ <- IO {
+            println("per month statistics")
+            result.monthly.foreach { case (month, stats) =>
+              println(s"$month ${stats.show}")
+            }
             println(result.show)
             TradingCharts.display(
               strategyBuilder = strategy,

@@ -9,9 +9,11 @@ import FullStrategy.IndicatorInfo
 case class FullStrategy(
     longStrategy: Strategy,
     shortStrategy: Strategy,
-    priceIndicators: Map[String, IndicatorInfo],
+    getPriceIndicators: () => Map[String, IndicatorInfo],
     oscillators: Map[String, IndicatorInfo]
-)
+) {
+  lazy val priceIndicators: Map[String, IndicatorInfo] = getPriceIndicators()
+}
 
 object FullStrategy {
   sealed trait Representation
