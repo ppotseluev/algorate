@@ -15,16 +15,16 @@ import com.typesafe.scalalogging.StrictLogging
 import java.time.LocalDate
 
 object VisualizeStrategy extends IOApp with StrictLogging {
-
+//TODO check discrepancy when use archive data
   val strategy = Strategies.intraChannel
   val tester = StrategyTester(strategy)
   //  val ticker = "YNDX"
   //  val ticker = "CHMF"
-  val ticker = "CSCO"
+  val ticker = "POLY"
   val interval = CandlesInterval(
     interval = DaysInterval(
-      LocalDate.now.minusDays(5),
-      LocalDate.now.minusDays(2)
+      LocalDate.of(2023, 1, 1),
+      LocalDate.of(2023, 3, 11)
     ),
     resolution = OneMinute
   )
@@ -34,7 +34,7 @@ object VisualizeStrategy extends IOApp with StrictLogging {
       .use { broker =>
         val seriesProvider = new BarSeriesProvider[IO](broker)
         for {
-          share <- broker.getShareByTicker(ticker)
+          share <- broker.getShareById("BBG004PYF2N3")
           series <- seriesProvider.getBarSeries(share, interval)
           _ <- IO {
             logger.info(s"Data has been collected (${series.getBarCount} bars), start testing...")

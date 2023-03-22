@@ -2,16 +2,14 @@ package com.github.ppotseluev.algorate.tools
 
 import com.github.ppotseluev.algorate.server.Factory
 import ru.tinkoff.piapi.contract.v1.MoneyValue
-//import ru.tinkoff.piapi.contract.v1.MoneyValue
 
 object CreateSandboxAccount extends App {
 
   val api = Factory.io.investApi
 
   val sandbox = api.getSandboxService
-//  val accountId = "b24ea732-9ad6-478b-a224-8eefee2e380c"
   val accountId = sandbox.openAccountSync()
-  println(s"Sandbox account: $accountId")
+  println(s"New sandbox account: $accountId")
 
   val moneyUsd = MoneyValue
     .newBuilder()
@@ -25,13 +23,12 @@ object CreateSandboxAccount extends App {
     .build()
 
   sandbox.payInSync(accountId, moneyRub)
-  val balance = sandbox.payInSync(accountId, moneyUsd)
-  println(s"Balance: $balance")
+  sandbox.payInSync(accountId, moneyUsd)
 
-//  println(
-//    sandbox.getPositionsSync(accountId)
-//  )
-//
+  println(
+    sandbox.getPositionsSync(accountId)
+  )
+
 //  val inst = api.getInstrumentsService.getInstrumentByFigiSync("BBG0013HGFT4")
 //  println(inst)
 

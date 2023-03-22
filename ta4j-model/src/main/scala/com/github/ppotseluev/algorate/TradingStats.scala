@@ -21,8 +21,12 @@ case class TradingStats(
     SeqMap.from(stats)
   }
 
-  override def toString: String =
-    s"LONG (${long.totalClosedPositions}, ${long.winRatio}), SHORT (${short.totalClosedPositions}, ${short.winRatio})"
+  override def toString: String = {
+    val totalPositions = long.totalClosedPositions + short.totalClosedPositions
+    val totalWon = long.winningPositions + short.winningPositions
+    val winRatio = totalWon.toDouble / totalPositions
+    s"LONG (${long.totalClosedPositions}, ${long.winRatio}), SHORT (${short.totalClosedPositions}, ${short.winRatio}), SUM ($totalPositions, $winRatio)"
+  }
 }
 
 object TradingStats {

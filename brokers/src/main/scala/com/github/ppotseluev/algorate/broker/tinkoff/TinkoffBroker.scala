@@ -1,7 +1,6 @@
 package com.github.ppotseluev.algorate.broker.tinkoff
 
 import cats.Functor
-import cats.Monad
 import cats.Parallel
 import cats.effect.Sync
 import cats.effect.Temporal
@@ -10,19 +9,21 @@ import cats.implicits._
 import com.github.ppotseluev.algorate.Bar
 import com.github.ppotseluev.algorate.Order.Type
 import com.github.ppotseluev.algorate._
+import com.github.ppotseluev.algorate.broker.ArchiveCachedBroker
 import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.Day
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
-import com.github.ppotseluev.algorate.broker.CachedBroker
 import com.github.ppotseluev.algorate.broker.LoggingBroker
 import com.github.ppotseluev.algorate.broker.MoneyTracker
+import com.github.ppotseluev.algorate.broker.RedisCachedBroker
 import com.github.ppotseluev.algorate.broker.TestBroker
 import com.github.ppotseluev.algorate.cats.Provider
 import com.github.ppotseluev.algorate.math._
 import com.typesafe.scalalogging.LazyLogging
 import dev.profunktor.redis4cats.RedisCommands
+import java.nio.file.Path
 import java.time.ZoneId
 import ru.tinkoff.piapi.contract.v1.CandleInterval
 import ru.tinkoff.piapi.contract.v1.HistoricCandle
@@ -45,6 +46,19 @@ object TinkoffBroker {
         .map { relatedShares =>
           require(relatedShares.size == 1, s"${relatedShares.size} shares found for figi $id")
           relatedShares.head
+        }
+
+    final def getSharesById(ids: Set[InstrumentId])(implicit F: Functor[F]): F[List[Share]] =
+      getAllShares
+        .map(_.filter(s => ids.contains(s.getFigi)))
+        .map {
+          _.groupBy(_.getFigi).map { case (id, sharesWithSameId) =>
+            require(
+              sharesWithSameId.size == 1,
+              s"${sharesWithSameId.size} shares found for figi $id"
+            )
+            sharesWithSameId.head
+          }.toList
         }
 
     final def getShareByTicker(ticker: Ticker)(implicit F: Functor[F]): F[Share] =
@@ -206,16 +220,20 @@ object TinkoffBroker {
       override def getPositions: F[Positions] = _broker.getPositions
     }
 
-  def withCaching[F[_]: Monad: Parallel](
+  def withCaching[F[_]: Sync: Parallel](
       _broker: TinkoffBroker[F],
-      barsCache: RedisCommands[F, String, List[Bar]],
+      barsCache: Either[Path, RedisCommands[F, String, List[Bar]]],
       sharesCache: RedisCommands[F, String, List[Share]],
       sharesTtl: FiniteDuration = 1.day
   ): TinkoffBroker[F] =
     new Broker[F] with Ops[F] {
       private val sharesKey = "shares"
-      private val broker = new CachedBroker(_broker, barsCache)
-
+      private val broker = barsCache match {
+        case Left(archiveDir) =>
+          new ArchiveCachedBroker(_broker, archiveDir)
+        case Right(redisCache) =>
+          new RedisCachedBroker(_broker, redisCache)
+      }
       override def getAllShares: F[List[Share]] =
         sharesCache.get(sharesKey).flatMap {
           case Some(shares) => shares.pure[F]

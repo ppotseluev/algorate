@@ -11,6 +11,8 @@ import com.github.ppotseluev.algorate.TradingStats
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.tools.strategy.BarSeriesProvider
 import com.github.ppotseluev.algorate.tools.strategy.StrategyTester
+import java.util.concurrent.atomic.AtomicInteger
+import org.ta4j.core.BarSeries
 import ru.tinkoff.piapi.contract.v1.Share
 import scala.concurrent.duration._
 
@@ -20,25 +22,39 @@ import scala.concurrent.duration._
 object TestStrategy extends IOApp {
   import com.github.ppotseluev.algorate.tools.strategy.TestSetup._
 
+  val countDone = new AtomicInteger()
+  val countStarted = new AtomicInteger()
+
+  private val test = (share: Share, series: BarSeries) =>
+    IO.blocking {
+      val started = countStarted.incrementAndGet()
+      println(s"started: $started")
+      val stats = StrategyTester(strategy).test(series)
+      val results = SectorsResults(share, stats)
+      val done = countDone.incrementAndGet()
+      println(s"done: $done")
+      results
+    }
+
   override def run(args: List[String]): IO[ExitCode] = {
     Factory.io.tinkoffBroker.use { broker =>
       val start = System.currentTimeMillis()
+      val barSeriesProvider = new BarSeriesProvider(broker)
 
-      val result: IO[SectorsResults] = {
-        val barSeriesProvider = new BarSeriesProvider(broker)
-        ids
-          .traverse(broker.getShareById)
-          .flatMap {
-            _.parTraverse { share =>
-              barSeriesProvider.getBarSeries(share, interval).map { series =>
-                val stats = StrategyTester(strategy).test(series)
-                SectorsResults(share, stats)
-              }
-            }
-          }
+      def testAll(shares: List[Share]): IO[SectorsResults] = {
+        val maxConcurrent = 8
+        println("start testing")
+        barSeriesProvider
+          .streamBarSeries(shares, interval, maxConcurrent, skipNotFound = true)
+          .parEvalMapUnordered(maxConcurrent)(test.tupled)
+          .compile
+          .toList
           .map(_.combineAll)
       }
-      result
+
+      broker
+        .getSharesById(ids.toSet)
+        .flatMap(testAll)
         .map { res =>
           println(res.show)
           val allStats = res.sectorsStats.values.flatMap(_.values).toList.combineAll

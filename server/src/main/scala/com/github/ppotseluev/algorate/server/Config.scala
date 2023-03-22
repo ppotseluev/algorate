@@ -12,7 +12,9 @@ case class Config(
     candlesMinInterval: FiniteDuration,
     telegramUrl: String,
     telegramUsersWhitelist: Set[Int],
-    apiConfig: Api.Config
+    apiConfig: Api.Config,
+    enableBrokerCache: Boolean,
+    historicalDataArchive: Option[String]
 ) {
   def telegramTrackedChats: Set[String] = Set(telegramChatId)
 }

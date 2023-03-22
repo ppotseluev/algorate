@@ -5,12 +5,6 @@ import cats.data.NonEmptyList
 import cats.implicits._
 import com.github.ppotseluev.algorate.Currency
 import com.github.ppotseluev.algorate.Price
-import com.github.ppotseluev.algorate.trader.policy.Policy.Decision
-import com.github.ppotseluev.algorate.trader.policy.Policy.TradeRequest
-
-trait Policy {
-  def apply(request: TradeRequest): Decision
-}
 
 object Policy {
   def combine(policy: Policy, policies: Policy*): Policy = request =>
@@ -21,7 +15,13 @@ object Policy {
       currency: Currency
   )
 
-  sealed trait Decision
+  sealed trait Decision {
+    def allowedOrElse(decision: Decision): Decision = this match {
+      case allowed: Decision.Allowed => allowed
+      case _: Decision.Denied        => decision
+    }
+  }
+
   object Decision {
     implicit val semigroup: Semigroup[Decision] = (d1, d2) =>
       (d1, d2) match {

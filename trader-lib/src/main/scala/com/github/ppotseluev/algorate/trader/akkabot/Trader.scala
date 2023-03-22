@@ -27,7 +27,6 @@ import org.ta4j.core.BaseBarSeries
 import org.ta4j.core.BaseTradingRecord
 import org.ta4j.core.Trade.TradeType
 import org.ta4j.core.TradingRecord
-import org.ta4j.core.cost.LinearTransactionCostModel
 import org.ta4j.core.cost.ZeroCostModel
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -36,7 +35,8 @@ import scala.util.Success
 import scala.util.Try
 
 object Trader extends LoggingSupport {
-  private val feeModel = new LinearTransactionCostModel(0.0005)
+  private val feeModel = new ZeroCostModel()
+//    new LinearTransactionCostModel(0.0005) TODO
   private val zeroCost = new ZeroCostModel()
 
   private def gauge(name: String) =
@@ -186,6 +186,7 @@ object Trader extends LoggingSupport {
         )
         val lastIndex = barSeries.getEndIndex
         val lastPrice = barSeries.getBar(lastIndex).getClosePrice
+        assert(lastPrice.doubleValue == point.value, "wrong last price") //TODO
         def placeOrder(order: Order): Unit =
           ctx.pipeToSelf(broker.placeOrder(order))(orderPlacedEvent(order))
         def tryEnter(operationType: OperationType): Unit = {

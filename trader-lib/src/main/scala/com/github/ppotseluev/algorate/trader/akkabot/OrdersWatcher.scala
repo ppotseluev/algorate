@@ -45,13 +45,13 @@ object OrdersWatcher extends LazyLogging {
       Behaviors.receive { (ctx, request) =>
         request match {
           case RegisterOrder(info @ OrderPlacementInfo(orderId, status), trader) =>
-//            if (status == Pending) { TODO get back
-            orders = orders.updated(orderId, OrderData(status, trader))
-            ctx.scheduleOnce(checkEvery, ctx.self, CheckOrder(orderId))
-//            } else {
-//              logger.warn("Received order in final status, returning received status")
-//              trader ! Trader.Event.OrderUpdated(info)
-//            }
+            if (status == Pending) { // TODO ALGOR-30 investigate failures
+              orders = orders.updated(orderId, OrderData(status, trader))
+              ctx.scheduleOnce(checkEvery, ctx.self, CheckOrder(orderId))
+            } else {
+              logger.warn("Received order in final status, returning received status")
+              trader ! Trader.Event.OrderUpdated(info)
+            }
           case CheckOrder(orderId) =>
             ctx.pipeToSelf(broker.getOrderInfo(orderId)) {
               case Failure(t) =>
