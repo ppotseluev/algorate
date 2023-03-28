@@ -23,11 +23,11 @@ object VisualizeStrategy extends IOApp with StrictLogging {
   val tester = StrategyTester(strategy)
   //  val ticker = "YNDX"
   //  val ticker = "CHMF"
-  val id = "BBG000PSKYX7"
+  val id = "BBG000BBS2Y0"
   val interval = CandlesInterval(
     interval = DaysInterval(
-      LocalDate.of(2022, 9, 1),
-      LocalDate.of(2022, 9, 30)
+      LocalDate.of(2022, 1, 1),
+      LocalDate.of(2022, 12, 31)
     ),
     resolution = OneMinute
   )
@@ -57,7 +57,8 @@ object VisualizeStrategy extends IOApp with StrictLogging {
               strategyBuilder = strategy,
               series = series,
               tradingStats = Some(result),
-              title = s"${share.getTicker} (${share.getName})"
+              title = s"${share.getTicker} (${share.getName})",
+              profitableTrades = Some(false)
             )
           }
         } yield ExitCode.Success

@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import org.ta4j.core.BarSeries
 import ru.tinkoff.piapi.contract.v1.Share
 
+import scala.collection.immutable.ListMap
 import scala.concurrent.duration._
 
 /**
@@ -90,12 +91,17 @@ object TestStrategy extends IOApp {
 
   object SectorsResults {
     implicit val show: Show[SectorsResults] = res =>
-      res.sectorsStats.map { case (sector, value) =>
-        s"""
+      res.sectorsStats.toList
+        .sortBy(_._2.values.toList.map(_.totalPositions).max)
+        .map { case (sector, value) =>
+          val sorted: Map[Share, TradingStats] =
+            ListMap.from(value.toList.sortBy(_._2.totalPositions))
+          s"""
           |Sector: $sector
-          |${value.show} 
+          |${sorted.show}
           |""".stripMargin
-      }.mkString
+        }
+        .mkString
 
     implicit val monoid: Monoid[SectorsResults] = semiauto.monoid
 

@@ -10,7 +10,6 @@ import org.ta4j.core.indicators.RecursiveCachedIndicator
 import org.ta4j.core.num.Num
 import scala.reflect.ClassTag
 
-import ChannelIndicator.Bounds
 import ChannelIndicator.CalculatedChannel
 import ChannelIndicator.Channel
 import ChannelIndicator.ChannelState
@@ -87,7 +86,7 @@ class ChannelIndicator private (
       (upperBound, upperAppr) <- calc[Extremum.Max](index)
       section = Section(lowerBound = lowerBound, upperBound = upperBound)
       bounds = Bounds(lower = lowerAppr, upper = upperAppr)
-    } yield Channel(section, bounds)
+    } yield Channel(section, bounds, index)
 
   override protected def calculate(index: Int): ChannelState = {
     def actualizeLastChannel(channel: Channel): ChannelState = {
@@ -160,20 +159,18 @@ object ChannelIndicator {
   }
 
   sealed trait ChannelState
-  case class NeedNewChannel(last: Bounds) extends ChannelState
+  case class NeedNewChannel(last: ChannelBounds) extends ChannelState
   case class CalculatedChannel(channel: Channel) extends ChannelState
   case object Empty extends ChannelState
 
   case class Section(lowerBound: Num, upperBound: Num)
 
-  case class Bounds(
-      lower: Approximation,
-      upper: Approximation
-  )
+  type ChannelBounds = Bounds[Approximation]
 
   case class Channel(
       section: Section,
-      bounds: Bounds
+      bounds: ChannelBounds,
+      startIndex: Int
   ) {
     def upperBoundApproximation: Approximation = bounds.upper
 

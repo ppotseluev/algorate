@@ -1,11 +1,12 @@
 package com.github.ppotseluev.algorate.tools.strategy
 
-import cats.Id
+import cats.{Id, Monoid}
 import com.github.ppotseluev.algorate.cats.Provider
 import com.github.ppotseluev.algorate.{Currency, Money, Stats, TradingAsset, TradingStats}
 import com.github.ppotseluev.algorate.strategy.FullStrategy
 import com.github.ppotseluev.algorate.trader.policy.Policy.{Decision, TradeRequest}
 import com.github.ppotseluev.algorate.trader.policy.{MoneyManagementPolicy, Policy}
+import com.typesafe.scalalogging.LazyLogging
 import org.ta4j.core.BarSeries
 import org.ta4j.core.BarSeriesManager
 import org.ta4j.core.Trade.TradeType
@@ -13,8 +14,9 @@ import org.ta4j.core.cost.{CostModel, LinearTransactionCostModel, ZeroCostModel}
 
 private[strategy] case class StrategyTester(
     strategyBuilder: BarSeries => FullStrategy,
-    tradingPolicy: Policy = StrategyTester.fixedTradeCostPolicy().andThen(_.allowedOrElse(Decision.Allowed(1)))
-) {
+    tradingPolicy: Policy =
+      StrategyTester.fixedTradeCostPolicy() //.andThen(_.allowedOrElse(Decision.Allowed(1)))
+) extends LazyLogging {
   def test(series: BarSeries, asset: TradingAsset): TradingStats = {
     val strategy = strategyBuilder(series)
     val avgPrice =
@@ -24,13 +26,18 @@ private[strategy] case class StrategyTester(
     val lots = series.numOf {
       tradingPolicy.apply(TradeRequest(avgPrice.doubleValue, asset.currency)).lots
     }
-    val seriesManager = new BarSeriesManager(series)
-    val longRecord = seriesManager.run(strategy.longStrategy, TradeType.BUY, lots)
-    val shortRecord = seriesManager.run(strategy.shortStrategy, TradeType.SELL, lots)
-    TradingStats(
-      long = Stats.fromRecord(longRecord, series, asset),
-      short = Stats.fromRecord(shortRecord, series, asset)
-    )
+    if (lots.isPositive) {
+      val seriesManager = new BarSeriesManager(series)
+      val longRecord = seriesManager.run(strategy.longStrategy, TradeType.BUY, lots)
+      val shortRecord = seriesManager.run(strategy.shortStrategy, TradeType.SELL, lots)
+      TradingStats(
+        long = Stats.fromRecord(longRecord, series, asset),
+        short = Stats.fromRecord(shortRecord, series, asset)
+      )
+    } else {
+      logger.info(s"Skipping ${asset.ticker} ($avgPrice ${asset.currency})")
+      Monoid[TradingStats].empty
+    }
   }
 }
 
@@ -38,8 +45,8 @@ private[strategy] object StrategyTester {
   val oneLotPolicy: Policy = _ => Decision.Allowed(1)
 
   def fixedTradeCostPolicy(
-      usdTrade: Int = 10_000,
-      rubTrade: Int = 770_000
+      usdTrade: Int = 300,
+      rubTrade: Int = 21_000
   ): Policy = {
     val money: Money = Map("usd" -> Int.MaxValue, "rub" -> Int.MaxValue)
     new MoneyManagementPolicy(() => Some(money))(
