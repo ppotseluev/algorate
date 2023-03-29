@@ -8,9 +8,9 @@ import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import com.github.ppotseluev.algorate.strategy.Strategies
+import java.io.File
 import java.time.LocalDate
 import munit.FunSuite
-import org.graalvm.polyglot.io.FileSystem
 
 class StrategySpec extends FunSuite {
   val strategy = Strategies.intraChannel
@@ -25,8 +25,8 @@ class StrategySpec extends FunSuite {
 
   type F[T] = IO[T]
 
-  val path = "tools-app/data/archive"
-  val archive = new Archive[F](FileSystem.newDefaultFileSystem().parsePath(path))
+  val path = new File("tools-app/data/archive").toPath
+  val archive = new Archive[F](path)
 
   test("strategy works as expected") {
     val seriesProvider = new BarSeriesProvider[F](archive)
