@@ -1,9 +1,7 @@
 package com.github.ppotseluev.algorate.broker
 
-import com.github.ppotseluev.algorate.Bar
 import com.github.ppotseluev.algorate.Order
 import com.github.ppotseluev.algorate._
-import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
 import java.time.Instant
 import java.time.LocalDate

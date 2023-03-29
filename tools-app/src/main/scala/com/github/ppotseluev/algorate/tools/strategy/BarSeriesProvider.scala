@@ -3,12 +3,12 @@ package com.github.ppotseluev.algorate.tools.strategy
 import cats.Parallel
 import cats.effect.Async
 import cats.implicits._
-import com.github.ppotseluev.algorate.{BarsConverter, TradingAsset}
+import com.github.ppotseluev.algorate.BarsConverter
+import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.broker.Archive.ArchiveNotFound
-import com.github.ppotseluev.algorate.broker.{BarDataProvider, Broker}
+import com.github.ppotseluev.algorate.broker.BarDataProvider
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import fs2.Stream
-
 import java.util.concurrent.atomic.AtomicInteger
 import org.ta4j.core.BarSeries
 import ru.tinkoff.piapi.contract.v1.Share

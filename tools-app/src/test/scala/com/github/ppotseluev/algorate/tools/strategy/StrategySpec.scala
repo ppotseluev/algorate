@@ -5,12 +5,12 @@ import cats.effect.unsafe.implicits.global
 import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.broker.Archive
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
-import com.github.ppotseluev.algorate.broker.Broker.{CandlesInterval, DaysInterval}
+import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
+import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import com.github.ppotseluev.algorate.strategy.Strategies
+import java.time.LocalDate
 import munit.FunSuite
 import org.graalvm.polyglot.io.FileSystem
-
-import java.time.LocalDate
 
 class StrategySpec extends FunSuite {
   val strategy = Strategies.intraChannel

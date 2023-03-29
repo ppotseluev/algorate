@@ -1,16 +1,19 @@
 package com.github.ppotseluev.algorate.tools.strategy
 
-import cats.{Id, Monoid}
-import com.github.ppotseluev.algorate.cats.Provider
-import com.github.ppotseluev.algorate.{Currency, Money, Stats, TradingAsset, TradingStats}
+import cats.Monoid
+import com.github.ppotseluev.algorate.Money
+import com.github.ppotseluev.algorate.Stats
+import com.github.ppotseluev.algorate.TradingAsset
+import com.github.ppotseluev.algorate.TradingStats
 import com.github.ppotseluev.algorate.strategy.FullStrategy
-import com.github.ppotseluev.algorate.trader.policy.Policy.{Decision, TradeRequest}
-import com.github.ppotseluev.algorate.trader.policy.{MoneyManagementPolicy, Policy}
+import com.github.ppotseluev.algorate.trader.policy.MoneyManagementPolicy
+import com.github.ppotseluev.algorate.trader.policy.Policy
+import com.github.ppotseluev.algorate.trader.policy.Policy.Decision
+import com.github.ppotseluev.algorate.trader.policy.Policy.TradeRequest
 import com.typesafe.scalalogging.LazyLogging
 import org.ta4j.core.BarSeries
 import org.ta4j.core.BarSeriesManager
 import org.ta4j.core.Trade.TradeType
-import org.ta4j.core.cost.{CostModel, LinearTransactionCostModel, ZeroCostModel}
 
 private[strategy] case class StrategyTester(
     strategyBuilder: BarSeries => FullStrategy,

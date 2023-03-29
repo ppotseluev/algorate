@@ -1,9 +1,9 @@
 package com.github.ppotseluev.algorate
 
-import cats.implicits._
-import cats.{Monoid, Show}
+import cats.Monoid
+import cats.Show
 import cats.derived.semiauto
-
+import cats.implicits._
 import java.time.YearMonth
 import scala.collection.immutable.SeqMap
 
@@ -50,8 +50,11 @@ object TradingStats {
     val totalReal = totalWinRatio(true)
     val diff = (totalNoFee - totalReal) / totalNoFee * 100
     s"""
-       |LONG (${long.totalClosedPositions}, no_fee ${long.winRatio(false)}, real ${long.winRatio(true)}),
-       |SHORT (${short.totalClosedPositions}, no_fee ${short.winRatio(false)}, real ${short.winRatio(true)}),
+       |LONG (${long.totalClosedPositions}, no_fee ${long.winRatio(false)}, real ${long.winRatio(
+      true
+    )}),
+       |SHORT (${short.totalClosedPositions}, no_fee ${short.winRatio(false)}, real ${short
+      .winRatio(true)}),
        |SUM ($totalPositions, no_fee $totalNoFee, real $totalReal),
        |NO_FEE_PROFIT: ${profit(fee = false)}, REAL_PROFIT: ${profit(fee = true)},
        |DIFF: $diff%

@@ -2,8 +2,8 @@ package com.github.ppotseluev.algorate.tools.strategy.app
 
 import cats.effect.ExitCode
 import cats.effect.IO
-import cats.implicits._
 import cats.effect.IOApp
+import cats.implicits._
 import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution.OneMinute
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
@@ -14,7 +14,6 @@ import com.github.ppotseluev.algorate.strategy.Strategies
 import com.github.ppotseluev.algorate.tools.strategy.BarSeriesProvider
 import com.github.ppotseluev.algorate.tools.strategy.StrategyTester
 import com.typesafe.scalalogging.StrictLogging
-
 import java.time.LocalDate
 
 object VisualizeStrategy extends IOApp with StrictLogging {

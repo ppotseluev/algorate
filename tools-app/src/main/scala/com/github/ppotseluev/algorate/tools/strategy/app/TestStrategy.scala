@@ -7,15 +7,14 @@ import cats.effect.ExitCode
 import cats.effect.IO
 import cats.effect.IOApp
 import cats.implicits._
-import com.github.ppotseluev.algorate.{TradingAsset, TradingStats}
+import com.github.ppotseluev.algorate.TradingAsset
+import com.github.ppotseluev.algorate.TradingStats
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.tools.strategy.BarSeriesProvider
 import com.github.ppotseluev.algorate.tools.strategy.StrategyTester
-
 import java.util.concurrent.atomic.AtomicInteger
 import org.ta4j.core.BarSeries
 import ru.tinkoff.piapi.contract.v1.Share
-
 import scala.collection.immutable.ListMap
 import scala.concurrent.duration._
 

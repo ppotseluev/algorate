@@ -1,7 +1,8 @@
 package com.github.ppotseluev.algorate.strategy.indicator
 
+import cats.Functor
+import cats.Monoid
 import cats.derived.semiauto
-import cats.{Functor, Monoid}
 
 case class Bounds[T](
     lower: T,

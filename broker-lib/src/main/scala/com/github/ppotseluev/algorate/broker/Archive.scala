@@ -3,18 +3,21 @@ package com.github.ppotseluev.algorate.broker
 import cats.effect.Resource
 import cats.effect.kernel.Sync
 import cats.implicits._
-import com.github.ppotseluev.algorate.broker.Archive.{ArchiveCandle, ArchiveNotFound}
-import com.github.ppotseluev.algorate.broker.Broker.{CandleResolution, CandlesInterval}
+import com.github.ppotseluev.algorate.Bar
+import com.github.ppotseluev.algorate.InstrumentId
+import com.github.ppotseluev.algorate.Price
+import com.github.ppotseluev.algorate.broker.Archive.ArchiveCandle
+import com.github.ppotseluev.algorate.broker.Archive.ArchiveNotFound
+import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
+import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.cats.CatsUtils._
-import com.github.ppotseluev.algorate.{Bar, InstrumentId, Price}
 import com.typesafe.scalalogging.LazyLogging
-import kantan.csv._
-import kantan.csv.ops._
-import kantan.csv.generic._
-
 import java.io.File
 import java.nio.file.Path
 import java.time.OffsetDateTime
+import kantan.csv._
+import kantan.csv.generic._
+import kantan.csv.ops._
 import scala.concurrent.duration.FiniteDuration
 
 class Archive[F[_]: Sync](archiveDir: Path) extends BarDataProvider[F] with LazyLogging {
