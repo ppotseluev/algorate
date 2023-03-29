@@ -13,15 +13,10 @@ import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 
-trait Broker[F[_]] {
+trait Broker[F[_]] extends BarDataProvider[F] {
   def getOrderInfo(orderId: OrderId): F[OrderPlacementInfo]
 
   def placeOrder(order: Order): F[OrderPlacementInfo]
-
-  def getData(
-      instrumentId: InstrumentId,
-      interval: CandlesInterval
-  ): F[List[Bar]]
 }
 
 object Broker {

@@ -31,6 +31,7 @@ object TestStrategy extends IOApp {
   private val test = (share: Share, series: BarSeries) =>
     IO.blocking {
       val asset = TradingAsset(
+        instrumentId = share.getFigi,
         ticker = share.getTicker,
         currency = share.getCurrency
       )

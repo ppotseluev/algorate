@@ -357,7 +357,7 @@ object SharesFinder extends App {
   val data = shares.flatMap { share =>
 //    if (ids.contains(share.getFigi)) {
     (
-      q(share.getFigi) -> TradingAsset(q(share.getTicker), q(share.getCurrency))
+      q(share.getFigi) -> TradingAsset(q(share.getFigi), q(share.getTicker), q(share.getCurrency))
     ).some
 //    } else {
 //      None
