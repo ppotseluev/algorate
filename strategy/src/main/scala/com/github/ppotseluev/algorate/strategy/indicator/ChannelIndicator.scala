@@ -43,6 +43,9 @@ class ChannelIndicator private (
       .reverse
   }
 
+  private def collectExtremums(indexRange: Range): Seq[Extremum] =
+    indexRange.flatMap(extremumIndicator.getValue)
+
   private def approximate[T <: Extremum](points: List[T]): Option[Approximation] = {
     val weightedPoints = points.map { extremum =>
       WeightedPoint(1, extremum.index, extremum.value.doubleValue)
@@ -86,7 +89,12 @@ class ChannelIndicator private (
       (upperBound, upperAppr) <- calc[Extremum.Max](index)
       section = Section(lowerBound = lowerBound, upperBound = upperBound)
       bounds = Bounds(lower = lowerAppr, upper = upperAppr)
-    } yield Channel(section, bounds, index)
+      List(minStartIndex, maxStartIndex) = List(lowerAppr, upperAppr)
+        .map(_.points.head.x.toInt)
+        .sorted
+      uncountedExtremums = collectExtremums(minStartIndex to maxStartIndex)
+      channel = Channel(section, bounds, index) if uncountedExtremums.forall(isFit(channel, _))
+    } yield channel
 
   override protected def calculate(index: Int): ChannelState = {
     def actualizeLastChannel(channel: Channel): ChannelState = {

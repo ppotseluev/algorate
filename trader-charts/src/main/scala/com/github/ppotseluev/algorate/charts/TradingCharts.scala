@@ -237,9 +237,9 @@ object TradingCharts {
       series: BarSeries,
       tradingStats: Option[TradingStats],
       title: String,
-      profitableTrades: Option[Boolean]
+      profitableTradesFilter: Option[Boolean]
   ): Unit = {
-    val chart = createChart(strategyBuilder, series, tradingStats, title, profitableTrades)
+    val chart = createChart(strategyBuilder, series, tradingStats, title, profitableTradesFilter)
     val panel = buildPanel(chart)
     display(panel, "Algorate")
   }

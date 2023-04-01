@@ -17,8 +17,7 @@ import org.ta4j.core.Trade.TradeType
 
 private[strategy] case class StrategyTester(
     strategyBuilder: BarSeries => FullStrategy,
-    tradingPolicy: Policy =
-      StrategyTester.fixedTradeCostPolicy() //.andThen(_.allowedOrElse(Decision.Allowed(1)))
+    tradingPolicy: Policy = TestSetup.fixedTradeCostPolicy()
 ) extends LazyLogging {
   def test(series: BarSeries, asset: TradingAsset): TradingStats = {
     val strategy = strategyBuilder(series)
@@ -41,23 +40,5 @@ private[strategy] case class StrategyTester(
       logger.info(s"Skipping ${asset.ticker} ($avgPrice ${asset.currency})")
       Monoid[TradingStats].empty
     }
-  }
-}
-
-private[strategy] object StrategyTester {
-  val oneLotPolicy: Policy = _ => Decision.Allowed(1)
-
-  def fixedTradeCostPolicy(
-      usdTrade: Int = 300,
-      rubTrade: Int = 21_000
-  ): Policy = {
-    val money: Money = Map("usd" -> Int.MaxValue, "rub" -> Int.MaxValue)
-    new MoneyManagementPolicy(() => Some(money))(
-      maxPercentage = 1,
-      maxAbsolute = Map(
-        "usd" -> usdTrade,
-        "rub" -> rubTrade
-      )
-    )
   }
 }

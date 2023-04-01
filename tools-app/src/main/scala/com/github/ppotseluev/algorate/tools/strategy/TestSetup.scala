@@ -1,9 +1,13 @@
 package com.github.ppotseluev.algorate.tools.strategy
 
+import com.github.ppotseluev.algorate.Money
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution.OneMinute
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import com.github.ppotseluev.algorate.strategy.Strategies
+import com.github.ppotseluev.algorate.trader.policy.Policy.Decision
+import com.github.ppotseluev.algorate.trader.policy.{MoneyManagementPolicy, Policy}
+
 import java.time.LocalDate
 //import scala.util.Random
 
@@ -23,6 +27,20 @@ private[strategy] object TestSetup {
   )
 
   val strategy = Strategies.intraChannel
+
+  def fixedTradeCostPolicy(
+      usdTrade: Int = 50,
+      rubTrade: Int = 4000
+  ): Policy = {
+    val money: Money = Map("usd" -> Int.MaxValue, "rub" -> Int.MaxValue)
+    new MoneyManagementPolicy(() => Some(money))(
+      maxPercentage = 1,
+      maxAbsolute = Map(
+        "usd" -> usdTrade,
+        "rub" -> rubTrade
+      )
+    )
+  } //andThen(_.allowedOrElse(Decision.Allowed(1)))
 
   private val sampleSize = 30
 
