@@ -11,22 +11,22 @@ import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import com.github.ppotseluev.algorate.charts.TradingCharts
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.Strategies
-import com.github.ppotseluev.algorate.tools.strategy.BarSeriesProvider
-import com.github.ppotseluev.algorate.tools.strategy.StrategyTester
+import com.github.ppotseluev.algorate.tools.strategy.{BarSeriesProvider, StrategyTester, TestSetup}
+import com.github.ppotseluev.algorate.trader.policy.Policy.Decision
 import com.typesafe.scalalogging.StrictLogging
+
 import java.time.LocalDate
 
 object VisualizeStrategy extends IOApp with StrictLogging {
 //TODO check discrepancy when use archive data
   val strategy = Strategies.intraChannel
-  val tester = StrategyTester(strategy)
-  //  val ticker = "YNDX"
-  //  val ticker = "CHMF"
-  val id = "BBG000Q3JN03"
+  val policy = TestSetup.fixedTradeCostPolicy().andThen(_.allowedOrElse(Decision.Allowed(1)))
+  val tester = StrategyTester(strategy, policy)
+  val id = "BBG006L8G4H1"
   val interval = CandlesInterval(
     interval = DaysInterval(
-      LocalDate.of(2022, 1, 1),
-      LocalDate.of(2022, 12, 31)
+      LocalDate.of(2021, 3, 3),
+      LocalDate.of(2021, 3, 3)
     ),
     resolution = OneMinute
   )
@@ -58,7 +58,7 @@ object VisualizeStrategy extends IOApp with StrictLogging {
               series = series,
               tradingStats = Some(result),
               title = s"${share.getTicker} (${share.getName})",
-              profitableTradesFilter = None
+              profitableTradesFilter = false.some
             )
           }
         } yield ExitCode.Success
