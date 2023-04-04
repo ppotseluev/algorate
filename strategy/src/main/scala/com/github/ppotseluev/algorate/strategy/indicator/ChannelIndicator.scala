@@ -1,35 +1,46 @@
 package com.github.ppotseluev.algorate.strategy.indicator
 
 import cats.data.NonEmptyList
-import cats.syntax.functor._
+import cats.implicits._
 import com.github.ppotseluev.algorate.math.Approximator
 import com.github.ppotseluev.algorate.math.Approximator.Approximation
 import com.github.ppotseluev.algorate.math.WeightedPoint
 import org.ta4j.core.indicators.AbstractIndicator
 import org.ta4j.core.indicators.RecursiveCachedIndicator
 import org.ta4j.core.num.Num
-import scala.reflect.ClassTag
 
+import scala.reflect.ClassTag
 import ChannelIndicator.CalculatedChannel
 import ChannelIndicator.Channel
 import ChannelIndicator.ChannelState
 import ChannelIndicator.NeedNewChannel
 import ChannelIndicator.Section
 import LocalExtremumIndicator.Extremum
+import com.github.ppotseluev.algorate.strategy.indicator.ExtremumCollector._
 
 class ChannelIndicator private (
     baseIndicator: AbstractIndicator[Num],
     extremumIndicator: AbstractIndicator[Option[Extremum]],
     approximator: Approximator,
     numOfPoints: Int,
-    maxError: Double
+    maxError: Double,
+    mergeExtremumsWithin: Int = 1
 ) extends RecursiveCachedIndicator[ChannelState](extremumIndicator.getBarSeries) {
 
-  private def collectExtremums[T <: Extremum](
+  private val extrMerge: Merge[Extremum] = (x, y) =>
+    if (math.abs(x.index - y.index) <= mergeExtremumsWithin)
+      List(x, y).minByOption(_.index)
+    else
+      None
+
+  private implicit val minMerge: Merge[Extremum.Min] = extrMerge.asInstanceOf[Merge[Extremum.Min]]
+  private implicit val maxMerge: Merge[Extremum.Max] = extrMerge.asInstanceOf[Merge[Extremum.Max]]
+
+  private def collectExtremums[T <: Extremum: Merge](
       index: Int,
       count: Int
   )(implicit tag: ClassTag[T]): List[T] = {
-    LazyList
+    val source = LazyList
       .from(index, -1)
       .takeWhile(_ >= 0)
       .flatMap { idx =>
@@ -38,13 +49,8 @@ class ChannelIndicator private (
           case _                => None
         }
       }
-      .take(count)
-      .toList
-      .reverse
+    ExtremumCollector.mergeCollectReverse(source, count)
   }
-
-  private def collectExtremums(indexRange: Range): Seq[Extremum] =
-    indexRange.flatMap(extremumIndicator.getValue)
 
   private def approximate[T <: Extremum](points: List[T]): Option[Approximation] = {
     val weightedPoints = points.map { extremum =>
@@ -56,7 +62,7 @@ class ChannelIndicator private (
       .map(approximator.approximate)
   }
 
-  private def calc[T <: Extremum: ClassTag](index: Int): Option[(Num, Approximation)] = {
+  private def calc[T <: Extremum: ClassTag: Merge](index: Int): Option[(Num, Approximation)] = {
     val points = collectExtremums[T](index, numOfPoints)
     approximate(points).collect {
       case appr if appr.cost <= maxError =>
@@ -92,7 +98,7 @@ class ChannelIndicator private (
       List(minStartIndex, maxStartIndex) = List(lowerAppr, upperAppr)
         .map(_.points.head.x.toInt)
         .sorted
-      uncountedExtremums = collectExtremums(minStartIndex to maxStartIndex)
+      uncountedExtremums = (minStartIndex to maxStartIndex).flatMap(extremumIndicator.getValue)
       channel = Channel(section, bounds, index) if uncountedExtremums.forall(isFit(channel, _))
     } yield channel
 

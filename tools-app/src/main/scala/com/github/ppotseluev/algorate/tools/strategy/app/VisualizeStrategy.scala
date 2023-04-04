@@ -25,8 +25,8 @@ object VisualizeStrategy extends IOApp with StrictLogging {
   val id = "BBG006L8G4H1"
   val interval = CandlesInterval(
     interval = DaysInterval(
-      LocalDate.of(2021, 3, 3),
-      LocalDate.of(2021, 3, 3)
+      LocalDate.of(2021, 1, 3),
+      LocalDate.of(2021, 12, 3)
     ),
     resolution = OneMinute
   )
