@@ -29,7 +29,7 @@ class ChannelIndicator private (
 
   private val extrMerge: Merge[Extremum] = (x, y) =>
     if (math.abs(x.index - y.index) <= mergeExtremumsWithin)
-      List(x, y).minByOption(_.index)
+      List(x, y).maxByOption(_.index)
     else
       None
 

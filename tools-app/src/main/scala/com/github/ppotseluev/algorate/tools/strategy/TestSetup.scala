@@ -29,8 +29,8 @@ private[strategy] object TestSetup {
   val strategy = Strategies.intraChannel
 
   def fixedTradeCostPolicy(
-      usdTrade: Int = 50,
-      rubTrade: Int = 4000
+      usdTrade: Int = 200,
+      rubTrade: Int = 16000
   ): Policy = {
     val money: Money = Map("usd" -> Int.MaxValue, "rub" -> Int.MaxValue)
     new MoneyManagementPolicy(() => Some(money))(
