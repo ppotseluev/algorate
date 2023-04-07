@@ -40,6 +40,8 @@ case class TradingStats(
     }
     SeqMap.from(stats)
   }
+
+  override def toString: String = Show[TradingStats].show(this)
 }
 
 object TradingStats {
