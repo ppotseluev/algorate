@@ -88,7 +88,7 @@ object Strategies {
       extremumIndicator = extremum,
       approximator = Approximator.Linear,
       numOfPoints = 3,
-      maxError = 0.0009 //0.0007
+      maxError = 0.0009 //0.0007 0.003🤔
     ).filter(ChannelUtils.isParallel(maxDelta = 0.6)) //todo?
 //      .filter(ChannelUtils.isWide(minPercent = 0.05))
 
