@@ -1,14 +1,11 @@
 package com.github.ppotseluev.algorate.tools.strategy
 
 import cats.Monoid
-import com.github.ppotseluev.algorate.Money
 import com.github.ppotseluev.algorate.Stats
 import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.TradingStats
 import com.github.ppotseluev.algorate.strategy.FullStrategy
-import com.github.ppotseluev.algorate.trader.policy.MoneyManagementPolicy
 import com.github.ppotseluev.algorate.trader.policy.Policy
-import com.github.ppotseluev.algorate.trader.policy.Policy.Decision
 import com.github.ppotseluev.algorate.trader.policy.Policy.TradeRequest
 import com.typesafe.scalalogging.LazyLogging
 import org.ta4j.core.BarSeries

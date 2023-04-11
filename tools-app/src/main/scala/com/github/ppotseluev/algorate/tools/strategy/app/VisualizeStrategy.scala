@@ -11,10 +11,11 @@ import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import com.github.ppotseluev.algorate.charts.TradingCharts
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.Strategies
-import com.github.ppotseluev.algorate.tools.strategy.{BarSeriesProvider, StrategyTester, TestSetup}
+import com.github.ppotseluev.algorate.tools.strategy.BarSeriesProvider
+import com.github.ppotseluev.algorate.tools.strategy.StrategyTester
+import com.github.ppotseluev.algorate.tools.strategy.TestSetup
 import com.github.ppotseluev.algorate.trader.policy.Policy.Decision
 import com.typesafe.scalalogging.StrictLogging
-
 import java.time.LocalDate
 
 object VisualizeStrategy extends IOApp with StrictLogging {
@@ -22,11 +23,11 @@ object VisualizeStrategy extends IOApp with StrictLogging {
   val strategy = Strategies.intraChannel
   val policy = TestSetup.fixedTradeCostPolicy().andThen(_.allowedOrElse(Decision.Allowed(1)))
   val tester = StrategyTester(strategy, policy)
-  val id = "BBG004PYF2N3"
+  val id = "BBG0029SNR63"
   val interval = CandlesInterval(
     interval = DaysInterval(
-      LocalDate.of(2023, 4, 6),
-      LocalDate.of(2023, 4, 6)
+      LocalDate.of(2021, 1, 6),
+      LocalDate.of(2021, 12, 6)
     ),
     resolution = OneMinute
   )

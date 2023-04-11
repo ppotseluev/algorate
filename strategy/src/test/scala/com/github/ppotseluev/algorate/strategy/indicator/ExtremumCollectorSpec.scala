@@ -1,11 +1,12 @@
 package com.github.ppotseluev.algorate.strategy.indicator
 
 import cats.implicits._
-import com.github.ppotseluev.algorate.strategy.indicator.ExtremumCollector.{Merge, noMerge}
+import com.github.ppotseluev.algorate.strategy.indicator.ExtremumCollector.Merge
+import com.github.ppotseluev.algorate.strategy.indicator.ExtremumCollector.noMerge
 import com.github.ppotseluev.algorate.strategy.indicator.LocalExtremumIndicator.Extremum
 import munit.FunSuite
-import org.ta4j.core.num.{DoubleNum, Num}
-
+import org.ta4j.core.num.DoubleNum
+import org.ta4j.core.num.Num
 import scala.language.implicitConversions
 
 class ExtremumCollectorSpec extends FunSuite {

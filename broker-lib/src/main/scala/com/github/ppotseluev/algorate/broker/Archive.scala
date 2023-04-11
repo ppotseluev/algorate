@@ -14,13 +14,19 @@ import com.github.ppotseluev.algorate.cats.CatsUtils._
 import com.typesafe.scalalogging.LazyLogging
 import java.io.File
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.time.OffsetDateTime
 import kantan.csv._
 import kantan.csv.generic._
 import kantan.csv.ops._
 import scala.concurrent.duration.FiniteDuration
+import scala.sys.process._
 
-class Archive[F[_]: Sync](archiveDir: Path) extends BarDataProvider[F] with LazyLogging {
+class Archive[F[_]: Sync](
+    token: String,
+    archiveDir: Path
+) extends BarDataProvider[F]
+    with LazyLogging {
 
   private val csvConfiguration = rfc.withCellSeparator(';')
 
@@ -41,8 +47,27 @@ class Archive[F[_]: Sync](archiveDir: Path) extends BarDataProvider[F] with Lazy
       .traverse { day =>
         val dayId = day.toString.replace("-", "")
         val year = day.getYear
-        val basePath = archiveDir.resolve(s"${instrumentId}_$year")
+        val dataId = s"${instrumentId}_$year"
+        val basePath = archiveDir.resolve(dataId)
         val targetFile = basePath.resolve(s"$dayId.csv").toFile
+        if (!basePath.toFile.exists()) {
+          logger.info(s"Downloading $dataId")
+
+          val scriptPath = Paths.get("tools-app/data/download.sh").toAbsolutePath.toString
+
+          val envVars = Map("TINKOFF_TOKEN" -> token)
+          val command = Seq(scriptPath, year.toString, instrumentId)
+
+          // Get the script's parent directory as the working directory
+          val workingDir = Paths.get(scriptPath).getParent.toFile
+
+          val exitCode = Process(command, Some(workingDir), envVars.toSeq: _*).!
+
+          exitCode match {
+            case 0 => logger.debug(s"Successfully downloaded $dataId")
+            case _ => throw new RuntimeException(s"Fail to download $dataId, error code $exitCode")
+          }
+        }
         Either.cond(
           basePath.toFile.exists(),
           right = Option.when(targetFile.exists())(

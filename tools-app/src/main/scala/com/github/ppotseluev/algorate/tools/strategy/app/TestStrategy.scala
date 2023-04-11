@@ -42,7 +42,8 @@ object TestStrategy extends IOApp {
     }
 
   override def run(args: List[String]): IO[ExitCode] = {
-    Factory.io.tinkoffBroker.use { broker =>
+    val factory = Factory.io
+    factory.tinkoffBroker.use { broker =>
       val start = System.currentTimeMillis()
       val barSeriesProvider = new BarSeriesProvider(broker)
 
@@ -58,7 +59,7 @@ object TestStrategy extends IOApp {
       }
 
       broker
-        .getSharesById(ids.toSet)
+        .getSharesById(factory.config.testInstrumentIds.orEmpty)
         .flatMap(testAll)
         .map { res =>
           println(res.show)
@@ -87,7 +88,9 @@ object TestStrategy extends IOApp {
 
   case class SectorsResults(
       sectorsStats: Map[String, Map[Share, TradingStats]]
-  )
+  ) {
+    def flatten: Map[Share, TradingStats] = sectorsStats.flatMap(_._2)
+  }
 
   object SectorsResults {
     implicit val show: Show[SectorsResults] = res =>

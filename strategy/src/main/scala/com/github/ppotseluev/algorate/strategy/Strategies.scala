@@ -54,7 +54,24 @@ object Strategies {
     )
   }
 
-  val intraChannel: BarSeries => FullStrategy = series => {
+  val intraChannel: BarSeries => FullStrategy = implicit series => {
+//    def hasAlternatingExtremums(channel: Channel): Boolean = {
+//      val mins = channel.allExtremums.lower
+//      val maxs = channel.allExtremums.upper
+//      (mins ++ maxs)
+//        .sortBy(_.index)
+//        .foldLeft((true, none[Extremum])) { case ((accFlag, last), extr) =>
+//          def ok = (last, extr) match {
+//            case (Some(_: Extremum.Max), _: Extremum.Min) => true
+//            case (Some(_: Extremum.Min), _: Extremum.Max) => true
+//            case (None, _)                                => true
+//            case _                                        => false
+//          }
+//          (accFlag && ok) -> extr.some
+//        }
+//        ._1
+//    }
+
     def num(number: Number): Num =
       series.numOf(number)
 
@@ -88,7 +105,7 @@ object Strategies {
       extremumIndicator = extremum,
       approximator = Approximator.Linear,
       numOfPoints = 3,
-      maxError = 0.0009 //0.0007 0.003🤔
+      maxError = 0.009 //0.0007 0.003🤔
     ).filter(ChannelUtils.isParallel(maxDelta = 0.6)) //todo?
 //      .filter(ChannelUtils.isWide(minPercent = 0.05))
 
@@ -175,12 +192,12 @@ object Strategies {
 //      new TimeRangeRule(Seq(tradeTimeRange).asJava, time.asInstanceOf[DateTimeIndicator])
     val entryLongRule =
       new BooleanIndicatorRule(hasData.map(boolean2Boolean)) &
-//        new BooleanIndicatorRule(hasFutureData.map(boolean2Boolean)) &
+        new BooleanIndicatorRule(hasFutureData.map(boolean2Boolean)) &
 //        timeRule &
         coreLongRule
     val entryShortRule =
       new BooleanIndicatorRule(hasData.map(boolean2Boolean)) &
-//        new BooleanIndicatorRule(hasFutureData.map(boolean2Boolean)) &
+        new BooleanIndicatorRule(hasFutureData.map(boolean2Boolean)) &
 //        timeRule &
         coreShortRule
     val exitShortRule =

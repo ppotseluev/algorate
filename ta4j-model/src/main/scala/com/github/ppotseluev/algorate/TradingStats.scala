@@ -18,14 +18,22 @@ case class TradingStats(
     totalWon.toDouble / totalPositions
   }
 
-  def profit(fee: Boolean): Map[Currency, Double] =
+  def profit(
+      fee: Boolean,
+      profitableOnly: Boolean = false
+  ): Map[Currency, Double] =
     (long.enrichedPositions ++ short.enrichedPositions)
       .groupBy(_.asset.currency)
       .view
       .mapValues(_.map(_.position))
       .mapValues { positions =>
-        if (fee) positions.foldMap(_.getProfit.doubleValue)
-        else positions.foldMap(_.getGrossProfit.doubleValue)
+        if (fee) {
+          val p = if (profitableOnly) positions.filter(_.hasProfit) else positions
+          p.foldMap(_.getProfit.doubleValue)
+        } else {
+          val p = if (profitableOnly) positions.filter(_.getGrossProfit.isPositive) else positions
+          p.foldMap(_.getGrossProfit.doubleValue)
+        }
       }
       .toMap
 
@@ -51,6 +59,8 @@ object TradingStats {
     val totalNoFee = totalWinRatio(false)
     val totalReal = totalWinRatio(true)
     val diff = (totalNoFee - totalReal) / totalNoFee * 100
+    val profitReport =
+      s"NO_FEE_PROFIT: ${profit(fee = false)}, REAL_PROFIT: ${profit(fee = true)}, NO_FEE_ONLY_PROFITABLE: ${profit(fee = false, profitableOnly = true)}"
     s"""
        |LONG (${long.totalClosedPositions}, no_fee ${long.winRatio(false)}, real ${long.winRatio(
       true
@@ -58,7 +68,7 @@ object TradingStats {
        |SHORT (${short.totalClosedPositions}, no_fee ${short.winRatio(false)}, real ${short
       .winRatio(true)}),
        |SUM ($totalPositions, no_fee $totalNoFee, real $totalReal),
-       |NO_FEE_PROFIT: ${profit(fee = false)}, REAL_PROFIT: ${profit(fee = true)},
+       |$profitReport
        |DIFF: $diff%
        |""".stripMargin //.replaceAll("\n", "")
   }

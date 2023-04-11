@@ -26,7 +26,7 @@ class StrategySpec extends FunSuite {
   type F[T] = IO[T]
 
   val path = new File("tools-app/data/archive").toPath
-  val archive = new Archive[F](path)
+  val archive = new Archive[F]("", path)
 
   test("strategy works as expected") {
     val seriesProvider = new BarSeriesProvider[F](archive)

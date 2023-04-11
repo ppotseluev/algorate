@@ -82,7 +82,7 @@ class Factory[F[_]: Async: Parallel] {
             case Some(path) => new File(path).toPath.asLeft
             case None       => barsCache.asRight
           }
-        } yield TinkoffBroker.withCaching[F](broker, cache, sharesCache)
+        } yield TinkoffBroker.withCaching[F](tinkoffAccessToken, broker, cache, sharesCache)
       } else {
         Resource.pure[F, TinkoffBroker[F]](broker)
       }

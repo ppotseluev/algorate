@@ -5,18 +5,18 @@ import cats.implicits._
 import com.github.ppotseluev.algorate.math.Approximator
 import com.github.ppotseluev.algorate.math.Approximator.Approximation
 import com.github.ppotseluev.algorate.math.WeightedPoint
+import com.github.ppotseluev.algorate.strategy.indicator.ExtremumCollector._
 import org.ta4j.core.indicators.AbstractIndicator
 import org.ta4j.core.indicators.RecursiveCachedIndicator
 import org.ta4j.core.num.Num
-
 import scala.reflect.ClassTag
+
 import ChannelIndicator.CalculatedChannel
 import ChannelIndicator.Channel
 import ChannelIndicator.ChannelState
 import ChannelIndicator.NeedNewChannel
 import ChannelIndicator.Section
 import LocalExtremumIndicator.Extremum
-import com.github.ppotseluev.algorate.strategy.indicator.ExtremumCollector._
 
 class ChannelIndicator private (
     baseIndicator: AbstractIndicator[Num],
@@ -62,11 +62,13 @@ class ChannelIndicator private (
       .map(approximator.approximate)
   }
 
-  private def calc[T <: Extremum: ClassTag: Merge](index: Int): Option[(Num, Approximation)] = {
+  private def calc[T <: Extremum: ClassTag: Merge](
+      index: Int
+  ): Option[(List[T], Num, Approximation)] = {
     val points = collectExtremums[T](index, numOfPoints)
     approximate(points).collect {
       case appr if appr.cost <= maxError =>
-        numOf(appr.func.value(index.doubleValue)) -> appr
+        (points, numOf(appr.func.value(index.doubleValue)), appr)
     }
   }
 
@@ -89,17 +91,31 @@ class ChannelIndicator private (
     value >= channel.lowerBoundApproximation.func.value(index)
   }
 
+  private def extrBounds(extr: List[Extremum]): Bounds[List[Extremum]] = {
+    val minExtremums = extr
+      .collect { case min: Extremum.Min => min }
+      .sortBy(_.index)
+      .distinctBy(_.index)
+    val maxExtremums = extr
+      .collect { case max: Extremum.Max => max }
+      .sortBy(_.index)
+      .distinctBy(_.index)
+    Bounds(lower = minExtremums, upper = maxExtremums)
+  }
+
   private def calcNewChannel(index: Int): Option[Channel] =
     for {
-      (lowerBound, lowerAppr) <- calc[Extremum.Min](index)
-      (upperBound, upperAppr) <- calc[Extremum.Max](index)
+      (minExtr, lowerBound, lowerAppr) <- calc[Extremum.Min](index)
+      (maxExtr, upperBound, upperAppr) <- calc[Extremum.Max](index)
       section = Section(lowerBound = lowerBound, upperBound = upperBound)
       bounds = Bounds(lower = lowerAppr, upper = upperAppr)
       List(minStartIndex, maxStartIndex) = List(lowerAppr, upperAppr)
         .map(_.points.head.x.toInt)
         .sorted
       uncountedExtremums = (minStartIndex to maxStartIndex).flatMap(extremumIndicator.getValue)
-      channel = Channel(section, bounds, index) if uncountedExtremums.forall(isFit(channel, _))
+      extremums = extrBounds(minExtr ++ maxExtr ++ uncountedExtremums)
+      channel = Channel(section, bounds, extremums, index)
+      if uncountedExtremums.forall(isFit(channel, _))
     } yield channel
 
   override protected def calculate(index: Int): ChannelState = {
@@ -114,12 +130,14 @@ class ChannelIndicator private (
         isFit(channel, Extremum.Min(curValue, index)) ||
         isFit(channel, Extremum.Max(curValue, index))
       if (lastExtrFit && curPointFit) {
-        val updated = channel.copy(
-          section = Section(
-            lowerBound = numOf(channel.lowerBoundApproximation.func.value(index)),
-            upperBound = numOf(channel.upperBoundApproximation.func.value(index))
+        val updated = channel
+          .copy(
+            section = Section(
+              lowerBound = numOf(channel.lowerBoundApproximation.func.value(index)),
+              upperBound = numOf(channel.upperBoundApproximation.func.value(index))
+            )
           )
-        )
+          .addExtremums(lastMin ++ lastMax)
         CalculatedChannel(updated)
       } else {
         NeedNewChannel(channel.bounds)
@@ -184,8 +202,21 @@ object ChannelIndicator {
   case class Channel(
       section: Section,
       bounds: ChannelBounds,
+      allExtremums: Bounds[List[Extremum]],
       startIndex: Int
   ) {
+    def addExtremums(extremums: Iterable[Extremum]): Channel =
+      extremums.foldLeft(this)(_ addExtremum _)
+
+    def addExtremum(extremum: Extremum): Channel = extremum match {
+      case min: Extremum.Min =>
+        val updated = (allExtremums.lower :+ min).sortBy(_.index).distinctBy(_.index)
+        this.copy(allExtremums = allExtremums.copy(lower = updated))
+      case max: Extremum.Max =>
+        val updated = (allExtremums.upper :+ max).sortBy(_.index).distinctBy(_.index)
+        this.copy(allExtremums = allExtremums.copy(upper = updated))
+    }
+
     def upperBoundApproximation: Approximation = bounds.upper
 
     def lowerBoundApproximation: Approximation = bounds.lower

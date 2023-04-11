@@ -1,7 +1,6 @@
 package com.github.ppotseluev.algorate.strategy.indicator
 
 import com.github.ppotseluev.algorate.strategy.indicator.LocalExtremumIndicator.Extremum
-
 import scala.annotation.tailrec
 
 object ExtremumCollector {

@@ -222,6 +222,7 @@ object TinkoffBroker {
     }
 
   def withCaching[F[_]: Sync: Parallel](
+      token: String,
       _broker: TinkoffBroker[F],
       barsCache: Either[Path, RedisCommands[F, String, List[Bar]]],
       sharesCache: RedisCommands[F, String, List[Share]],
@@ -231,7 +232,7 @@ object TinkoffBroker {
       private val sharesKey = "shares"
       private val broker = barsCache match {
         case Left(archiveDir) =>
-          val archive = new Archive[F](archiveDir)
+          val archive = new Archive[F](token, archiveDir)
           new ArchiveCachedBroker(_broker, archive)
         case Right(redisCache) =>
           new RedisCachedBroker(_broker, redisCache)

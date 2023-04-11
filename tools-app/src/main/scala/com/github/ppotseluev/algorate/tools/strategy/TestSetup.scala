@@ -5,9 +5,8 @@ import com.github.ppotseluev.algorate.broker.Broker.CandleResolution.OneMinute
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import com.github.ppotseluev.algorate.strategy.Strategies
-import com.github.ppotseluev.algorate.trader.policy.Policy.Decision
-import com.github.ppotseluev.algorate.trader.policy.{MoneyManagementPolicy, Policy}
-
+import com.github.ppotseluev.algorate.trader.policy.MoneyManagementPolicy
+import com.github.ppotseluev.algorate.trader.policy.Policy
 import java.time.LocalDate
 //import scala.util.Random
 
