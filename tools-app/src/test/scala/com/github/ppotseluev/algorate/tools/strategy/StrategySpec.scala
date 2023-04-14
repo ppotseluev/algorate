@@ -8,6 +8,7 @@ import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import com.github.ppotseluev.algorate.strategy.Strategies
+import com.github.ppotseluev.algorate.trader.policy.Policy.Decision
 import java.io.File
 import java.time.LocalDate
 import munit.FunSuite
@@ -25,16 +26,19 @@ class StrategySpec extends FunSuite {
 
   type F[T] = IO[T]
 
-  val path = new File("tools-app/data/archive").toPath
+  val path = new File("tools-app/data/archive/shares").toPath
   val archive = new Archive[F]("", path)
 
   test("strategy works as expected") {
     val seriesProvider = new BarSeriesProvider[F](archive)
     val series = seriesProvider.getBarSeries(asset, interval).unsafeRunSync()
-    val stats = StrategyTester(strategy).test(series, asset)
-    assertEquals(stats.long.totalClosedPositions, 14)
-    assertEquals(stats.short.totalClosedPositions, 16)
-    assertEquals(stats.long.winRatio(fee = false), 0.5)
-    assertEquals(stats.short.winRatio(fee = false), 0.625)
+    val stats = StrategyTester(
+      strategy,
+      TestSetup.fixedTradeCostPolicy().andThen(_.allowedOrElse(Decision.Allowed(1)))
+    ).test(series, asset)
+    assertEquals(stats.long.totalClosedPositions, 9)
+    assertEquals(stats.short.totalClosedPositions, 11)
+    assertEquals(stats.long.winRatio(fee = false), 0.4444444444444444)
+    assertEquals(stats.short.winRatio(fee = false), 0.6363636363636364)
   }
 }
