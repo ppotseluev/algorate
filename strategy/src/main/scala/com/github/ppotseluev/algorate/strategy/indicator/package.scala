@@ -28,6 +28,12 @@ package object indicator {
   }
 
   implicit class IndicatorSyntax[T](val indicator: AbstractIndicator[T]) extends AnyVal {
+    def zipWithIndex: AbstractIndicator[(Int, T)] =
+      new AbstractIndicator[(Int, T)](indicator.getBarSeries) {
+        override def getValue(index: Int): (Int, T) =
+          index -> indicator.getValue(index)
+      }
+
     def shifted(shift: Int, defaultValue: T): AbstractIndicator[T] =
       new AbstractIndicator[T](indicator.getBarSeries) {
         override def getValue(index: Int): T =

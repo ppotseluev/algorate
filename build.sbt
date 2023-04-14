@@ -23,7 +23,8 @@ lazy val settings = Seq(
     "-deprecation"
   ) ++ (if (isCI) ciScalacOptions else Seq.empty),
   libraryDependencies ++= Seq(
-    Dependency.kittens
+    Dependency.kittens,
+    Dependency.munit
   ),
   addCompilerPlugin(Dependency.kindProjector),
   assembly / assemblyMergeStrategy := {
@@ -104,8 +105,7 @@ lazy val `math-utils` = project
     name := "math-utils",
     settings,
     libraryDependencies ++= Seq(
-      Dependency.apacheMath,
-      Dependency.munit
+      Dependency.apacheMath
     )
   )
 

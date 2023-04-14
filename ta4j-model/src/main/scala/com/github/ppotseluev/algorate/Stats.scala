@@ -13,8 +13,11 @@ case class Stats(enrichedPositions: Seq[EnrichedPosition]) {
   val positions = enrichedPositions.map(_.position)
 
   val totalClosedPositions: Int = positions.count(_.isClosed)
-  val winningPositions: Int = positions.count(_.hasProfit)
-  val winRatio: Double = winningPositions.toDouble / totalClosedPositions
+  def winningPositions(fee: Boolean): Int = positions.count { p =>
+    if (fee) p.hasProfit
+    else p.getGrossProfit.isPositive
+  }
+  def winRatio(fee: Boolean): Double = winningPositions(fee).toDouble / totalClosedPositions
 
   def forMonth(month: YearMonth): Stats = {
     val start = month.atEndOfMonth.minusMonths(1).atStartOfDay.toInstant(ZoneOffset.UTC)
@@ -59,10 +62,14 @@ object Stats {
       )
   }
 
-  def fromRecord(record: TradingRecord, series: BarSeries): Stats = {
+  def fromRecord(
+      record: TradingRecord,
+      series: BarSeries,
+      asset: TradingAsset
+  ): Stats = {
     val positions = record.getPositions.asScala.toSeq.map { pos =>
       val entryTime = series.getBar(pos.getEntry.getIndex).getBeginTime
-      EnrichedPosition(pos, entryTime)
+      EnrichedPosition(pos, entryTime, asset)
     }
     Stats(positions)
   }

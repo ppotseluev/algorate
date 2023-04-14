@@ -55,7 +55,15 @@ if [ $# -eq 0 ]; then
 fi
 
 current_dir="$(pwd)"
-while read -r figi; do
-  download "$figi" "$1"
+year=$1
+instrument=$2
+if [ -z "$instrument" ]; then
+  echo "Downloading from figi list"
+  while read -r figi; do
+    download "$figi" "$year"
+    cd "$current_dir" || exit 1
+  done <${figi_list}
+else
+  download "$instrument" "$year"
   cd "$current_dir" || exit 1
-done <${figi_list}
+fi

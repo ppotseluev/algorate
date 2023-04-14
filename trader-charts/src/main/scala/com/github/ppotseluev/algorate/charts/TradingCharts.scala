@@ -151,7 +151,8 @@ object TradingCharts {
       strategyBuilder: BarSeries => FullStrategy,
       series: BarSeries,
       tradingStats: Option[TradingStats],
-      title: String
+      title: String,
+      profitableTrades: Option[Boolean]
   ): JFreeChart = {
     def addIndicators(
         series: BarSeries,
@@ -209,9 +210,24 @@ object TradingCharts {
     combinedPlot.add(pricePlot, 70)
     combinedPlot.add(indicatorPlot, 30)
 
+    def displayPosition(position: Position): Boolean =
+      profitableTrades.forall { profitable =>
+        profitable && position.hasProfit ||
+        !profitable && !position.hasProfit
+      }
     tradingStats.foreach { stats =>
-      TradingCharts.addBuySellSignals(series, stats.long.positions, pricePlot, indicatorPlot)
-      TradingCharts.addBuySellSignals(series, stats.short.positions, pricePlot, indicatorPlot)
+      TradingCharts.addBuySellSignals(
+        series,
+        stats.long.positions.filter(displayPosition),
+        pricePlot,
+        indicatorPlot
+      )
+      TradingCharts.addBuySellSignals(
+        series,
+        stats.short.positions.filter(displayPosition),
+        pricePlot,
+        indicatorPlot
+      )
     }
     new JFreeChart(title, null, combinedPlot, true)
   }
@@ -220,9 +236,10 @@ object TradingCharts {
       strategyBuilder: BarSeries => FullStrategy,
       series: BarSeries,
       tradingStats: Option[TradingStats],
-      title: String
+      title: String,
+      profitableTradesFilter: Option[Boolean]
   ): Unit = {
-    val chart = createChart(strategyBuilder, series, tradingStats, title)
+    val chart = createChart(strategyBuilder, series, tradingStats, title, profitableTradesFilter)
     val panel = buildPanel(chart)
     display(panel, "Algorate")
   }
@@ -233,7 +250,7 @@ object TradingCharts {
       tradingStats: Option[TradingStats],
       title: String
   ): Array[Byte] = {
-    val chart = createChart(strategyBuilder, series, tradingStats, title)
+    val chart = createChart(strategyBuilder, series, tradingStats, title, profitableTrades = None)
     val outputStream = new ByteArrayOutputStream()
     ChartUtilities.writeChartAsPNG(outputStream, chart, 1024, 400)
     outputStream.toByteArray

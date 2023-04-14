@@ -7,4 +7,5 @@ package object algorate {
   type Price = BigDecimal
   type Ticker = String
   type Currency = String
+  type Money = Map[Currency, BigDecimal]
 }

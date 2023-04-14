@@ -49,12 +49,29 @@ object Strategies {
     FullStrategy(
       strategy,
       strategy,
-      Map("price" -> IndicatorInfo(new ClosePriceIndicator(barSeries))),
+      () => Map("price" -> IndicatorInfo(new ClosePriceIndicator(barSeries))),
       Map.empty
     )
   }
 
-  val intraChannel: BarSeries => FullStrategy = series => {
+  val intraChannel: BarSeries => FullStrategy = implicit series => {
+//    def hasAlternatingExtremums(channel: Channel): Boolean = {
+//      val mins = channel.allExtremums.lower
+//      val maxs = channel.allExtremums.upper
+//      (mins ++ maxs)
+//        .sortBy(_.index)
+//        .foldLeft((true, none[Extremum])) { case ((accFlag, last), extr) =>
+//          def ok = (last, extr) match {
+//            case (Some(_: Extremum.Max), _: Extremum.Min) => true
+//            case (Some(_: Extremum.Min), _: Extremum.Max) => true
+//            case (None, _)                                => true
+//            case _                                        => false
+//          }
+//          (accFlag && ok) -> extr.some
+//        }
+//        ._1
+//    }
+
     def num(number: Number): Num =
       series.numOf(number)
 
@@ -82,17 +99,20 @@ object Strategies {
 //        minIndexDelta = 10,
 //        minPercent = 0.01
 //      )
-    val minRelativeWidth = num(0.002) //todo...
+//    val minRelativeWidth = num(0.002) //todo...
     val channel: AbstractIndicator[Option[Channel]] = ChannelIndicator(
       baseIndicator = closePrice,
       extremumIndicator = extremum,
       approximator = Approximator.Linear,
       numOfPoints = 3,
-      maxError = 0.0009 //0.0007
+      maxError = 0.0009 //0.0007 0.003🤔
     ).filter(ChannelUtils.isParallel(maxDelta = 0.6)) //todo?
 //      .filter(ChannelUtils.isWide(minPercent = 0.05))
 
     //TODO was (6, 0.5). (2, 0.2) - better?
+
+    val feeFraction = 0.0005
+    val leastFeeFactor = 2
 
     val lowerBoundIndicator = channel.map(_.map(_.section.lowerBound).getOrElse(NaN.NaN))
     val upperBoundIndicator = channel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
@@ -102,39 +122,30 @@ object Strategies {
     val halfChannel = channelDiffIndicator.map(_.dividedBy(num(2)))
 
     val channelIsDefinedRule = new BooleanIndicatorRule(channel.map(_.isDefined))
+
+    val leastLongTarget = (closePrice: AbstractIndicator[Num]).map { price =>
+      price.multipliedBy(num(1 + leastFeeFactor * feeFraction))
+    }
+
+    val leastShortTarget = (closePrice: AbstractIndicator[Num]).map { price =>
+      price.multipliedBy(num(1 - leastFeeFactor * feeFraction))
+    }
+
+    val midChannelIndicator: AbstractIndicator[Num] =
+      new SumIndicator(lowerBoundIndicator, halfChannel)
+
     val exitLongRule =
       //todo consider channel width
       new StopLossRule(closePrice, 1)
-        .or(
-          new StopGainRule(closePrice, 1)
-        )
-        .or(
-          new CrossedUpIndicatorRule(
-            closePrice,
-            new SumIndicator(lowerBoundIndicator, halfChannel)
-          )
-        )
-        .or(
-          new CrossedDownIndicatorRule(
-            closePrice,
-            new DifferenceIndicator(lowerBoundIndicator, halfChannel)
-          )
-        )
-        .or(
-          channelIsDefinedRule.negation
-        )
-
-    val relativeWidthIndicator: AbstractIndicator[Num] =
-      for {
-        l <- lowerBoundIndicator
-        u <- upperBoundIndicator
-      } yield u.minus(l).dividedBy(u)
+        .or(new StopGainRule(closePrice, 1))
+        .or(new CrossedUpIndicatorRule(closePrice, midChannelIndicator))
+        .or(new CrossedDownIndicatorRule(closePrice, lowerBoundIndicator \-\ halfChannel))
+        .or(channelIsDefinedRule.negation)
 
     val priceIsNotTooHigh: AbstractIndicator[java.lang.Boolean] =
       for {
-        price <- closePrice: AbstractIndicator[Num]
-        bound <-
-          lowerBoundIndicator \+\ halfChannel //channelDiffIndicator.map(_.dividedBy(num(10)))
+        price <- leastLongTarget
+        bound <- midChannelIndicator
       } yield price.isLessThan(bound)
 
     val coreLongRule =
@@ -153,14 +164,12 @@ object Strategies {
         new BooleanIndicatorRule(priceIsNotTooHigh) &
         new BooleanIndicatorRule(
           volumeIndicator.map(_.isGreaterThan(num(500)))
-        ) & //TODO research... maybe use some derived ind?
-        new BooleanIndicatorRule(relativeWidthIndicator.map(_.isGreaterThan(minRelativeWidth)))
+        ) //TODO research... maybe use some derived ind?
     val coreShortRule = {
       val priceIsNotTooLow: AbstractIndicator[java.lang.Boolean] =
         for {
-          price <- closePrice: AbstractIndicator[Num]
-          bound <-
-            upperBoundIndicator \-\ halfChannel //channelDiffIndicator.map(_.dividedBy(num(10)))
+          price <- leastShortTarget
+          bound <- midChannelIndicator
         } yield price.isGreaterThan(bound)
       channelIsDefinedRule &
         new BooleanIndicatorRule(
@@ -177,45 +186,30 @@ object Strategies {
         new BooleanIndicatorRule(priceIsNotTooLow) &
         new BooleanIndicatorRule(
           volumeIndicator.map(_.isGreaterThan(num(500)))
-        ) &
-        new BooleanIndicatorRule(relativeWidthIndicator.map(_.isGreaterThan(minRelativeWidth)))
+        )
     }
 //    val timeRule =
 //      new TimeRangeRule(Seq(tradeTimeRange).asJava, time.asInstanceOf[DateTimeIndicator])
     val entryLongRule =
       new BooleanIndicatorRule(hasData.map(boolean2Boolean)) &
-//        new BooleanIndicatorRule(hasFutureData.map(boolean2Boolean)) &
+        new BooleanIndicatorRule(hasFutureData.map(boolean2Boolean)) &
 //        timeRule &
         coreLongRule
     val entryShortRule =
       new BooleanIndicatorRule(hasData.map(boolean2Boolean)) &
-//        new BooleanIndicatorRule(hasFutureData.map(boolean2Boolean)) &
+        new BooleanIndicatorRule(hasFutureData.map(boolean2Boolean)) &
 //        timeRule &
         coreShortRule
     val exitShortRule =
       new StopLossRule(closePrice, 1)
-        .or(
-          new StopGainRule(closePrice, 1)
-        )
-        .or(
-          new CrossedDownIndicatorRule(
-            closePrice,
-            new DifferenceIndicator(upperBoundIndicator, halfChannel)
-          )
-        )
-        .or(
-          new CrossedUpIndicatorRule(
-            closePrice,
-            new SumIndicator(upperBoundIndicator, halfChannel)
-          )
-        )
-        .or(
-          channelIsDefinedRule.negation
-        )
+        .or(new StopGainRule(closePrice, 1))
+        .or(new CrossedDownIndicatorRule(closePrice, midChannelIndicator))
+        .or(new CrossedUpIndicatorRule(closePrice, upperBoundIndicator \+\ halfChannel))
+        .or(channelIsDefinedRule.negation)
     val buyingStrategy = new BaseStrategy(entryLongRule, exitLongRule)
     val sellingStrategy = new BaseStrategy(entryShortRule, exitShortRule)
 
-    val visualPriceIndicators = {
+    def visualPriceIndicators() = {
       val visualExtremum: AbstractIndicator[Option[Extremum]] =
         extremum.shifted(extremumWindowSize / 2, None)
       val visualMinExtr = visualExtremum.map(_.collect { case extr: Extremum.Min => extr })
@@ -227,6 +221,14 @@ object Strategies {
         visualChannel.map(_.map(_.section.lowerBound).getOrElse(NaN.NaN))
       val visualUpperBoundIndicator =
         visualChannel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
+      val leastTargetIndicator = (closePrice: AbstractIndicator[Num]).zipWithIndex
+        .map { case (index, price) =>
+          if (entryShortRule.isSatisfied(index))
+            price.multipliedBy(num(1 - leastFeeFactor * feeFraction))
+          else if (entryLongRule.isSatisfied(index))
+            price.multipliedBy(num(1 + leastFeeFactor * feeFraction))
+          else NaN.NaN
+        }
       Map(
         "close price" -> IndicatorInfo(closePrice),
         "extrMin" -> IndicatorInfo(
@@ -244,13 +246,15 @@ object Strategies {
           Representation.Points
         ),
         "lowerBound" -> IndicatorInfo(visualLowerBoundIndicator),
-        "upperBound" -> IndicatorInfo(visualUpperBoundIndicator)
+        "upperBound" -> IndicatorInfo(visualUpperBoundIndicator),
+        "leastTarget" -> IndicatorInfo(leastTargetIndicator, Representation.Points),
+        "mid" -> IndicatorInfo(midChannelIndicator)
       )
     }
     FullStrategy(
       longStrategy = buyingStrategy,
       shortStrategy = sellingStrategy,
-      priceIndicators = visualPriceIndicators,
+      getPriceIndicators = visualPriceIndicators,
       oscillators = Map(
 //        "hasData" -> IndicatorInfo(hasData.map(if (_) num(50) else series.num(0))),
 //        "width" -> IndicatorInfo(relativeWidthIndicator),

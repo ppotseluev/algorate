@@ -7,6 +7,7 @@ import cats.effect.ExitCode
 import cats.effect.IO
 import cats.effect.IOApp
 import cats.implicits._
+import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.TradingStats
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.tools.strategy.BarSeriesProvider
@@ -14,6 +15,7 @@ import com.github.ppotseluev.algorate.tools.strategy.StrategyTester
 import java.util.concurrent.atomic.AtomicInteger
 import org.ta4j.core.BarSeries
 import ru.tinkoff.piapi.contract.v1.Share
+import scala.collection.immutable.ListMap
 import scala.concurrent.duration._
 
 /**
@@ -22,22 +24,26 @@ import scala.concurrent.duration._
 object TestStrategy extends IOApp {
   import com.github.ppotseluev.algorate.tools.strategy.TestSetup._
 
-  val countDone = new AtomicInteger()
-  val countStarted = new AtomicInteger()
+  val done = new AtomicInteger()
+  val started = new AtomicInteger()
 
   private val test = (share: Share, series: BarSeries) =>
     IO.blocking {
-      val started = countStarted.incrementAndGet()
-      println(s"started: $started")
-      val stats = StrategyTester(strategy).test(series)
+      val asset = TradingAsset(
+        instrumentId = share.getFigi,
+        ticker = share.getTicker,
+        currency = share.getCurrency
+      )
+//      println(s"started: ${started.incrementAndGet()}")
+      val stats = StrategyTester(strategy).test(series, asset)
       val results = SectorsResults(share, stats)
-      val done = countDone.incrementAndGet()
-      println(s"done: $done")
+      println(s"done: ${done.incrementAndGet()}")
       results
     }
 
   override def run(args: List[String]): IO[ExitCode] = {
-    Factory.io.tinkoffBroker.use { broker =>
+    val factory = Factory.io
+    factory.tinkoffBroker.use { broker =>
       val start = System.currentTimeMillis()
       val barSeriesProvider = new BarSeriesProvider(broker)
 
@@ -53,17 +59,17 @@ object TestStrategy extends IOApp {
       }
 
       broker
-        .getSharesById(ids.toSet)
+        .getSharesById(factory.config.testInstrumentIds.orEmpty)
         .flatMap(testAll)
         .map { res =>
           println(res.show)
           val allStats = res.sectorsStats.values.flatMap(_.values).toList.combineAll
-          println(s"total: $allStats")
+//          println("per month statistics")
+//          allStats.monthly.foreach { case (month, stats) =>
+//            println(s"$month $stats")
+//          }
           println()
-          println("per month statistics")
-          allStats.monthly.foreach { case (month, stats) =>
-            println(s"$month $stats")
-          }
+          println(s"total: ${allStats.show}")
           println()
           val end = System.currentTimeMillis()
           val duration = (end - start).millis
@@ -76,22 +82,29 @@ object TestStrategy extends IOApp {
   implicit val tickersShow: Show[Map[Share, TradingStats]] = (stats: Map[Share, TradingStats]) =>
     stats
       .map { case (share, stats) =>
-        s"${share.getTicker} (${share.getName}): $stats"
+        s"${share.getTicker} (${share.getName}): ${stats.show}"
       }
       .mkString("\n")
 
   case class SectorsResults(
       sectorsStats: Map[String, Map[Share, TradingStats]]
-  )
+  ) {
+    def flatten: Map[Share, TradingStats] = sectorsStats.flatMap(_._2)
+  }
 
   object SectorsResults {
     implicit val show: Show[SectorsResults] = res =>
-      res.sectorsStats.map { case (sector, value) =>
-        s"""
+      res.sectorsStats.toList
+        .sortBy(_._2.values.toList.map(_.totalPositions).max)
+        .map { case (sector, value) =>
+          val sorted: Map[Share, TradingStats] =
+            ListMap.from(value.toList.sortBy(_._2.totalPositions))
+          s"""
           |Sector: $sector
-          |${value.show} 
+          |${sorted.show}
           |""".stripMargin
-      }.mkString
+        }
+        .mkString
 
     implicit val monoid: Monoid[SectorsResults] = semiauto.monoid
 

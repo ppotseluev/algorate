@@ -1,9 +1,7 @@
 package com.github.ppotseluev.algorate.broker
 
-import com.github.ppotseluev.algorate.Bar
 import com.github.ppotseluev.algorate.Order
 import com.github.ppotseluev.algorate._
-import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
 import java.time.Instant
 import java.time.LocalDate
@@ -13,15 +11,10 @@ import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 
-trait Broker[F[_]] {
+trait Broker[F[_]] extends BarDataProvider[F] {
   def getOrderInfo(orderId: OrderId): F[OrderPlacementInfo]
 
   def placeOrder(order: Order): F[OrderPlacementInfo]
-
-  def getData(
-      instrumentId: InstrumentId,
-      interval: CandlesInterval
-  ): F[List[Bar]]
 }
 
 object Broker {

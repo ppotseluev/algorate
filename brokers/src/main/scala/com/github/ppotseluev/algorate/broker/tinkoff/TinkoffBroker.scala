@@ -9,6 +9,7 @@ import cats.implicits._
 import com.github.ppotseluev.algorate.Bar
 import com.github.ppotseluev.algorate.Order.Type
 import com.github.ppotseluev.algorate._
+import com.github.ppotseluev.algorate.broker.Archive
 import com.github.ppotseluev.algorate.broker.ArchiveCachedBroker
 import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
@@ -221,6 +222,7 @@ object TinkoffBroker {
     }
 
   def withCaching[F[_]: Sync: Parallel](
+      token: String,
       _broker: TinkoffBroker[F],
       barsCache: Either[Path, RedisCommands[F, String, List[Bar]]],
       sharesCache: RedisCommands[F, String, List[Share]],
@@ -230,7 +232,8 @@ object TinkoffBroker {
       private val sharesKey = "shares"
       private val broker = barsCache match {
         case Left(archiveDir) =>
-          new ArchiveCachedBroker(_broker, archiveDir)
+          val archive = new Archive[F](token, archiveDir)
+          new ArchiveCachedBroker(_broker, archive)
         case Right(redisCache) =>
           new RedisCachedBroker(_broker, redisCache)
       }

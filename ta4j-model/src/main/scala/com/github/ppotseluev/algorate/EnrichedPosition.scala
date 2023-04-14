@@ -5,5 +5,6 @@ import org.ta4j.core.Position
 
 case class EnrichedPosition(
     position: Position,
-    entryTime: ZonedDateTime
+    entryTime: ZonedDateTime,
+    asset: TradingAsset
 )

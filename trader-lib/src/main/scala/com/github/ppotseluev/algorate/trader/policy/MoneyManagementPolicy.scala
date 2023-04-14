@@ -2,16 +2,16 @@ package com.github.ppotseluev.algorate.trader.policy
 
 import cats.implicits._
 import com.github.ppotseluev.algorate.Currency
-import com.github.ppotseluev.algorate.broker.MoneyTracker
+import com.github.ppotseluev.algorate.Money
 import com.github.ppotseluev.algorate.trader.policy.Policy.Decision
 import com.github.ppotseluev.algorate.trader.policy.Policy.TradeRequest
 
-class MoneyManagementPolicy[F[_]](moneyTracker: MoneyTracker[F])(
+class MoneyManagementPolicy(money: () => Option[Money])(
     maxPercentage: Double,
     maxAbsolute: Map[Currency, Double]
 ) extends Policy {
   override def apply(request: TradeRequest): Decision = {
-    val availableMoney = moneyTracker.get.orEmpty.getOrElse(request.currency, BigDecimal(0))
+    val availableMoney = money().orEmpty.getOrElse(request.currency, BigDecimal(0))
     val moneyForTrade = math.min(
       maxAbsolute.getOrElse(request.currency, 0d),
       (maxPercentage * availableMoney).toDouble

@@ -33,49 +33,53 @@ object AkkaTradingApp extends IOApp with LazyLogging {
   )
 
   val assets: Map[InstrumentId, TradingAsset] =
-    Map(
-      "BBG000BNJHS8" -> TradingAsset("LUV", "usd"),
-      "BBG000BRJL00" -> TradingAsset("PPL", "usd"),
-      "BBG000BBJQV0" -> TradingAsset("NVDA", "usd"),
-      "BBG000BBS2Y0" -> TradingAsset("AMGN", "usd"),
-      "BBG006Q0HY77" -> TradingAsset("CFG", "usd"),
-      "BBG00NNG2ZJ8" -> TradingAsset("XRX", "usd"),
-      "BBG000BNSZP1" -> TradingAsset("MCD", "usd"),
-      "BBG000K4ND22" -> TradingAsset("CVX", "usd"),
-      "BBG000BGRY34" -> TradingAsset("CVS", "usd"),
-      "BBG006L8G4H1" -> TradingAsset("YNDX", "rub"),
-      "BBG007TJF1N7" -> TradingAsset("QRVO", "usd"),
-      "BBG004PYF2N3" -> TradingAsset("POLY", "rub"), //TODO 2 shares fount for ticker, investigate the reason
-      "BBG0025Y4RY4" -> TradingAsset("ABBV", "usd"),
-      "BBG000C17X76" -> TradingAsset("BIIB", "usd"),
-      "BBG000CL9VN6" -> TradingAsset("NFLX", "usd"),
-      "BBG001M8HHB7" -> TradingAsset("TRIP", "usd"),
-      "BBG000H8TVT2" -> TradingAsset("TGT", "usd"),
-      "BBG000PSKYX7" -> TradingAsset("V", "usd"),
-      "BBG000BB6KF5" -> TradingAsset("MET", "usd"),
-      "BBG000C3J3C9" -> TradingAsset("CSCO", "usd"),
-      "BBG000BKFZM4" -> TradingAsset("GLW", "usd"),
-      "BBG000D4LWF6" -> TradingAsset("MDLZ", "usd"),
-      "BBG004731354" -> TradingAsset("ROSN", "rub"),
-      "BBG000GZQ728" -> TradingAsset("XOM", "usd"),
-      "BBG000CGC1X8" -> TradingAsset("QCOM", "usd"),
-      "BBG000R7Z112" -> TradingAsset("DAL", "usd"),
-      "BBG000BQQ2S6" -> TradingAsset("OXY", "usd"),
-      "BBG000WCFV84" -> TradingAsset("LYB", "usd"),
-      "BBG000C5Z1S3" -> TradingAsset("MU", "usd"),
-      "BBG000BCTLF6" -> TradingAsset("BAC", "usd"),
-      "BBG000BJF1Z8" -> TradingAsset("FDX", "usd"),
-      "BBG000Q3JN03" -> TradingAsset("RF", "usd"),
-      "BBG000BNFLM9" -> TradingAsset("LRCX", "usd"),
-      "BBG000BWNFZ9" -> TradingAsset("WDC", "usd"),
-      "BBG000FDBX90" -> TradingAsset("CNP", "usd"),
-      "BBG000BS0ZF1" -> TradingAsset("RL", "usd"),
-      "BBG00475K6C3" -> TradingAsset("CHMF", "rub"),
-      "BBG002583CV8" -> TradingAsset("PINS", "usd"),
-      "BBG000C5HS04" -> TradingAsset("NKE", "usd"),
-      "BBG000G0Z878" -> TradingAsset("HIG", "usd"),
-      "BBG000BMQPL1" -> TradingAsset("KEY", "usd")
-    )
+    List(
+      TradingAsset("BBG000BNJHS8", "LUV", "usd"),
+      TradingAsset("BBG000BRJL00", "PPL", "usd"),
+      TradingAsset("BBG000BBJQV0", "NVDA", "usd"),
+      TradingAsset("BBG000BBS2Y0", "AMGN", "usd"),
+      TradingAsset("BBG006Q0HY77", "CFG", "usd"),
+      TradingAsset("BBG00NNG2ZJ8", "XRX", "usd"),
+      TradingAsset("BBG000BNSZP1", "MCD", "usd"),
+      TradingAsset("BBG000K4ND22", "CVX", "usd"),
+      TradingAsset("BBG000BGRY34", "CVS", "usd"),
+      TradingAsset("BBG006L8G4H1", "YNDX", "rub"),
+      TradingAsset("BBG007TJF1N7", "QRVO", "usd"),
+      TradingAsset(
+        "BBG004PYF2N3",
+        "POLY",
+        "rub"
+      ), //TODO 2 shares fount for ticker, investigate the reason
+      TradingAsset("BBG0025Y4RY4", "ABBV", "usd"),
+      TradingAsset("BBG000C17X76", "BIIB", "usd"),
+      TradingAsset("BBG000CL9VN6", "NFLX", "usd"),
+      TradingAsset("BBG001M8HHB7", "TRIP", "usd"),
+      TradingAsset("BBG000H8TVT2", "TGT", "usd"),
+      TradingAsset("BBG000PSKYX7", "V", "usd"),
+      TradingAsset("BBG000BB6KF5", "MET", "usd"),
+      TradingAsset("BBG000C3J3C9", "CSCO", "usd"),
+      TradingAsset("BBG000BKFZM4", "GLW", "usd"),
+      TradingAsset("BBG000D4LWF6", "MDLZ", "usd"),
+      TradingAsset("BBG004731354", "ROSN", "rub"),
+      TradingAsset("BBG000GZQ728", "XOM", "usd"),
+      TradingAsset("BBG000CGC1X8", "QCOM", "usd"),
+      TradingAsset("BBG000R7Z112", "DAL", "usd"),
+      TradingAsset("BBG000BQQ2S6", "OXY", "usd"),
+      TradingAsset("BBG000WCFV84", "LYB", "usd"),
+      TradingAsset("BBG000C5Z1S3", "MU", "usd"),
+      TradingAsset("BBG000BCTLF6", "BAC", "usd"),
+      TradingAsset("BBG000BJF1Z8", "FDX", "usd"),
+      TradingAsset("BBG000Q3JN03", "RF", "usd"),
+      TradingAsset("BBG000BNFLM9", "LRCX", "usd"),
+      TradingAsset("BBG000BWNFZ9", "WDC", "usd"),
+      TradingAsset("BBG000FDBX90", "CNP", "usd"),
+      TradingAsset("BBG000BS0ZF1", "RL", "usd"),
+      TradingAsset("BBG00475K6C3", "CHMF", "rub"),
+      TradingAsset("BBG002583CV8", "PINS", "usd"),
+      TradingAsset("BBG000C5HS04", "NKE", "usd"),
+      TradingAsset("BBG000G0Z878", "HIG", "usd"),
+      TradingAsset("BBG000BMQPL1", "KEY", "usd")
+    ).groupMapReduce(_.instrumentId)(identity)((_, _) => ???)
 
   val useHistoricalData: Option[StubSettings] = None
 //    Some( //None to stream realtime market data
@@ -115,7 +119,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
       val brokerFuture = wrapBroker(λ[IO ~> Future](_.unsafeToFuture()))(broker)
       val figiList = assets.keys.toList
       val moneyTracker = TinkoffBroker.moneyTracker(broker)
-      val policy = new MoneyManagementPolicy(moneyTracker)(
+      val policy = new MoneyManagementPolicy(() => moneyTracker.get)(
         maxPercentage = 0.025,
         maxAbsolute = Map(
           "usd" -> 200,

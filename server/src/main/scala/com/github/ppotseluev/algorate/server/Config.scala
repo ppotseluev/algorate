@@ -14,7 +14,8 @@ case class Config(
     telegramUsersWhitelist: Set[Int],
     apiConfig: Api.Config,
     enableBrokerCache: Boolean,
-    historicalDataArchive: Option[String]
+    historicalDataArchive: Option[String],
+    testInstrumentIds: Option[Set[String]]
 ) {
   def telegramTrackedChats: Set[String] = Set(telegramChatId)
 }
