@@ -4,6 +4,8 @@ import cats.effect.ExitCode
 import cats.effect.IO
 import cats.effect.IOApp
 import cats.implicits._
+import com.github.ppotseluev.algorate.InstrumentId
+import com.github.ppotseluev.algorate.Ticker
 import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution.OneMinute
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
@@ -23,11 +25,11 @@ object VisualizeStrategy extends IOApp with StrictLogging {
   val strategy = Strategies.intraChannel
   val policy = TestSetup.fixedTradeCostPolicy().andThen(_.allowedOrElse(Decision.Allowed(1)))
   val tester = StrategyTester(strategy, policy)
-  val id = "BBG0029SNR63"
+  val id: Either[Ticker, InstrumentId] = "DOW".asLeft
   val interval = CandlesInterval(
     interval = DaysInterval(
-      LocalDate.of(2021, 1, 6),
-      LocalDate.of(2021, 12, 6)
+      LocalDate.of(2021, 1, 1),
+      LocalDate.of(2021, 12, 31)
     ),
     resolution = OneMinute
   )
@@ -37,7 +39,7 @@ object VisualizeStrategy extends IOApp with StrictLogging {
       .use { broker =>
         val seriesProvider = new BarSeriesProvider[IO](broker)
         for {
-          share <- broker.getShareById(id)
+          share <- id.fold(broker.getShareByTicker, broker.getShareById)
           asset = TradingAsset(
             instrumentId = share.getFigi,
             ticker = share.getTicker,
@@ -59,7 +61,7 @@ object VisualizeStrategy extends IOApp with StrictLogging {
               series = series,
               tradingStats = Some(result),
               title = s"${share.getTicker} (${share.getName})",
-              profitableTradesFilter = None
+              profitableTradesFilter = true.some
             )
           }
         } yield ExitCode.Success

@@ -25,10 +25,17 @@ import scala.concurrent.duration._
 object AssetsSelector extends IOApp.Simple {
   private val factory = Factory.io
 
-  private val years = 2019 -> 2022
-  private val selectionStrategy: SelectionStrategy = ByWinRatio(threshold = 0.65)
-  private val saveTo = "/Users/potseluev/IdeaProjects/algorate/tools-app/data/results"
+  private val years = 2020 -> 2022
+  private val selectionStrategy: SelectionStrategy = ByProfit(0.5)
+//    ByWinRatio(threshold = 0.7)
   private val instrumentIds = factory.config.testInstrumentIds.orEmpty
+  private val baseDir = {
+    val saveTo = "/Users/potseluev/IdeaProjects/algorate/tools-app/data/results"
+    val startTime = System.currentTimeMillis().millis.toSeconds
+    val id = s"${startTime}_$selectionStrategy"
+    s"$saveTo/$id"
+  }
+  Files.createDirectory(new File(baseDir).toPath)
 
   private def select(results: SectorsResults): Results = {
     val selected = selectionStrategy match {
@@ -50,9 +57,6 @@ object AssetsSelector extends IOApp.Simple {
     )
   }
 
-  private val startTime = System.currentTimeMillis().millis.toSeconds
-  Files.createDirectory(new File(s"$saveTo/$startTime").toPath)
-
   private def write(results: SectorsResults, path: String, testDuration: FiniteDuration): IO[Unit] =
     Resource.fromAutoCloseable(IO(new PrintWriter(path))).use { printer: PrintWriter =>
       IO.blocking {
@@ -70,15 +74,13 @@ object AssetsSelector extends IOApp.Simple {
       results: Results,
       year: Int,
       testDuration: FiniteDuration
-  ): IO[Unit] = {
-    val baseDir = s"$saveTo/$startTime"
+  ): IO[Unit] =
     for {
-      _ <- write(results.original, s"$baseDir/${year}_original", testDuration)
-      _ <- write(results.selected, s"$baseDir/${year}_selected", testDuration)
+      _ <- write(results.original, s"$baseDir/${year}_original.txt", testDuration)
+      _ <- write(results.selected, s"$baseDir/${year}_selected.txt", testDuration)
     } yield ()
-  }
 
-  private def test(done: AtomicInteger) = (share: Share, series: BarSeries) =>
+  private def test(done: AtomicInteger, total: Int) = (share: Share, series: BarSeries) =>
     IO.blocking {
       val asset = TradingAsset(
         instrumentId = share.getFigi,
@@ -88,7 +90,7 @@ object AssetsSelector extends IOApp.Simple {
       //      println(s"started: ${started.incrementAndGet()}")
       val stats = StrategyTester(strategy).test(series, asset)
       val results = SectorsResults(share, stats)
-      println(s"done: ${done.incrementAndGet()}")
+      println(s"done: ${(done.incrementAndGet().toDouble * 100 / total).toInt}%")
       results
     }
 
@@ -106,7 +108,7 @@ object AssetsSelector extends IOApp.Simple {
     val counter = new AtomicInteger
     barSeriesProvider
       .streamBarSeries(shares, interval, maxConcurrent, skipNotFound = true)
-      .parEvalMapUnordered(maxConcurrent)(test(counter).tupled)
+      .parEvalMapUnordered(maxConcurrent)(test(counter, shares.size).tupled)
       .compile
       .toList
       .map(_.combineAll)
@@ -148,6 +150,6 @@ object AssetsSelector extends IOApp.Simple {
   }
 
   sealed trait SelectionStrategy
-  case class ByProfit(fraction: Double) extends SelectionStrategy
-  case class ByWinRatio(threshold: Double) extends SelectionStrategy
+  case class ByProfit(selectionFactor: Double) extends SelectionStrategy
+  case class ByWinRatio(threshold: Double) extends SelectionStrategy //it makes more sense
 }

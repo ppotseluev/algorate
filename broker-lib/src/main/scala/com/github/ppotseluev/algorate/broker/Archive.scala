@@ -24,7 +24,8 @@ import scala.sys.process._
 
 class Archive[F[_]: Sync](
     token: String,
-    archiveDir: Path
+    archiveDir: Path,
+    downloadIfNotExist: Boolean = false //todo pass param value
 ) extends BarDataProvider[F]
     with LazyLogging {
 
@@ -50,7 +51,7 @@ class Archive[F[_]: Sync](
         val dataId = s"${instrumentId}_$year"
         val basePath = archiveDir.resolve(dataId)
         val targetFile = basePath.resolve(s"$dayId.csv").toFile
-        if (!basePath.toFile.exists()) {
+        if (downloadIfNotExist && !basePath.toFile.exists()) {
           logger.info(s"Downloading $dataId")
 
           val scriptPath = Paths.get("tools-app/data/download.sh").toAbsolutePath.toString
