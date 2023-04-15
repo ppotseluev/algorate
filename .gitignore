@@ -13,7 +13,7 @@ project/plugins/project/
 .lib/
 **/application.local.conf
 tools-app/data/archive/
-!/tools-app/data/archive/shares/BBG000BBS2Y0_2022/
+!/tools-app/data/archive/BBG000BBS2Y0_2022/
 
 ### Scala template
 *.class

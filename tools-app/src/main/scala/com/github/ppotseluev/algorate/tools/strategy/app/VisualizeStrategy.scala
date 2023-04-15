@@ -13,8 +13,6 @@ import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.Strategies
 import com.github.ppotseluev.algorate.tools.strategy.BarSeriesProvider
 import com.github.ppotseluev.algorate.tools.strategy.StrategyTester
-import com.github.ppotseluev.algorate.tools.strategy.TestSetup
-import com.github.ppotseluev.algorate.trader.policy.Policy.Decision
 import com.typesafe.scalalogging.StrictLogging
 import java.time.LocalDate
 
