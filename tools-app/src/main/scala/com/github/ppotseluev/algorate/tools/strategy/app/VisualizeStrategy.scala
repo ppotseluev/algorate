@@ -20,12 +20,7 @@ import java.time.LocalDate
 
 object VisualizeStrategy extends IOApp with StrictLogging {
   val strategy = Strategies.intraChannel
-  val policy = TestSetup
-    .fixedTradeCostPolicy(
-      usdTrade = 1_000
-    )
-    .andThen(_.allowedOrElse(Decision.Allowed(1)))
-  val tester = StrategyTester(strategy, policy)
+  val tester = StrategyTester(strategy)
   val asset: TradingAsset = TradingAsset.crypto("BTCUSDT", "usdt")
 
 //    ??? /// Either[Ticker, InstrumentId] = "DOW".asLeft

@@ -9,7 +9,7 @@ import com.github.ppotseluev.algorate.trader.policy.Policy.TradeRequest
 class MoneyManagementPolicy(money: () => Option[Money])(
     maxPercentage: Double,
     maxAbsolute: Map[Currency, Double],
-    allowFractionalLots: Boolean = true
+    allowFractionalLots: Boolean
 ) extends Policy {
   override def apply(request: TradeRequest): Decision = {
     val availableMoney = money().orEmpty.getOrElse(request.currency, BigDecimal(0))

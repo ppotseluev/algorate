@@ -14,7 +14,7 @@ import org.ta4j.core.Trade.TradeType
 
 private[strategy] case class StrategyTester(
     strategyBuilder: BarSeries => FullStrategy,
-    tradingPolicy: Policy = TestSetup.fixedTradeCostPolicy()
+    tradingPolicy: Policy = TestSetup.fixedTradeCostPolicy(allowFractionalLots = true)
 ) extends LazyLogging {
   def test(series: BarSeries, asset: TradingAsset): TradingStats = {
     val strategy = strategyBuilder(series)

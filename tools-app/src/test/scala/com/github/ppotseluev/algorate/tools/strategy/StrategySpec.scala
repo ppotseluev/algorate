@@ -26,7 +26,7 @@ class StrategySpec extends FunSuite {
 
   type F[T] = IO[T]
 
-  val path = new File("tools-app/data/archive/shares").toPath
+  val path = new File("tools-app/data/archive").toPath
   val archive = new Archive[F]("", path)
 
   test("strategy works as expected") {
@@ -34,7 +34,9 @@ class StrategySpec extends FunSuite {
     val series = seriesProvider.getBarSeries(asset, interval).unsafeRunSync()
     val stats = StrategyTester(
       strategy,
-      TestSetup.fixedTradeCostPolicy().andThen(_.allowedOrElse(Decision.Allowed(1)))
+      TestSetup
+        .fixedTradeCostPolicy(allowFractionalLots = false)
+        .andThen(_.allowedOrElse(Decision.Allowed(1)))
     ).test(series, asset)
     assertEquals(stats.long.totalClosedPositions, 9)
     assertEquals(stats.short.totalClosedPositions, 11)

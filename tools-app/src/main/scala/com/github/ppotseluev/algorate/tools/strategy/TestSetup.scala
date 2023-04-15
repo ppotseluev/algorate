@@ -23,7 +23,8 @@ private[strategy] object TestSetup { //TODO remove this shared setup
 
   def fixedTradeCostPolicy(
       usdTrade: Int = 200,
-      rubTrade: Int = 16000
+      rubTrade: Int = 16000,
+      allowFractionalLots: Boolean
   ): Policy = {
     val money: Money = Map("usd" -> Int.MaxValue, "rub" -> Int.MaxValue, "usdt" -> Int.MaxValue)
     new MoneyManagementPolicy(() => Some(money))(
@@ -32,9 +33,10 @@ private[strategy] object TestSetup { //TODO remove this shared setup
         "usd" -> usdTrade,
         "usdt" -> usdTrade,
         "rub" -> rubTrade
-      )
+      ),
+      allowFractionalLots = allowFractionalLots
     )
-  } //andThen(_.allowedOrElse(Decision.Allowed(1)))
+  }
 
   val ids = List(
     "BBG000BNJHS8",

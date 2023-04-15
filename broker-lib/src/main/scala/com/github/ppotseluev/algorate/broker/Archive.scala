@@ -33,20 +33,20 @@ class Archive[F[_]: Sync](
 ) extends BarDataProvider[F]
     with LazyLogging {
 
-  private val csvConfiguration = rfc.withCellSeparator(',')
-
-  private def readCsv[T: HeaderDecoder](file: File): F[List[T]] =
+  private def readCsv[T: HeaderDecoder](
+      csvConfiguration: CsvConfiguration
+  )(file: File): F[List[T]] =
     Resource
       .fromAutoCloseable(Sync[F].blocking(file.asCsvReader[T](csvConfiguration)))
       .use(reader => Sync[F].blocking(reader.toList.sequence).flatMap(_.toFT[F]))
 
   private def readAllCsv(candlesResolution: FiniteDuration)(files: List[File]): F[List[Bar]] =
     files
-      .traverse(readCsv[TinkoffCandle])
+      .traverse(readCsv[TinkoffCandle](rfc.withCellSeparator(';')))
       .map(_.flatten.map(_.toBar(candlesResolution)))
-      .recoverWith { case _: DecodeError =>
+      .recoverWith { case _: kantan.codecs.error.Error =>
         files
-          .traverse(readCsv[BinanceCandle])
+          .traverse(readCsv[BinanceCandle](rfc.withCellSeparator(',')))
           .map(_.flatten.map(_.toBar(candlesResolution)))
       }
 
