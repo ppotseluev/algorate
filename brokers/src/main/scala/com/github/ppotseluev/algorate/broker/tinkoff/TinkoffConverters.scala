@@ -47,7 +47,7 @@ object TinkoffConverters {
       closePrice = price(candle.getClose),
       lowPrice = price(candle.getLow),
       highPrice = price(candle.getHigh),
-      volume = candle.getVolume,
+      volume = candle.getVolume.toDouble,
       endTime = fromProto(candle.getTime, zoneId),
       duration = duration(candle.getInterval)
     )

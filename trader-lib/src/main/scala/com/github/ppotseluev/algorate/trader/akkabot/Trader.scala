@@ -135,7 +135,7 @@ object Trader extends LoggingSupport {
     def buildOrder(
         point: Point,
         operationType: OperationType,
-        lots: Int
+        lots: Double
     ): Order = Order(
       instrumentId = instrumentId,
       lots = lots,

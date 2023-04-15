@@ -51,7 +51,7 @@ object Codecs {
         closePrice: BigDecimal,
         lowPrice: BigDecimal,
         highPrice: BigDecimal,
-        volume: Long,
+        volume: Double,
         endTimeSeconds: Long,
         endTimeNano: Int,
         duration: FiniteDuration

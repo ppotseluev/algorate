@@ -39,6 +39,17 @@ object Broker {
   case class DaysInterval(start: LocalDate, end: LocalDate) {
     require(!start.isAfter(end), "start can't be after end")
 
+    def contains(year: Int, month: Int): Boolean =
+      if (years.size == 1) {
+        years.contains(year) && month >= start.getMonth.getValue && month <= end.getMonth.getValue
+      } else {
+        (year < end.getYear && year > start.getYear) ||
+        (year == start.getYear && month >= start.getMonth.getValue) ||
+        (year == end.getYear && month <= end.getMonth.getValue)
+      }
+
+    def years: Seq[Int] = start.getYear to end.getYear
+
     def days: List[Day] =
       start
         .datesUntil(end.plusDays(1))

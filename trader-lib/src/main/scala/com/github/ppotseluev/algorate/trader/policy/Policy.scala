@@ -20,7 +20,7 @@ object Policy {
       case allowed: Decision.Allowed => allowed
       case _: Decision.Denied        => decision
     }
-    def lots: Int
+    def lots: Double
   }
 
   object Decision {
@@ -32,9 +32,9 @@ object Policy {
         case (Denied(message1), Denied(message2)) => Denied(s"$message1, $message2")
       }
 
-    case class Allowed(lots: Int) extends Decision
+    case class Allowed(lots: Double) extends Decision
     case class Denied(message: String) extends Decision {
-      override def lots: Int = 0
+      override def lots: Double = 0
     }
   }
 }

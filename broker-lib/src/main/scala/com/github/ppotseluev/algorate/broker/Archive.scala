@@ -6,8 +6,9 @@ import cats.implicits._
 import com.github.ppotseluev.algorate.Bar
 import com.github.ppotseluev.algorate.InstrumentId
 import com.github.ppotseluev.algorate.Price
-import com.github.ppotseluev.algorate.broker.Archive.ArchiveCandle
 import com.github.ppotseluev.algorate.broker.Archive.ArchiveNotFound
+import com.github.ppotseluev.algorate.broker.Archive.BinanceCandle
+import com.github.ppotseluev.algorate.broker.Archive.TinkoffCandle
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.cats.CatsUtils._
@@ -15,7 +16,10 @@ import com.typesafe.scalalogging.LazyLogging
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.time.Instant
 import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import kantan.csv.DecodeError
 import kantan.csv._
 import kantan.csv.generic._
 import kantan.csv.ops._
@@ -25,66 +29,74 @@ import scala.sys.process._
 class Archive[F[_]: Sync](
     token: String,
     archiveDir: Path,
-    downloadIfNotExist: Boolean = false //todo pass param value
+    downloadIfNotExist: Boolean = false
 ) extends BarDataProvider[F]
     with LazyLogging {
 
-  private val csvConfiguration = rfc.withCellSeparator(';')
+  private val csvConfiguration = rfc.withCellSeparator(',')
 
-  private def readCsv(file: File): F[List[ArchiveCandle]] =
+  private def readCsv[T: HeaderDecoder](file: File): F[List[T]] =
     Resource
-      .fromAutoCloseable(Sync[F].blocking(file.asCsvReader[ArchiveCandle](csvConfiguration)))
+      .fromAutoCloseable(Sync[F].blocking(file.asCsvReader[T](csvConfiguration)))
       .use(reader => Sync[F].blocking(reader.toList.sequence).flatMap(_.toFT[F]))
 
-  private def readAllCsv(files: List[File]): F[List[List[ArchiveCandle]]] =
-    files.traverse(readCsv)
+  private def readAllCsv(candlesResolution: FiniteDuration)(files: List[File]): F[List[Bar]] =
+    files
+      .traverse(readCsv[TinkoffCandle])
+      .map(_.flatten.map(_.toBar(candlesResolution)))
+      .recoverWith { case _: DecodeError =>
+        files
+          .traverse(readCsv[BinanceCandle])
+          .map(_.flatten.map(_.toBar(candlesResolution)))
+      }
 
   override def getData(
       instrumentId: InstrumentId,
       candlesInterval: CandlesInterval
   ): F[List[Bar]] = Sync[F].defer {
-    val paths = candlesInterval.interval.days
-      .map(_.localDate)
-      .traverse { day =>
-        val dayId = day.toString.replace("-", "")
-        val year = day.getYear
+    val paths = candlesInterval.interval.years
+      .traverse { year =>
         val dataId = s"${instrumentId}_$year"
-        val basePath = archiveDir.resolve(dataId)
-        val targetFile = basePath.resolve(s"$dayId.csv").toFile
-        if (downloadIfNotExist && !basePath.toFile.exists()) {
-          logger.info(s"Downloading $dataId")
-
-          val scriptPath = Paths.get("tools-app/data/download.sh").toAbsolutePath.toString
-
-          val envVars = Map("TINKOFF_TOKEN" -> token)
-          val command = Seq(scriptPath, year.toString, instrumentId)
-
-          // Get the script's parent directory as the working directory
-          val workingDir = Paths.get(scriptPath).getParent.toFile
-
-          val exitCode = Process(command, Some(workingDir), envVars.toSeq: _*).!
-
-          exitCode match {
-            case 0 => logger.debug(s"Successfully downloaded $dataId")
-            case _ => throw new RuntimeException(s"Fail to download $dataId, error code $exitCode")
+        val baseDir = archiveDir.resolve(dataId).toFile
+        if (downloadIfNotExist && !baseDir.exists()) {
+          download(instrumentId, year)
+        }
+        val files = baseDir.listFiles { file =>
+          val name = file.getName
+          name.endsWith(".csv") && {
+            val month = name.slice(4, 6).toInt
+            candlesInterval.interval.contains(year, month)
           }
         }
         Either.cond(
-          basePath.toFile.exists(),
-          right = Option.when(targetFile.exists())(
-            targetFile
-          ), //TODO handle cases when concrete day is missed or the whole archive is missed
+          baseDir.exists(),
+          right = files,
           left = ArchiveNotFound(instrumentId, year)
         )
       }
-      .map(_.flatten)
+      .map(_.flatten.toList)
     val candlesResolution = candlesInterval.resolution match {
       case CandleResolution.OneMinute => CandleResolution.OneMinute.duration
     } //matching to safely check that resolution is supported by the archive impl
-    paths
-      .toFT[F]
-      .flatMap(readAllCsv)
-      .map(_.flatten.map(_.toBar(candlesResolution)))
+    paths.toFT[F].flatMap(readAllCsv(candlesResolution))
+  }
+
+  private def download(instrumentId: InstrumentId, year: Int): Unit = {
+    val dataId = s"${instrumentId}_$year"
+    logger.info(s"Downloading $dataId")
+    val scriptPath = Paths.get("tools-app/data/download.sh").toAbsolutePath.toString
+    val envVars = Map("TINKOFF_TOKEN" -> token)
+    val command = Seq(scriptPath, year.toString, instrumentId)
+
+    // Get the script's parent directory as the working directory
+    val workingDir = Paths.get(scriptPath).getParent.toFile
+
+    val exitCode = Process(command, Some(workingDir), envVars.toSeq: _*).!
+
+    exitCode match {
+      case 0 => logger.debug(s"Successfully downloaded $dataId")
+      case _ => throw new RuntimeException(s"Fail to download $dataId, error code $exitCode")
+    }
   }
 }
 
@@ -92,7 +104,7 @@ object Archive {
   case class ArchiveNotFound(instrumentId: InstrumentId, year: Int)
       extends RuntimeException(s"Archive ${instrumentId}_$year not found")
 
-  private case class ArchiveCandle(
+  private case class TinkoffCandle(
       _id: String,
       startTime: String,
       open: Price,
@@ -108,6 +120,30 @@ object Archive {
       highPrice = high,
       volume = volume,
       endTime = OffsetDateTime.parse(startTime).plusSeconds(duration.toSeconds),
+      duration = duration
+    )
+  }
+
+  private case class BinanceCandle(
+      openTime: Long,
+      open: Price,
+      high: Price,
+      low: Price,
+      close: Price,
+      volume: Double,
+      closeTime: Long,
+      quoteAssetVolume: Double,
+      numberOfTrades: Int,
+      takerBuyBaseAssetVolume: Double,
+      takerBuyQuoteAssetVolume: Double
+  ) {
+    def toBar(duration: FiniteDuration): Bar = Bar(
+      openPrice = open,
+      closePrice = close,
+      lowPrice = low,
+      highPrice = high,
+      volume = volume,
+      endTime = OffsetDateTime.ofInstant(Instant.ofEpochMilli(closeTime), ZoneOffset.UTC),
       duration = duration
     )
   }

@@ -5,3 +5,8 @@ case class TradingAsset(
     ticker: Ticker,
     currency: Currency
 )
+
+object TradingAsset {
+  def crypto(ticker: Ticker, currency: Currency): TradingAsset =
+    TradingAsset(ticker, ticker, currency)
+}

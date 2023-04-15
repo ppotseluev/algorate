@@ -25,11 +25,12 @@ private[strategy] object TestSetup { //TODO remove this shared setup
       usdTrade: Int = 200,
       rubTrade: Int = 16000
   ): Policy = {
-    val money: Money = Map("usd" -> Int.MaxValue, "rub" -> Int.MaxValue)
+    val money: Money = Map("usd" -> Int.MaxValue, "rub" -> Int.MaxValue, "usdt" -> Int.MaxValue)
     new MoneyManagementPolicy(() => Some(money))(
       maxPercentage = 1,
       maxAbsolute = Map(
         "usd" -> usdTrade,
+        "usdt" -> usdTrade,
         "rub" -> rubTrade
       )
     )
