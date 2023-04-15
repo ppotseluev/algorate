@@ -19,7 +19,6 @@ import java.nio.file.Paths
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
-import kantan.csv.DecodeError
 import kantan.csv._
 import kantan.csv.generic._
 import kantan.csv.ops._
