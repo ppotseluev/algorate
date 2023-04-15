@@ -61,13 +61,15 @@ class Archive[F[_]: Sync](
         if (downloadIfNotExist && !baseDir.exists()) {
           download(instrumentId, year)
         }
-        val files = baseDir.listFiles { file =>
-          val name = file.getName
-          name.endsWith(".csv") && {
-            val month = name.slice(4, 6).toInt
-            candlesInterval.interval.contains(year, month)
+        val files = baseDir
+          .listFiles { file =>
+            val name = file.getName
+            name.endsWith(".csv") && {
+              val month = name.slice(4, 6).toInt
+              candlesInterval.interval.contains(year, month)
+            }
           }
-        }
+          .sortBy(_.getName)
         Either.cond(
           baseDir.exists(),
           right = files,
