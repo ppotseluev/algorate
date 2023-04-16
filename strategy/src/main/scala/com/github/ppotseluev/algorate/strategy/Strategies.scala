@@ -114,6 +114,9 @@ object Strategies {
     val feeFraction = 0.0005
     val leastFeeFactor = 2
 
+    val minVolume = num(Int.MinValue)
+    val maxVolume = num(Int.MaxValue)
+
     val lowerBoundIndicator = channel.map(_.map(_.section.lowerBound).getOrElse(NaN.NaN))
     val upperBoundIndicator = channel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
 
@@ -162,9 +165,9 @@ object Strategies {
         ) &
         new CrossedUpIndicatorRule(closePrice, lowerBoundIndicator) &
         new BooleanIndicatorRule(priceIsNotTooHigh) &
-        new BooleanIndicatorRule(
-          volumeIndicator.map(_.isGreaterThan(num(500)))
-        ) //TODO research... maybe use some derived ind?
+        new BooleanIndicatorRule(volumeIndicator.map(_.isLessThan(maxVolume))) &
+        new BooleanIndicatorRule(volumeIndicator.map(_.isGreaterThan(minVolume)))
+
     val coreShortRule = {
       val priceIsNotTooLow: AbstractIndicator[java.lang.Boolean] =
         for {
@@ -184,9 +187,8 @@ object Strategies {
         ) &
         new CrossedDownIndicatorRule(closePrice, upperBoundIndicator) &
         new BooleanIndicatorRule(priceIsNotTooLow) &
-        new BooleanIndicatorRule(
-          volumeIndicator.map(_.isGreaterThan(num(500)))
-        )
+        new BooleanIndicatorRule(volumeIndicator.map(_.isLessThan(maxVolume))) &
+        new BooleanIndicatorRule(volumeIndicator.map(_.isGreaterThan(minVolume)))
     }
 //    val timeRule =
 //      new TimeRangeRule(Seq(tradeTimeRange).asJava, time.asInstanceOf[DateTimeIndicator])
