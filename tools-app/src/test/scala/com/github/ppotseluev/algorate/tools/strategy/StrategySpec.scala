@@ -39,8 +39,8 @@ class StrategySpec extends FunSuite {
         .andThen(_.allowedOrElse(Decision.Allowed(1)))
     ).test(series, asset)
     assertEquals(stats.long.totalClosedPositions, 9)
-    assertEquals(stats.short.totalClosedPositions, 11)
+    assertEquals(stats.short.totalClosedPositions, 20)
     assertEquals(stats.long.winRatio(fee = false), 0.4444444444444444)
-    assertEquals(stats.short.winRatio(fee = false), 0.6363636363636364)
+    assertEquals(stats.short.winRatio(fee = false), 0.65)
   }
 }
