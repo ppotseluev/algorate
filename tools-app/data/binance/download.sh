@@ -3,9 +3,9 @@
 # This is a simple script to download klines by given parameters.
 
 # space separated values
-symbols=("ALGOUSDT")
+symbols=$2
 intervals=("1m")
-years=("2022")
+years=$1
 months=(01 02 03 04 05 06 07 08 09 10 11 12)
 
 baseurl="https://data.binance.vision/data/spot/monthly/klines"
