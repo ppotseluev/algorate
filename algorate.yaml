@@ -20,18 +20,18 @@ services:
     scope: RUN_AND_BUILD_TIME
     type: SECRET
     value: EV[1:cu4JtaE8zyKNPS42NMctv3+jTJdzJS3I:Zih73bcZJ9Ir3XEMPMmxypH1J5tJLvS7IfLTnQdk5QrwcK6tzMxAzvif4Ytg5JndQWsQqmRtA3+Phe/A1jLtEECgWgrh0nQ7BhBa3gKOScFTtZHyGp3XTCk9ytnKxUVn+8zHJM3FuKg=]
-  - key: ACCOUNT_ID
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-    value: EV[1:S4vJAaEhGY+ipFT0fn3wllCEPUAMp+PS:3vC1BglY44WHEofmpAjmkHSOnbGN41MFbOLlaV41uP2GHQz08vc1ugekI1WwNF6pr0o2hQ==]
   - key: JAVA_OPTS
     scope: RUN_AND_BUILD_TIME
+    value: -Xms800m -Xmx800m
   - key: TELEGRAM_WEBHOOK_SECRET
     scope: RUN_AND_BUILD_TIME
     type: SECRET
     value: EV[1:UkGjU5XT/kUzgUwv1Pkd2M+48q+/sruy:dnlahmN8rQn7Wz3xb7S2Agq0xi9XhMojM+/rKE8tTnvNWKwekoaPYbk1g6LEu/qA]
+  - key: ACCOUNT_ID
+    scope: RUN_AND_BUILD_TIME
+    value: 3640052c-e89c-454c-87db-6d47a82affb0
   github:
-    branch: ALGOR-27-trader-metrics
+    branch: master
     repo: ppotseluev/algorate
   health_check:
     failure_threshold: 3
@@ -40,9 +40,13 @@ services:
     port: 54611
   http_port: 8080
   instance_count: 1
-  instance_size_slug: basic-xxs
+  instance_size_slug: basic-xs
   internal_ports:
   - 54611
+  log_destinations:
+  - logtail:
+      token: sZsrUtAscxJsfk55NQ2LpTMs
+    name: Logtail
   name: algorate-trader-app
   routes:
   - path: /algorate
