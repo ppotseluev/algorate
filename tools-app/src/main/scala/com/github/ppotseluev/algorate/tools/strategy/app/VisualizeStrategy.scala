@@ -19,7 +19,7 @@ import java.time.LocalDate
 object VisualizeStrategy extends IOApp with StrictLogging {
   val strategy = Strategies.intraChannel
   val tester = StrategyTester(strategy)
-  val asset: TradingAsset = TradingAsset.crypto("DOTUSDT", "usdt")
+  val asset: TradingAsset = TradingAsset.crypto("LTCUSDT", "usdt")
 
 //    ??? /// Either[Ticker, InstrumentId] = "DOW".asLeft
   val interval = CandlesInterval(
@@ -55,7 +55,7 @@ object VisualizeStrategy extends IOApp with StrictLogging {
               series = series,
               tradingStats = Some(result),
               title = s"${asset.ticker}",
-              profitableTradesFilter = none
+              profitableTradesFilter = false.some
             )
           }
         } yield ExitCode.Success

@@ -113,13 +113,19 @@ object Strategies {
     //TODO was (6, 0.5). (2, 0.2) - better?
 
     val rsi = new RSIIndicator(closePrice, 5)
+    val volumeRsi = new RSIIndicator(volumeIndicator, 5)
 
     val highVolume: AbstractIndicator[Num] =
       new PercentileIndicator(volumeIndicator, percentile = 75, barCount = extremumWindowSize)
 //    val lowVolume: AbstractIndicator[Num] =
 //      new PercentileIndicator(volumeIndicator, percentile = 20, barCount = 10)
-    val volumeRule = new UnderIndicatorRule(volumeIndicator, highVolume)
-//      new OverIndicatorRule(volumeIndicator, lowVolume)
+
+    val volumeRule =
+      new UnderIndicatorRule(volumeRsi, 60) &
+        new OverIndicatorRule(volumeRsi, 40)
+
+    //      new UnderIndicatorRule(volumeIndicator, highVolume)
+    //      new OverIndicatorRule(volumeIndicator, lowVolume)
 
     val feeFraction = 0.0005
     val leastFeeFactor = 2
@@ -194,7 +200,10 @@ object Strategies {
         new CrossedDownIndicatorRule(
           closePrice,
           lowerBoundIndicator
-        ) ///  \-\ halfChannel.map(_.dividedBy(num(4))) ) &
+        ) &
+        new UnderIndicatorRule(lowerBoundIndicator \-\ halfChannel, leastShortTarget)
+
+    ///  \-\ halfChannel.map(_.dividedBy(num(4))) ) &
 //    new BooleanIndicatorRule(priceIsNotTooHigh) &
 
 //        new BooleanIndicatorRule(volumeIndicator.map(_.isLessThan(maxVolume))) &
@@ -223,7 +232,10 @@ object Strategies {
         new CrossedUpIndicatorRule(
           closePrice,
           upperBoundIndicator
-        ) // \+\ halfChannel.map(_.dividedBy(num(4)))) &
+        ) &
+        new OverIndicatorRule(upperBoundIndicator \+\ halfChannel, leastLongTarget)
+
+      // \+\ halfChannel.map(_.dividedBy(num(4)))) &
 //      new BooleanIndicatorRule(priceIsNotTooLow) &
 //        new BooleanIndicatorRule(volumeIndicator.map(_.isLessThan(maxVolume))) &
 //        new BooleanIndicatorRule(volumeIndicator.map(_.isGreaterThan(minVolume)))
@@ -298,8 +310,8 @@ object Strategies {
       oscillators = Map(
 //        "hasData" -> IndicatorInfo(hasData.map(if (_) num(50) else series.num(0))),
 //        "width" -> IndicatorInfo(relativeWidthIndicator),
-//        "volume" -> IndicatorInfo(volumeIndicator)
-        "rsi" -> IndicatorInfo(rsi)
+        "volume" -> IndicatorInfo(volumeRsi)
+//        "rsi" -> IndicatorInfo(rsi)
       )
     )
   }

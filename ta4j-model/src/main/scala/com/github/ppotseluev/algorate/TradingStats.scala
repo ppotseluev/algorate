@@ -85,8 +85,7 @@ object TradingStats {
     val avgDuration = durations.sum / positions.size
     val maxDuration = durations.maxOption.getOrElse(0)
     val p = new Percentile(0.8)
-    p.setData(durations.toArray)
-    val p90 = p.evaluate()
+    val p80 = p.evaluate(durations.toArray)
     val profitRatio = noFeeProfit.alignMergeWith(noFeeLoss)((x, y) => scala.math.abs(x / y))
     s"""
        |LONG (${long.totalClosedPositions}, no_fee ${long.winRatio(false)}, real ${long.winRatio(
@@ -98,7 +97,7 @@ object TradingStats {
        |NET_PROFIT: ${profit(fee = false)}, PROFIT_RATIO: $profitRatio
        |ONLY_PROFITABLE: $noFeeProfit, ONLY_LOSS: $noFeeLoss
        |AVG_PROFIT: $avgProfit, AVG_LOSS: $avgLoss
-       |AVG_DURATION: $avgDuration m, MAX_DURATION: $maxDuration, P_90: $p90
+       |AVG_DURATION: $avgDuration m, MAX_DURATION: $maxDuration, P_80: $p80
        |DIFF: $diff%
        |""".stripMargin //.replaceAll("\n", "")
   }
