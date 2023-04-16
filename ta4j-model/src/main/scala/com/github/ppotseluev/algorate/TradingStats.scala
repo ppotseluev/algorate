@@ -4,6 +4,8 @@ import cats.Monoid
 import cats.Show
 import cats.derived.semiauto
 import cats.implicits._
+import org.apache.commons.math3.stat.descriptive.rank.Percentile
+
 import java.time.YearMonth
 import scala.collection.immutable.SeqMap
 
@@ -71,12 +73,21 @@ object TradingStats {
     val totalReal = totalWinRatio(true)
     val diff = (totalNoFee - totalReal) / totalNoFee * 100
     val noFeeProfit = profit(fee = false, profitable = true.some)
+    val noFeeLoss = profit(fee = false, profitable = false.some)
     val avgProfit = noFeeProfit.view.mapValues(_ / totalWinningPositions()).toMap
-    val avgLoss = profit(fee = false, profitable = false.some).view
-      .mapValues(_ / totalNonWinningPositions())
-      .toMap
-    val profitReport =
-      s"NO_FEE_PROFIT: ${profit(fee = false)}, REAL_PROFIT: ${profit(fee = true)}, NO_FEE_ONLY_PROFITABLE: $noFeeProfit"
+    val avgLoss = noFeeLoss.view.mapValues(_ / totalNonWinningPositions()).toMap
+    val positions = long.positions ++ short.positions
+    val durations = positions
+      .map { p =>
+        p.getExit.getIndex - p.getEntry.getIndex
+      }
+      .map(_.toDouble)
+    val avgDuration = durations.sum / positions.size
+    val maxDuration = durations.maxOption.getOrElse(0)
+    val p = new Percentile(0.8)
+    p.setData(durations.toArray)
+    val p90 = p.evaluate()
+    val profitRatio = noFeeProfit.alignMergeWith(noFeeLoss)((x, y) => scala.math.abs(x / y))
     s"""
        |LONG (${long.totalClosedPositions}, no_fee ${long.winRatio(false)}, real ${long.winRatio(
       true
@@ -84,8 +95,10 @@ object TradingStats {
        |SHORT (${short.totalClosedPositions}, no_fee ${short.winRatio(false)}, real ${short
       .winRatio(true)}),
        |SUM ($totalPositions, no_fee $totalNoFee, real $totalReal),
-       |$profitReport
+       |NET_PROFIT: ${profit(fee = false)}, PROFIT_RATIO: $profitRatio
+       |ONLY_PROFITABLE: $noFeeProfit, ONLY_LOSS: $noFeeLoss
        |AVG_PROFIT: $avgProfit, AVG_LOSS: $avgLoss
+       |AVG_DURATION: $avgDuration m, MAX_DURATION: $maxDuration, P_90: $p90
        |DIFF: $diff%
        |""".stripMargin //.replaceAll("\n", "")
   }

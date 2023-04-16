@@ -74,7 +74,7 @@ lazy val `ta4j-model` = project //TODO rework
       Dependency.ta4j
     )
   )
-  .dependsOn(`model`)
+  .dependsOn(`model`, `math-utils`)
 
 lazy val `trader-charts` = project
   .settings(

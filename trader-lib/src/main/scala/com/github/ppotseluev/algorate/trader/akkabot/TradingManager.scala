@@ -48,7 +48,6 @@ object TradingManager extends LazyLogging {
     def trader(instrumentId: InstrumentId): Behavior[Trader.Event] = {
       val asset = assets(instrumentId)
       Trader(
-        instrumentId = instrumentId,
         asset = asset,
         strategyBuilder = strategy,
         policy = policy,

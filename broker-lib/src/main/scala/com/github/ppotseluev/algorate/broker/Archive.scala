@@ -60,7 +60,7 @@ class Archive[F[_]: Sync](
         if (downloadIfNotExist && !baseDir.exists()) {
           download(instrumentId, year)
         }
-        val files = baseDir
+        def files = baseDir
           .listFiles { file =>
             val name = file.getName
             name.endsWith(".csv") && {

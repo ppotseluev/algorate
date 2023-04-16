@@ -120,7 +120,6 @@ object Trader extends LoggingSupport {
   }
 
   def apply(
-      instrumentId: InstrumentId,
       asset: TradingAsset,
       strategyBuilder: BarSeries => FullStrategy,
       policy: Policy,
@@ -130,6 +129,8 @@ object Trader extends LoggingSupport {
       snapshotSink: TraderSnapshotSink,
       maxLag: Option[FiniteDuration]
   ): Behavior[Event] = {
+    val instrumentId = asset.instrumentId
+
     val logger = getLogger(s"Trader-${asset.ticker}")
 
     def buildOrder(

@@ -19,11 +19,11 @@ import java.time.LocalDate
 object VisualizeStrategy extends IOApp with StrictLogging {
   val strategy = Strategies.intraChannel
   val tester = StrategyTester(strategy)
-  val asset: TradingAsset = TradingAsset.crypto("ALGOUSDT", "usdt")
+  val asset: TradingAsset = TradingAsset.crypto("DOTUSDT", "usdt")
 
 //    ??? /// Either[Ticker, InstrumentId] = "DOW".asLeft
   val interval = CandlesInterval(
-    interval = DaysInterval(
+    interval = DaysInterval(//todo compare 2 and 10 months
       LocalDate.of(2022, 1, 1),
       LocalDate.of(2022, 12, 31)
     ),
@@ -42,16 +42,20 @@ object VisualizeStrategy extends IOApp with StrictLogging {
           result = tester.test(series, asset)
           _ <- IO {
             println("per month statistics")
-            result.monthly.foreach { case (month, stats) =>
-              println(s"$month ${stats.show}")
-            }
+            result.monthly.toSeq
+              .sortBy { case (_, stats) =>
+                stats.profit(fee = false).values.sum
+              }
+              .foreach { case (month, stats) =>
+                println(s"$month ${stats.show}")
+              }
             println(result.show)
             TradingCharts.display(
               strategyBuilder = strategy,
               series = series,
               tradingStats = Some(result),
               title = s"${asset.ticker}",
-              profitableTradesFilter = false.some
+              profitableTradesFilter = none
             )
           }
         } yield ExitCode.Success
