@@ -3,9 +3,9 @@
 # This is a simple script to download klines by given parameters.
 
 # space separated values
-symbols=("BTCUSDT")
+symbols=("ALGOUSDT")
 intervals=("1m")
-years=("2019")
+years=("2022")
 months=(01 02 03 04 05 06 07 08 09 10 11 12)
 
 baseurl="https://data.binance.vision/data/spot/monthly/klines"
@@ -16,7 +16,7 @@ for symbol in ${symbols[@]}; do
   for interval in ${intervals[@]}; do
     for year in ${years[@]}; do
       target_dir="${symbol}_${year}"
-      if [ "$(ls -A "$target_dir")" ]; then
+      if [ -d "${target_dir}" ] && [ "$(ls -A "$target_dir")" ]; then
         echo "${target_dir} already exists"
       else
         for month in ${months[@]}; do
