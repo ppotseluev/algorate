@@ -13,6 +13,11 @@ case class TradingStats(
 ) {
   def totalPositions: Int = long.totalClosedPositions + short.totalClosedPositions
 
+  def totalWinningPositions(fee: Boolean = false): Int =
+    long.winningPositions(fee) + short.winningPositions(fee)
+  def totalNonWinningPositions(fee: Boolean = false): Int =
+    long.nonWinningPositions(fee) + short.nonWinningPositions(fee)
+
   def totalWinRatio(fee: Boolean): Double = {
     val totalWon = long.winningPositions(fee) + short.winningPositions(fee)
     totalWon.toDouble / totalPositions
@@ -20,7 +25,7 @@ case class TradingStats(
 
   def profit(
       fee: Boolean,
-      profitableOnly: Boolean = false
+      profitable: Option[Boolean] = None
   ): Map[Currency, Double] =
     (long.enrichedPositions ++ short.enrichedPositions)
       .groupBy(_.asset.currency)
@@ -28,10 +33,16 @@ case class TradingStats(
       .mapValues(_.map(_.position))
       .mapValues { positions =>
         if (fee) {
-          val p = if (profitableOnly) positions.filter(_.hasProfit) else positions
+          val p =
+            if (profitable.contains(true)) positions.filter(_.hasProfit)
+            else if (profitable.contains(false)) positions.filterNot(_.hasProfit)
+            else positions
           p.foldMap(_.getProfit.doubleValue)
         } else {
-          val p = if (profitableOnly) positions.filter(_.getGrossProfit.isPositive) else positions
+          val p =
+            if (profitable.contains(true)) positions.filter(_.getGrossProfit.isPositive)
+            else if (profitable.contains(false)) positions.filterNot(_.getGrossProfit.isPositive)
+            else positions
           p.foldMap(_.getGrossProfit.doubleValue)
         }
       }
@@ -59,8 +70,13 @@ object TradingStats {
     val totalNoFee = totalWinRatio(false)
     val totalReal = totalWinRatio(true)
     val diff = (totalNoFee - totalReal) / totalNoFee * 100
+    val noFeeProfit = profit(fee = false, profitable = true.some)
+    val avgProfit = noFeeProfit.view.mapValues(_ / totalWinningPositions()).toMap
+    val avgLoss = profit(fee = false, profitable = false.some).view
+      .mapValues(_ / totalNonWinningPositions())
+      .toMap
     val profitReport =
-      s"NO_FEE_PROFIT: ${profit(fee = false)}, REAL_PROFIT: ${profit(fee = true)}, NO_FEE_ONLY_PROFITABLE: ${profit(fee = false, profitableOnly = true)}"
+      s"NO_FEE_PROFIT: ${profit(fee = false)}, REAL_PROFIT: ${profit(fee = true)}, NO_FEE_ONLY_PROFITABLE: $noFeeProfit"
     s"""
        |LONG (${long.totalClosedPositions}, no_fee ${long.winRatio(false)}, real ${long.winRatio(
       true
@@ -69,6 +85,7 @@ object TradingStats {
       .winRatio(true)}),
        |SUM ($totalPositions, no_fee $totalNoFee, real $totalReal),
        |$profitReport
+       |AVG_PROFIT: $avgProfit, AVG_LOSS: $avgLoss
        |DIFF: $diff%
        |""".stripMargin //.replaceAll("\n", "")
   }
