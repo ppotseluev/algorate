@@ -8,6 +8,16 @@ intervals=("1m")
 years=$1
 months=(01 02 03 04 05 06 07 08 09 10 11 12)
 
+force=false
+
+for arg in "$@"
+do
+  if [ "$arg" = "-f" ]; then
+    force=true
+    break
+  fi
+done
+
 baseurl="https://data.binance.vision/data/spot/monthly/klines"
 
 cd archive || exit 1
@@ -16,7 +26,7 @@ for symbol in ${symbols[@]}; do
   for interval in ${intervals[@]}; do
     for year in ${years[@]}; do
       target_dir="${symbol}_${year}"
-      if [ -d "${target_dir}" ] && [ "$(ls -A "$target_dir")" ]; then
+      if [ "$force" = false ] && [ -d "${target_dir}" ] && [ "$(ls -A "$target_dir")" ]; then
         echo "${target_dir} already exists"
       else
         for month in ${months[@]}; do

@@ -39,8 +39,8 @@ object Broker {
     require(!start.isAfter(end), "start can't be after end")
 
     def contains(dateTime: OffsetDateTime): Boolean =
-      dateTime.isAfter(start.atStartOfDay().atOffset(ZoneOffset.UTC)) &&
-        dateTime.isBefore(end.atStartOfDay().atOffset(ZoneOffset.UTC))
+      dateTime.isAfter(start.atStartOfDay.atOffset(ZoneOffset.UTC)) &&
+        dateTime.isBefore(end.plusDays(1).atStartOfDay.atOffset(ZoneOffset.UTC))
 
     def contains(year: Int, month: Int): Boolean =
       if (years.size == 1) {

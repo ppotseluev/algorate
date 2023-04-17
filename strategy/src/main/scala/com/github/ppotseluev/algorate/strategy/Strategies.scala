@@ -62,6 +62,8 @@ object Strategies {
 
     val closePrice = new ClosePriceIndicator(series)
     val volumeIndicator: AbstractIndicator[Num] = new VolumeIndicator(series)
+    val relativeVolumeIndicator =
+      new RelativeVolumeIndicator(series, lookbackPeriod = 7.days.toMinutes.toInt)
     val extremumWindowSize = 30
     val extremum: AbstractIndicator[Option[Extremum]] =
       LocalExtremumIndicator(closePrice, extremumWindowSize)
@@ -103,13 +105,13 @@ object Strategies {
     val midChannelIndicator: AbstractIndicator[Num] =
       new SumIndicator(lowerBoundIndicator, halfChannel)
 
-    val priceIsNotTooLow: AbstractIndicator[java.lang.Boolean] =
+    val priceIsNotTooLow: AbstractIndicator[Boolean] =
       for {
         price <- leastShortTarget
         bound <- midChannelIndicator
       } yield price.isGreaterThan(bound)
 
-    val priceIsNotTooHigh: AbstractIndicator[java.lang.Boolean] =
+    val priceIsNotTooHigh: AbstractIndicator[Boolean] =
       for {
         price <- leastLongTarget
         bound <- midChannelIndicator
@@ -118,12 +120,16 @@ object Strategies {
     val entryShortRule =
       channel.exists[Channel](c => c.k.upper > 0 && c.k.upper < maxK).asRule &
         new CrossedDownIndicatorRule(closePrice, upperBoundIndicator) &
-        new BooleanIndicatorRule(priceIsNotTooLow)
+        priceIsNotTooLow.asRule //&
+//        new OverIndicatorRule(rsi, 55) &
+//        volumeRule
 
     val entryLongRule =
       channel.exists[Channel](c => c.k.upper < 0 && c.k.upper > -maxK).asRule &
         new CrossedUpIndicatorRule(closePrice, lowerBoundIndicator) &
-        new BooleanIndicatorRule(priceIsNotTooHigh)
+        priceIsNotTooHigh.asRule //&
+//        new UnderIndicatorRule(rsi, 45) &
+//        volumeRule
 
     val exitRule = new AbstractRule {
       override def isSatisfied(index: Int, tradingRecord: TradingRecord): Boolean =
@@ -134,10 +140,10 @@ object Strategies {
             val price = closePrice.getValue(index)
             val entryPrice = closePrice.getValue(entryIndex)
             price.isGreaterThanOrEqual(entryPrice.plus(h)) ||
-              price.isLessThanOrEqual(entryPrice.minus(h))
+            price.isLessThanOrEqual(entryPrice.minus(h))
           case None => false
         }
-    }.or(channelIsDefinedRule.negation)
+    } //.or(channelIsDefinedRule.negation) TODO maybe need to fix TODO in channel ind and uncomment this
 
     val buyingStrategy = new BaseStrategy(entryLongRule, exitRule)
     val sellingStrategy = new BaseStrategy(entryShortRule, exitRule)
@@ -191,8 +197,8 @@ object Strategies {
       oscillators = Map(
 //        "hasData" -> IndicatorInfo(hasData.map(if (_) num(50) else series.num(0))),
 //        "width" -> IndicatorInfo(relativeWidthIndicator),
-        "volume" -> IndicatorInfo(volumeRsi)
-//        "rsi" -> IndicatorInfo(rsi)
+        "volume" -> IndicatorInfo(volumeRsi),
+        "rsi" -> IndicatorInfo(rsi)
       )
     )
   }
