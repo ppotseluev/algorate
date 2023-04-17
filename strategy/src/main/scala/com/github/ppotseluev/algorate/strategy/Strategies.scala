@@ -13,13 +13,27 @@ import com.github.ppotseluev.algorate.strategy.indicator.IndicatorSyntax
 import com.github.ppotseluev.algorate.strategy.indicator.LocalExtremumIndicator
 import com.github.ppotseluev.algorate.strategy.indicator.LocalExtremumIndicator.Extremum
 import com.github.ppotseluev.algorate.strategy.indicator.VisualChannelIndicator
+import org.ta4j.core.indicators.{
+  AbstractIndicator,
+  EMAIndicator,
+  MACDIndicator,
+  RSIIndicator,
+  SMAIndicator
+}
+import org.ta4j.core.indicators.bollinger.BollingerBandsLowerIndicator
+import org.ta4j.core.indicators.bollinger.BollingerBandsMiddleIndicator
+import org.ta4j.core.indicators.bollinger.BollingerBandsUpperIndicator
+import org.ta4j.core.indicators.statistics.StandardDeviationIndicator
 import com.github.ppotseluev.algorate.strategy.indicator._
 import org.apache.commons.math3.analysis.polynomials.PolynomialFunction
 import org.ta4j.core.BarSeries
 import org.ta4j.core.BaseStrategy
 import org.ta4j.core.Strategy
 import org.ta4j.core.TradingRecord
-import org.ta4j.core.indicators.{AbstractIndicator, RSIIndicator, SMAIndicator}
+import org.ta4j.core.indicators.bollinger.{
+  BollingerBandsLowerIndicator,
+  BollingerBandsMiddleIndicator
+}
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator
 import org.ta4j.core.indicators.helpers.DifferenceIndicator
 import org.ta4j.core.indicators.helpers.SumIndicator
@@ -85,6 +99,16 @@ object Strategies {
     val leastFeeFactor = 2
     val maxK = Int.MaxValue
 
+    // Define MACD parameters
+    val shortPeriod = 7
+    val longPeriod = 15
+    val signalPeriod = 5
+    // Calculate the MACD line
+    val macd = new MACDIndicator(closePrice, shortPeriod, longPeriod)
+
+    // Calculate the signal line (an EMA of the MACD line)
+    val macdEma = new EMAIndicator(macd, signalPeriod)
+
     val lowerBoundIndicator = channel.map(_.map(_.section.lowerBound).getOrElse(NaN.NaN))
     val upperBoundIndicator = channel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
 
@@ -120,16 +144,18 @@ object Strategies {
     val entryShortRule =
       channel.exists[Channel](c => c.k.upper > 0 && c.k.upper < maxK).asRule &
         new CrossedDownIndicatorRule(closePrice, upperBoundIndicator) &
-        priceIsNotTooLow.asRule //&
-//        new OverIndicatorRule(rsi, 55) &
-//        volumeRule
+        priceIsNotTooLow.asRule &
+        new OverIndicatorRule(rsi, 55) &
+        volumeRule &
+        new UnderIndicatorRule(macd, macdEma)
 
     val entryLongRule =
       channel.exists[Channel](c => c.k.upper < 0 && c.k.upper > -maxK).asRule &
         new CrossedUpIndicatorRule(closePrice, lowerBoundIndicator) &
-        priceIsNotTooHigh.asRule //&
-//        new UnderIndicatorRule(rsi, 45) &
-//        volumeRule
+        priceIsNotTooHigh.asRule &
+        new UnderIndicatorRule(rsi, 45) &
+        volumeRule &
+        new OverIndicatorRule(macd, macdEma)
 
     val exitRule = new AbstractRule {
       override def isSatisfied(index: Int, tradingRecord: TradingRecord): Boolean =
@@ -160,14 +186,16 @@ object Strategies {
         visualChannel.map(_.map(_.section.lowerBound).getOrElse(NaN.NaN))
       val visualUpperBoundIndicator =
         visualChannel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
+
       val leastTargetIndicator = (closePrice: AbstractIndicator[Num]).zipWithIndex
         .map { case (index, price) =>
           if (entryShortRule.isSatisfied(index))
-            price.multipliedBy(num(1 - leastFeeFactor * feeFraction))
+            price.minus(halfChannel.getValue(index))
           else if (entryLongRule.isSatisfied(index))
-            price.multipliedBy(num(1 + leastFeeFactor * feeFraction))
+            price.plus(halfChannel.getValue(index))
           else NaN.NaN
         }
+
       Map(
         "close price" -> IndicatorInfo(closePrice),
         "extrMin" -> IndicatorInfo(
@@ -197,8 +225,11 @@ object Strategies {
       oscillators = Map(
 //        "hasData" -> IndicatorInfo(hasData.map(if (_) num(50) else series.num(0))),
 //        "width" -> IndicatorInfo(relativeWidthIndicator),
-        "volume" -> IndicatorInfo(volumeRsi),
-        "rsi" -> IndicatorInfo(rsi)
+
+//        "volume" -> IndicatorInfo(volumeRsi),
+//        "rsi" -> IndicatorInfo(rsi)
+        "macd" -> IndicatorInfo(macd),
+        "macdEma" -> IndicatorInfo(macdEma)
       )
     )
   }
