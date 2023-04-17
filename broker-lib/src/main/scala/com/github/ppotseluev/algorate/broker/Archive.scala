@@ -52,35 +52,45 @@ class Archive[F[_]: Sync](
   override def getData(
       instrumentId: InstrumentId,
       candlesInterval: CandlesInterval
-  ): F[List[Bar]] = Sync[F].defer {
-    val paths = candlesInterval.interval.years
-      .traverse { year =>
-        val dataId = s"${instrumentId}_$year"
-        val baseDir = archiveDir.resolve(dataId).toFile
-        if (downloadIfNotExist && !baseDir.exists()) {
-          download(instrumentId, year)
-        }
-        def files = baseDir
-          .listFiles { file =>
-            val name = file.getName
-            name.endsWith(".csv") && {
-              val month = name.slice(4, 6).toInt
-              candlesInterval.interval.contains(year, month)
-            }
+  ): F[List[Bar]] = Sync[F]
+    .defer {
+      val paths = candlesInterval.interval.years
+        .traverse { year =>
+          val dataId = s"${instrumentId}_$year"
+          val baseDir = archiveDir.resolve(dataId).toFile
+          if (downloadIfNotExist && !baseDir.exists()) {
+            download(instrumentId, year)
           }
-          .sortBy(_.getName)
-        Either.cond(
-          baseDir.exists(),
-          right = files,
-          left = ArchiveNotFound(instrumentId, year)
-        )
-      }
-      .map(_.flatten.toList)
-    val candlesResolution = candlesInterval.resolution match {
-      case CandleResolution.OneMinute => CandleResolution.OneMinute.duration
-    } //matching to safely check that resolution is supported by the archive impl
-    paths.toFT[F].flatMap(readAllCsv(candlesResolution))
-  }
+          def files = baseDir
+            .listFiles { file =>
+              val name = file.getName
+              name.endsWith(".csv") && {
+                val month = name.slice(4, 6).toInt
+                candlesInterval.interval.contains(year, month)
+              }
+            }
+            .sortBy(_.getName)
+          Either.cond(
+            baseDir.exists(),
+            right = files,
+            left = ArchiveNotFound(instrumentId, year)
+          )
+        }
+        .map(_.flatten.toList)
+      val candlesResolution = candlesInterval.resolution match {
+        case CandleResolution.OneMinute => CandleResolution.OneMinute.duration
+      } //matching to safely check that resolution is supported by the archive impl
+      paths.toFT[F].flatMap(readAllCsv(candlesResolution))
+    }
+    .map { bars =>
+      bars
+        .dropWhile { bar =>
+          !candlesInterval.interval.contains(bar.endTime)
+        }
+        .takeWhile { bar =>
+          candlesInterval.interval.contains(bar.endTime)
+        }
+    }
 
   private def download(instrumentId: InstrumentId, year: Int): Unit = {
     val dataId = s"${instrumentId}_$year"

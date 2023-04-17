@@ -9,14 +9,15 @@ import com.github.ppotseluev.algorate.strategy.indicator.ExtremumCollector._
 import org.ta4j.core.indicators.AbstractIndicator
 import org.ta4j.core.indicators.RecursiveCachedIndicator
 import org.ta4j.core.num.Num
-import scala.reflect.ClassTag
 
+import scala.reflect.ClassTag
 import ChannelIndicator.CalculatedChannel
 import ChannelIndicator.Channel
 import ChannelIndicator.ChannelState
 import ChannelIndicator.NeedNewChannel
 import ChannelIndicator.Section
 import LocalExtremumIndicator.Extremum
+import org.apache.commons.math3.analysis.polynomials.PolynomialFunction
 
 class ChannelIndicator private (
     baseIndicator: AbstractIndicator[Num],
@@ -205,6 +206,13 @@ object ChannelIndicator {
       allExtremums: Bounds[List[Extremum]],
       startIndex: Int
   ) {
+    def k: Bounds[Double] = bounds.map {
+      _.func
+        .asInstanceOf[PolynomialFunction]
+        .getCoefficients
+        .last
+    }
+
     def addExtremums(extremums: Iterable[Extremum]): Channel =
       extremums.foldLeft(this)(_ addExtremum _)
 

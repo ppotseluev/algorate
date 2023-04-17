@@ -5,6 +5,8 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import org.ta4j.core.indicators.AbstractIndicator
 import org.ta4j.core.num.Num
+import org.ta4j.core.rules.{AbstractRule, BooleanIndicatorRule}
+
 import scala.util.Try
 
 package object indicator {
@@ -60,5 +62,13 @@ package object indicator {
         ev: T <:< Option[A]
     ): AbstractIndicator[Option[A]] =
       indicator.map(_.filter(predicate))
+
+    def exists[A](predicate: A => Boolean)(implicit
+        ev: T <:< Option[A]
+    ): AbstractIndicator[Boolean] =
+      indicator.map(_.exists(predicate))
+
+    def asRule(implicit ev: T <:< Boolean): AbstractRule =
+      new BooleanIndicatorRule(indicator.map(ev).map(boolean2Boolean))
   }
 }

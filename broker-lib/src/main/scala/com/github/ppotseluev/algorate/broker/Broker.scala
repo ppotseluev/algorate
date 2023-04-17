@@ -3,9 +3,8 @@ package com.github.ppotseluev.algorate.broker
 import com.github.ppotseluev.algorate.Order
 import com.github.ppotseluev.algorate._
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneOffset
+
+import java.time.{Instant, LocalDate, OffsetDateTime, ZoneOffset}
 import java.util.stream.Collectors
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
@@ -38,6 +37,10 @@ object Broker {
 
   case class DaysInterval(start: LocalDate, end: LocalDate) {
     require(!start.isAfter(end), "start can't be after end")
+
+    def contains(dateTime: OffsetDateTime): Boolean =
+      dateTime.isAfter(start.atStartOfDay().atOffset(ZoneOffset.UTC)) &&
+        dateTime.isBefore(end.atStartOfDay().atOffset(ZoneOffset.UTC))
 
     def contains(year: Int, month: Int): Boolean =
       if (years.size == 1) {
