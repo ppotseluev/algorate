@@ -95,8 +95,7 @@ object Strategies {
       new UnderIndicatorRule(volumeRsi, 60) &
         new OverIndicatorRule(volumeRsi, 40)
 
-    val feeFraction = 0.0005
-    val leastFeeFactor = 2
+    val minPotentialChange = num(0.005) //0.5%
     val maxK = Int.MaxValue
 
     // Define MACD parameters
@@ -115,36 +114,32 @@ object Strategies {
     val channelDiffIndicator: AbstractIndicator[Num] =
       new DifferenceIndicator(upperBoundIndicator, lowerBoundIndicator)
     val halfChannel = channelDiffIndicator.map(_.dividedBy(num(2)))
-
-    val channelIsDefinedRule = new BooleanIndicatorRule(channel.map(_.isDefined))
-
-    val leastLongTarget = (closePrice: AbstractIndicator[Num]).map { price =>
-      price.multipliedBy(num(1 + leastFeeFactor * feeFraction))
-    }
-
-    val leastShortTarget = (closePrice: AbstractIndicator[Num]).map { price =>
-      price.multipliedBy(num(1 - leastFeeFactor * feeFraction))
-    }
-
     val midChannelIndicator: AbstractIndicator[Num] =
       new SumIndicator(lowerBoundIndicator, halfChannel)
 
-    val priceIsNotTooLow: AbstractIndicator[Boolean] =
+    val channelIsWideEnough =
       for {
-        price <- leastShortTarget
-        bound <- midChannelIndicator
-      } yield price.isGreaterThan(bound)
+        p <- closePrice: AbstractIndicator[Num]
+        h <- halfChannel
+      } yield h.dividedBy(p).isGreaterThan(minPotentialChange)
 
-    val priceIsNotTooHigh: AbstractIndicator[Boolean] =
-      for {
-        price <- leastLongTarget
-        bound <- midChannelIndicator
-      } yield price.isLessThan(bound)
+//    TODO return back? price may be too far from the bound at the entry moment, need to prevent such trades
+//    val priceIsNotTooLow: AbstractIndicator[Boolean] =
+//      for {
+//        price <- shortTarget
+//        bound <- midChannelIndicator
+//      } yield price.isGreaterThan(bound)
+//
+//    val priceIsNotTooHigh: AbstractIndicator[Boolean] =
+//      for {
+//        price <- longTarget
+//        bound <- midChannelIndicator
+//      } yield price.isLessThan(bound)
 
     val entryShortRule =
       channel.exists[Channel](c => c.k.upper > 0 && c.k.upper < maxK).asRule &
         new CrossedDownIndicatorRule(closePrice, upperBoundIndicator) &
-        priceIsNotTooLow.asRule &
+        channelIsWideEnough.asRule &
         new OverIndicatorRule(rsi, 55) &
         volumeRule &
         new UnderIndicatorRule(macd, macdEma)
@@ -152,7 +147,7 @@ object Strategies {
     val entryLongRule =
       channel.exists[Channel](c => c.k.upper < 0 && c.k.upper > -maxK).asRule &
         new CrossedUpIndicatorRule(closePrice, lowerBoundIndicator) &
-        priceIsNotTooHigh.asRule &
+        channelIsWideEnough.asRule &
         new UnderIndicatorRule(rsi, 45) &
         volumeRule &
         new OverIndicatorRule(macd, macdEma)
@@ -187,12 +182,21 @@ object Strategies {
       val visualUpperBoundIndicator =
         visualChannel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
 
-      val leastTargetIndicator = (closePrice: AbstractIndicator[Num]).zipWithIndex
+      val takeProfitIndicator = (closePrice: AbstractIndicator[Num]).zipWithIndex
         .map { case (index, price) =>
           if (entryShortRule.isSatisfied(index))
-            price.minus(halfChannel.getValue(index))
+            (closePrice \-\ halfChannel).getValue(index)
           else if (entryLongRule.isSatisfied(index))
+            (closePrice \+\ halfChannel).getValue(index)
+          else NaN.NaN
+        }
+
+      val stopLossIndicator = (closePrice: AbstractIndicator[Num]).zipWithIndex
+        .map { case (index, price) =>
+          if (entryShortRule.isSatisfied(index))
             price.plus(halfChannel.getValue(index))
+          else if (entryLongRule.isSatisfied(index))
+            price.minus(halfChannel.getValue(index))
           else NaN.NaN
         }
 
@@ -214,7 +218,8 @@ object Strategies {
         ),
         "lowerBound" -> IndicatorInfo(visualLowerBoundIndicator),
         "upperBound" -> IndicatorInfo(visualUpperBoundIndicator),
-        "leastTarget" -> IndicatorInfo(leastTargetIndicator, Representation.Points),
+        "takeProfit" -> IndicatorInfo(takeProfitIndicator, Representation.Points),
+        "stopLoss" -> IndicatorInfo(stopLossIndicator, Representation.Points),
         "mid" -> IndicatorInfo(midChannelIndicator)
       )
     }

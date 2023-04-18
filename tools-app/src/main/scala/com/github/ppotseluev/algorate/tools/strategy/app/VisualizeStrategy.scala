@@ -19,13 +19,13 @@ import java.time.LocalDate
 object VisualizeStrategy extends IOApp with StrictLogging {
   val strategy = Strategies.intraChannel
   val tester = StrategyTester(strategy)
-  val asset: TradingAsset = TradingAsset.crypto("LTCUSDT", "usdt")
+  val asset: TradingAsset = TradingAsset.crypto("BTCUSDT", "usdt")
 
 //    ??? /// Either[Ticker, InstrumentId] = "DOW".asLeft
   val interval = CandlesInterval(
     interval = DaysInterval(
       LocalDate.of(2021, 1, 1),
-      LocalDate.of(2022, 12, 31)
+      LocalDate.of(2021, 12, 31)
     ),
     resolution = OneMinute
   )
