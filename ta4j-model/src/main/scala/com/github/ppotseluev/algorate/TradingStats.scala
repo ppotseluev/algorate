@@ -13,6 +13,10 @@ case class TradingStats(
     long: Stats,
     short: Stats
 ) {
+  lazy val noFeeProfit = profit(fee = false, profitable = true.some)
+  lazy val noFeeLoss = profit(fee = false, profitable = false.some)
+  lazy val profitRatio = noFeeProfit.alignMergeWith(noFeeLoss)((x, y) => scala.math.abs(x / y))
+
   def totalPositions: Int = long.totalClosedPositions + short.totalClosedPositions
 
   def totalWinningPositions(fee: Boolean = false): Int =
@@ -72,8 +76,6 @@ object TradingStats {
     val totalNoFee = totalWinRatio(false)
     val totalReal = totalWinRatio(true)
     val diff = (totalNoFee - totalReal) / totalNoFee * 100
-    val noFeeProfit = profit(fee = false, profitable = true.some)
-    val noFeeLoss = profit(fee = false, profitable = false.some)
     val avgProfit = noFeeProfit.view.mapValues(_ / totalWinningPositions()).toMap
     val avgLoss = noFeeLoss.view.mapValues(_ / totalNonWinningPositions()).toMap
     val positions = long.positions ++ short.positions
@@ -86,7 +88,6 @@ object TradingStats {
     val maxDuration = durations.maxOption.getOrElse(0)
     val p = new Percentile(0.8)
     val p80 = p.evaluate(durations.toArray)
-    val profitRatio = noFeeProfit.alignMergeWith(noFeeLoss)((x, y) => scala.math.abs(x / y))
     s"""
        |LONG (${long.totalClosedPositions}, no_fee ${long.winRatio(false)}, real ${long.winRatio(
       true

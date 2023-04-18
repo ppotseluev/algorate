@@ -28,7 +28,7 @@ import scala.sys.process._
 class Archive[F[_]: Sync](
     token: String,
     archiveDir: Path,
-    downloadIfNotExist: Boolean = false
+    downloadIfNotExist: Boolean = true
 ) extends BarDataProvider[F]
     with LazyLogging {
 
@@ -54,12 +54,15 @@ class Archive[F[_]: Sync](
       candlesInterval: CandlesInterval
   ): F[List[Bar]] = Sync[F]
     .defer {
+      println(s"Getting data for $instrumentId")
       val paths = candlesInterval.interval.years
         .traverse { year =>
           val dataId = s"${instrumentId}_$year"
           val baseDir = archiveDir.resolve(dataId).toFile
-          if (downloadIfNotExist && !baseDir.exists()) {
+          val done = if (downloadIfNotExist && !baseDir.exists()) {
             download(instrumentId, year)
+          } else {
+            ().pure[F]
           }
           def files = baseDir
             .listFiles { file =>
@@ -70,17 +73,19 @@ class Archive[F[_]: Sync](
               }
             }
             .sortBy(_.getName)
-          Either.cond(
-            baseDir.exists(),
-            right = files,
-            left = ArchiveNotFound(instrumentId, year)
-          )
+          done.flatMap { _ =>
+            Either.cond(
+              baseDir.exists(),
+              right = files,
+              left = ArchiveNotFound(instrumentId, year)
+            ).toFT[F]
+          }
         }
         .map(_.flatten.toList)
       val candlesResolution = candlesInterval.resolution match {
         case CandleResolution.OneMinute => CandleResolution.OneMinute.duration
       } //matching to safely check that resolution is supported by the archive impl
-      paths.toFT[F].flatMap(readAllCsv(candlesResolution))
+      paths.flatMap(readAllCsv(candlesResolution))
     }
     .map { bars =>
       bars
@@ -92,17 +97,17 @@ class Archive[F[_]: Sync](
         }
     }
 
-  private def download(instrumentId: InstrumentId, year: Int): Unit = {
+  private def download(instrumentId: InstrumentId, year: Int): F[Unit] = Sync[F].blocking {
     val dataId = s"${instrumentId}_$year"
     logger.info(s"Downloading $dataId")
-    val scriptPath = Paths.get("tools-app/data/download.sh").toAbsolutePath.toString
-    val envVars = Map("TINKOFF_TOKEN" -> token)
+    val scriptPath = Paths.get("tools-app/data/binance/download.sh").toAbsolutePath.toString
+//    val envVars = Map("TINKOFF_TOKEN" -> token)
     val command = Seq(scriptPath, year.toString, instrumentId)
 
     // Get the script's parent directory as the working directory
-    val workingDir = Paths.get(scriptPath).getParent.toFile
+    val workingDir = Paths.get(scriptPath).getParent.getParent.toFile
 
-    val exitCode = Process(command, Some(workingDir), envVars.toSeq: _*).!
+    val exitCode = Process(command, Some(workingDir)).!
 
     exitCode match {
       case 0 => logger.debug(s"Successfully downloaded $dataId")

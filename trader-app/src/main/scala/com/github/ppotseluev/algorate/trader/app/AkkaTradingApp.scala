@@ -31,54 +31,54 @@ object AkkaTradingApp extends IOApp with LazyLogging {
       rate: FiniteDuration = 1.second
   )
 
-  val assets: Map[InstrumentId, TradingAsset] =
-    List(
-      TradingAsset("BBG000BNJHS8", "LUV", "usd"),
-      TradingAsset("BBG000BRJL00", "PPL", "usd"),
-      TradingAsset("BBG000BBJQV0", "NVDA", "usd"),
-      TradingAsset("BBG000BBS2Y0", "AMGN", "usd"),
-      TradingAsset("BBG006Q0HY77", "CFG", "usd"),
-      TradingAsset("BBG00NNG2ZJ8", "XRX", "usd"),
-      TradingAsset("BBG000BNSZP1", "MCD", "usd"),
-      TradingAsset("BBG000K4ND22", "CVX", "usd"),
-      TradingAsset("BBG000BGRY34", "CVS", "usd"),
-      TradingAsset("BBG006L8G4H1", "YNDX", "rub"),
-      TradingAsset("BBG007TJF1N7", "QRVO", "usd"),
-      TradingAsset(
-        "BBG004PYF2N3",
-        "POLY",
-        "rub"
-      ), //TODO 2 shares fount for ticker, investigate the reason
-      TradingAsset("BBG0025Y4RY4", "ABBV", "usd"),
-      TradingAsset("BBG000C17X76", "BIIB", "usd"),
-      TradingAsset("BBG000CL9VN6", "NFLX", "usd"),
-      TradingAsset("BBG001M8HHB7", "TRIP", "usd"),
-      TradingAsset("BBG000H8TVT2", "TGT", "usd"),
-      TradingAsset("BBG000PSKYX7", "V", "usd"),
-      TradingAsset("BBG000BB6KF5", "MET", "usd"),
-      TradingAsset("BBG000C3J3C9", "CSCO", "usd"),
-      TradingAsset("BBG000BKFZM4", "GLW", "usd"),
-      TradingAsset("BBG000D4LWF6", "MDLZ", "usd"),
-      TradingAsset("BBG004731354", "ROSN", "rub"),
-      TradingAsset("BBG000GZQ728", "XOM", "usd"),
-      TradingAsset("BBG000CGC1X8", "QCOM", "usd"),
-      TradingAsset("BBG000R7Z112", "DAL", "usd"),
-      TradingAsset("BBG000BQQ2S6", "OXY", "usd"),
-      TradingAsset("BBG000WCFV84", "LYB", "usd"),
-      TradingAsset("BBG000C5Z1S3", "MU", "usd"),
-      TradingAsset("BBG000BCTLF6", "BAC", "usd"),
-      TradingAsset("BBG000BJF1Z8", "FDX", "usd"),
-      TradingAsset("BBG000Q3JN03", "RF", "usd"),
-      TradingAsset("BBG000BNFLM9", "LRCX", "usd"),
-      TradingAsset("BBG000BWNFZ9", "WDC", "usd"),
-      TradingAsset("BBG000FDBX90", "CNP", "usd"),
-      TradingAsset("BBG000BS0ZF1", "RL", "usd"),
-      TradingAsset("BBG00475K6C3", "CHMF", "rub"),
-      TradingAsset("BBG002583CV8", "PINS", "usd"),
-      TradingAsset("BBG000C5HS04", "NKE", "usd"),
-      TradingAsset("BBG000G0Z878", "HIG", "usd"),
-      TradingAsset("BBG000BMQPL1", "KEY", "usd")
-    ).groupMapReduce(_.instrumentId)(identity)((_, _) => ???)
+  val assets: Map[InstrumentId, TradingAsset] = Map.empty
+//    List(
+//      TradingAsset("BBG000BNJHS8", "LUV", "usd"),
+//      TradingAsset("BBG000BRJL00", "PPL", "usd"),
+//      TradingAsset("BBG000BBJQV0", "NVDA", "usd"),
+//      TradingAsset("BBG000BBS2Y0", "AMGN", "usd"),
+//      TradingAsset("BBG006Q0HY77", "CFG", "usd"),
+//      TradingAsset("BBG00NNG2ZJ8", "XRX", "usd"),
+//      TradingAsset("BBG000BNSZP1", "MCD", "usd"),
+//      TradingAsset("BBG000K4ND22", "CVX", "usd"),
+//      TradingAsset("BBG000BGRY34", "CVS", "usd"),
+//      TradingAsset("BBG006L8G4H1", "YNDX", "rub"),
+//      TradingAsset("BBG007TJF1N7", "QRVO", "usd"),
+//      TradingAsset(
+//        "BBG004PYF2N3",
+//        "POLY",
+//        "rub"
+//      ), //TODO 2 shares fount for ticker, investigate the reason
+//      TradingAsset("BBG0025Y4RY4", "ABBV", "usd"),
+//      TradingAsset("BBG000C17X76", "BIIB", "usd"),
+//      TradingAsset("BBG000CL9VN6", "NFLX", "usd"),
+//      TradingAsset("BBG001M8HHB7", "TRIP", "usd"),
+//      TradingAsset("BBG000H8TVT2", "TGT", "usd"),
+//      TradingAsset("BBG000PSKYX7", "V", "usd"),
+//      TradingAsset("BBG000BB6KF5", "MET", "usd"),
+//      TradingAsset("BBG000C3J3C9", "CSCO", "usd"),
+//      TradingAsset("BBG000BKFZM4", "GLW", "usd"),
+//      TradingAsset("BBG000D4LWF6", "MDLZ", "usd"),
+//      TradingAsset("BBG004731354", "ROSN", "rub"),
+//      TradingAsset("BBG000GZQ728", "XOM", "usd"),
+//      TradingAsset("BBG000CGC1X8", "QCOM", "usd"),
+//      TradingAsset("BBG000R7Z112", "DAL", "usd"),
+//      TradingAsset("BBG000BQQ2S6", "OXY", "usd"),
+//      TradingAsset("BBG000WCFV84", "LYB", "usd"),
+//      TradingAsset("BBG000C5Z1S3", "MU", "usd"),
+//      TradingAsset("BBG000BCTLF6", "BAC", "usd"),
+//      TradingAsset("BBG000BJF1Z8", "FDX", "usd"),
+//      TradingAsset("BBG000Q3JN03", "RF", "usd"),
+//      TradingAsset("BBG000BNFLM9", "LRCX", "usd"),
+//      TradingAsset("BBG000BWNFZ9", "WDC", "usd"),
+//      TradingAsset("BBG000FDBX90", "CNP", "usd"),
+//      TradingAsset("BBG000BS0ZF1", "RL", "usd"),
+//      TradingAsset("BBG00475K6C3", "CHMF", "rub"),
+//      TradingAsset("BBG002583CV8", "PINS", "usd"),
+//      TradingAsset("BBG000C5HS04", "NKE", "usd"),
+//      TradingAsset("BBG000G0Z878", "HIG", "usd"),
+//      TradingAsset("BBG000BMQPL1", "KEY", "usd")
+//    ).groupMapReduce(_.instrumentId)(identity)((_, _) => ???)
 
   val useHistoricalData: Option[StubSettings] = None
 //    Some( //None to stream realtime market data
