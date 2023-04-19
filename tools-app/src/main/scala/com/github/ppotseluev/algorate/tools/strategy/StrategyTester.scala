@@ -49,7 +49,7 @@ private[strategy] object StrategyTester {
 
   class Impl[F[_]: Sync](strategyBuilder: BarSeries => FullStrategy, tradingPolicy: Policy)
       extends LazyLogging {
-    def apply(series: BarSeries, asset: TradingAsset): F[TradingStats] = Sync[F].blocking {
+    def apply(series: BarSeries, asset: TradingAsset): F[TradingStats] = Sync[F].defer {
       val strategy = strategyBuilder(series)
       val avgPrice =
         series.getFirstBar.getClosePrice
@@ -60,15 +60,20 @@ private[strategy] object StrategyTester {
       }
       if (lots.isPositive) {
         val seriesManager = new BarSeriesManager(series)
-        val longRecord = seriesManager.run(strategy.longStrategy, TradeType.BUY, lots)
-        val shortRecord = seriesManager.run(strategy.shortStrategy, TradeType.SELL, lots)
-        TradingStats(
+        for {
+          longRecord <- Sync[F].blocking(
+            seriesManager.run(strategy.longStrategy, TradeType.BUY, lots)
+          )
+          shortRecord <- Sync[F].blocking(
+            seriesManager.run(strategy.shortStrategy, TradeType.SELL, lots)
+          )
+        } yield TradingStats(
           long = Stats.fromRecord(longRecord, series, asset),
           short = Stats.fromRecord(shortRecord, series, asset)
         )
       } else {
         logger.info(s"Skipping ${asset.ticker} ($avgPrice ${asset.currency})")
-        Monoid[TradingStats].empty
+        Monoid[TradingStats].empty.pure[F]
       }
     }
   }

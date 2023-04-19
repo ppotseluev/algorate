@@ -26,7 +26,7 @@ import scala.concurrent.duration._
 object AssetsSelector extends IOApp.Simple {
   private val factory = Factory.io
 
-  private val years = 2020 -> 2022
+  private val years = 2021 -> 2021
   private val selectionStrategy: SelectionStrategy = SelectAll
 //    ByProfitRatio(1.1)
 //    ByWinRatio(threshold = 0.7)

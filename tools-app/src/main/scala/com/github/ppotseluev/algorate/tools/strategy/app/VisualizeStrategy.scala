@@ -22,13 +22,13 @@ object VisualizeStrategy extends IOApp with StrictLogging {
   val strategy = Strategies.intraChannel
   val tester = StrategyTester[IO](strategy)
   val visualize = false
-  val asset: TradingAsset = TradingAsset.crypto("ETHUSDT", "usdt")
+  val asset: TradingAsset = TradingAsset.crypto("ZEC")
 
 //    ??? /// Either[Ticker, InstrumentId] = "DOW".asLeft
   val interval = CandlesInterval(
     interval = DaysInterval(
-      LocalDate.of(2021, 1, 1),
-      LocalDate.of(2021, 12, 31)
+      LocalDate.of(2022, 1, 1),
+      LocalDate.of(2022, 12, 31)
     ),
     resolution = OneMinute
   )
