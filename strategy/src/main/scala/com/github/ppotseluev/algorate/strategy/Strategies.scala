@@ -78,7 +78,7 @@ object Strategies {
     val volumeIndicator: AbstractIndicator[Num] = new VolumeIndicator(series)
     val relativeVolumeIndicator =
       new RelativeVolumeIndicator(series, lookbackPeriod = 7.days.toMinutes.toInt)
-    val extremumWindowSize = 30
+    val extremumWindowSize = 5
     val extremum: AbstractIndicator[Option[Extremum]] =
       LocalExtremumIndicator(closePrice, extremumWindowSize)
     val channel: AbstractIndicator[Option[Channel]] = ChannelIndicator(
@@ -95,7 +95,7 @@ object Strategies {
       new UnderIndicatorRule(volumeRsi, 60) &
         new OverIndicatorRule(volumeRsi, 40)
 
-    val minPotentialChange = num(0.005) //0.5%
+    val minPotentialChange = num(0.003)
     val maxK = Int.MaxValue
 
     // Define MACD parameters
@@ -137,20 +137,28 @@ object Strategies {
 //      } yield price.isLessThan(bound)
 
     val entryShortRule =
-      channel.exists[Channel](c => c.k.upper > 0 && c.k.upper < maxK).asRule &
-        new CrossedDownIndicatorRule(closePrice, upperBoundIndicator) &
-        channelIsWideEnough.asRule &
-        new OverIndicatorRule(rsi, 55) &
-        volumeRule &
-        new UnderIndicatorRule(macd, macdEma)
+      channel.exists[Channel](c => c.k.upper < 0 && c.k.upper < maxK).asRule &
+        new CrossedDownIndicatorRule(closePrice, upperBoundIndicator) //&
+//        channelIsWideEnough.asRule &
+//        new OverIndicatorRule(rsi, 55) &
+//        volumeRule //&
+//        new UnderIndicatorRule(macd, macdEma)
 
     val entryLongRule =
-      channel.exists[Channel](c => c.k.upper < 0 && c.k.upper > -maxK).asRule &
-        new CrossedUpIndicatorRule(closePrice, lowerBoundIndicator) &
+      channel.map(_.isDefined).asRule &
         channelIsWideEnough.asRule &
-        new UnderIndicatorRule(rsi, 45) &
-        volumeRule &
-        new OverIndicatorRule(macd, macdEma)
+        new GreaterThanIndicator(closePrice, lowerBoundIndicator, bars = 2).asRule &
+        new LessThanIndicator(closePrice, lowerBoundIndicator, bars = 1, offset = 2).asRule
+
+//      channel.exists[Channel](c => c.k.lower > 0 && c.k.lower > -maxK).asRule &
+//        new GreaterThanIndicator(closePrice, lowerBoundIndicator, bars = 1).asRule &
+//        new LessThanIndicator(closePrice, lowerBoundIndicator, bars = 2, offset = 1).asRule &
+//        new GreaterThanIndicator(closePrice, lowerBoundIndicator, bars = 2, offset = 2).asRule
+//        new CrossedUpIndicatorRule(closePrice, lowerBoundIndicator) //&
+//        channelIsWideEnough.asRule &
+//        new UnderIndicatorRule(rsi, 45) &
+//        volumeRule //&
+//        new OverIndicatorRule(macd, macdEma)
 
     val exitRule = new AbstractRule {
       override def isSatisfied(index: Int, tradingRecord: TradingRecord): Boolean =
@@ -225,7 +233,7 @@ object Strategies {
     }
     FullStrategy(
       longStrategy = buyingStrategy,
-      shortStrategy = sellingStrategy,
+      shortStrategy = doNothing, /// dsellingStrategy,
       getPriceIndicators = visualPriceIndicators,
       oscillators = Map(
 //        "hasData" -> IndicatorInfo(hasData.map(if (_) num(50) else series.num(0))),
@@ -233,8 +241,8 @@ object Strategies {
 
 //        "volume" -> IndicatorInfo(volumeRsi),
 //        "rsi" -> IndicatorInfo(rsi)
-        "macd" -> IndicatorInfo(macd),
-        "macdEma" -> IndicatorInfo(macdEma)
+//        "macd" -> IndicatorInfo(macd),
+//        "macdEma" -> IndicatorInfo(macdEma)
       )
     )
   }
