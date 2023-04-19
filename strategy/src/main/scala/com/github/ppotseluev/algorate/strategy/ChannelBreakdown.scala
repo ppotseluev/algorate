@@ -130,7 +130,7 @@ private[strategy] object ChannelBreakdown {
           )
         ) &
         new BooleanIndicatorRule(
-          new GreaterThanIndicator(closePrice, upperBoundIndicator, forLastBars = 2)
+          new GreaterThanIndicator(closePrice, upperBoundIndicator, bars = 2)
             .map(boolean2Boolean)
         )
 

@@ -20,14 +20,17 @@ import scala.concurrent.duration._
 
 object VisualizeStrategy extends IOApp with StrictLogging {
   val strategy = Strategies.intraChannel
-  val tester = StrategyTester[IO](strategy)
   val visualize = false
-  val asset: TradingAsset = TradingAsset.crypto("ZEC")
+  val tester = StrategyTester[IO](
+    strategy,
+    maxParallelism = if (visualize) 1 else 8
+  )
+  val asset: TradingAsset = TradingAsset.crypto("LINK")
 
 //    ??? /// Either[Ticker, InstrumentId] = "DOW".asLeft
   val interval = CandlesInterval(
     interval = DaysInterval(
-      LocalDate.of(2022, 1, 1),
+      LocalDate.of(2020, 1, 1),
       LocalDate.of(2022, 12, 31)
     ),
     resolution = OneMinute
