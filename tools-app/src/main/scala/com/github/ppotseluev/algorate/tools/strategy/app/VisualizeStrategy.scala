@@ -9,17 +9,20 @@ import com.github.ppotseluev.algorate.broker.Broker.CandleResolution.OneMinute
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import com.github.ppotseluev.algorate.charts.TradingCharts
+import com.github.ppotseluev.algorate.math.PrettyDuration._
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.Strategies
 import com.github.ppotseluev.algorate.tools.strategy.BarSeriesProvider
 import com.github.ppotseluev.algorate.tools.strategy.StrategyTester
 import com.typesafe.scalalogging.StrictLogging
 import java.time.LocalDate
+import scala.concurrent.duration._
 
 object VisualizeStrategy extends IOApp with StrictLogging {
   val strategy = Strategies.intraChannel
-  val tester = StrategyTester(strategy)
-  val asset: TradingAsset = TradingAsset.crypto("BTCUSDT", "usdt")
+  val tester = StrategyTester[IO](strategy)
+  val visualize = false
+  val asset: TradingAsset = TradingAsset.crypto("ETHUSDT", "usdt")
 
 //    ??? /// Either[Ticker, InstrumentId] = "DOW".asLeft
   val interval = CandlesInterval(
@@ -39,7 +42,9 @@ object VisualizeStrategy extends IOApp with StrictLogging {
           _ <- IO {
             logger.info(s"Data has been collected (${series.getBarCount} bars), start testing...")
           }
-          result = tester.test(series, asset)
+          start = System.currentTimeMillis()
+          result <- tester.test(series, asset)
+          end = System.currentTimeMillis()
           _ <- IO {
             println("per month statistics")
             result.monthly.toSeq
@@ -50,13 +55,16 @@ object VisualizeStrategy extends IOApp with StrictLogging {
                 println(s"$month ${stats.show}")
               }
             println(result.show)
-            TradingCharts.display(
-              strategyBuilder = strategy,
-              series = series,
-              tradingStats = Some(result),
-              title = s"${asset.ticker}",
-              profitableTradesFilter = none
-            )
+            println(s"Testing took ${(end - start).millis.pretty}")
+            if (visualize) {
+              TradingCharts.display(
+                strategyBuilder = strategy,
+                series = series,
+                tradingStats = Some(result),
+                title = s"${asset.ticker}",
+                profitableTradesFilter = none
+              )
+            }
           }
         } yield ExitCode.Success
       }

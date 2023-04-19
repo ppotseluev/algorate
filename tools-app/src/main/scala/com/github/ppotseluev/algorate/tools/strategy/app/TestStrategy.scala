@@ -26,8 +26,7 @@ object TestStrategy extends IOApp {
   val done = new AtomicInteger()
 
   private val test = (asset: TradingAsset, series: BarSeries) =>
-    IO.blocking {
-      val stats = StrategyTester(strategy).test(series, asset)
+    StrategyTester[IO](strategy).test(series, asset).map { stats =>
       val results = SectorsResults(asset, stats)
       println(s"done: ${done.incrementAndGet()}")
       results
@@ -69,12 +68,13 @@ object TestStrategy extends IOApp {
     }
   }
 
-  implicit val tickersShow: Show[Map[TradingAsset, TradingStats]] = (stats: Map[TradingAsset, TradingStats]) =>
-    stats
-      .map { case (asset, stats) =>
-        s"${asset.ticker}: ${stats.show}"
-      }
-      .mkString("\n")
+  implicit val tickersShow: Show[Map[TradingAsset, TradingStats]] =
+    (stats: Map[TradingAsset, TradingStats]) =>
+      stats
+        .map { case (asset, stats) =>
+          s"${asset.ticker}: ${stats.show}"
+        }
+        .mkString("\n")
 
   case class SectorsResults(
       sectorsStats: Map[String, Map[TradingAsset, TradingStats]]

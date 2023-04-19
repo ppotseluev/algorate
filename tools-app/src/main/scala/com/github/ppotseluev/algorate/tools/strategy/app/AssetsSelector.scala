@@ -89,9 +89,7 @@ object AssetsSelector extends IOApp.Simple {
     } yield ()
 
   private def test(done: AtomicInteger, total: Int) = (asset: TradingAsset, series: BarSeries) =>
-    IO.blocking {
-      println(s"Start testing ${asset.ticker}")
-      val stats = StrategyTester(strategy).test(series, asset)
+    StrategyTester[IO](strategy).test(series, asset).map { stats =>
       val results = SectorsResults(asset, stats)
       println(s"done: ${(done.incrementAndGet().toDouble * 100 / total).toInt}%")
       results
