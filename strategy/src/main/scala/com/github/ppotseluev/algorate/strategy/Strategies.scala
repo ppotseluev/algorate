@@ -86,7 +86,7 @@ object Strategies {
       extremumIndicator = extremum,
       approximator = Approximator.Linear,
       numOfPoints = 3,
-      maxError = 0.0009 //0.0007 0.003🤔
+      maxError = 0.002 //0.0007 0.003🤔
     ).filter(ChannelUtils.isParallel(maxDelta = 0.6)) //todo?
 
     val rsi = new RSIIndicator(closePrice, 5)

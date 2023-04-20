@@ -20,22 +20,22 @@ import scala.concurrent.duration._
 
 object VisualizeStrategy extends IOApp with StrictLogging {
   val strategy = Strategies.intraChannel
-  val visualize = true
+  val visualize = false
   val tester = StrategyTester[IO](
     strategy,
     maxParallelism = if (visualize) 1 else 8
   )
-  val asset: TradingAsset = TradingAsset.crypto("FIL")
+val asset: TradingAsset = TradingAsset.crypto("BTC")
 
 //    ??? /// Either[Ticker, InstrumentId] = "DOW".asLeft
   val interval = CandlesInterval(
     interval = DaysInterval(
-      LocalDate.of(2022, 1, 1),
-      LocalDate.of(2022, 12, 31)
+      LocalDate.of(2021, 1, 1),
+      LocalDate.of(2021, 12, 31)
     ),
     resolution = OneMinute
   )
-
+//TODO implement "test" that will distinguish really working strategies from random
   override def run(args: List[String]): IO[ExitCode] = {
     Factory.io.tinkoffBroker
       .use { broker =>

@@ -89,7 +89,7 @@ object TestStrategy extends IOApp {
         .sortBy(_._2.values.toList.map(_.totalPositions).max)
         .map { case (sector, value) =>
           val sorted: Map[TradingAsset, TradingStats] =
-            ListMap.from(value.toList.sortBy(_._2.totalPositions))
+            ListMap.from(value.toList.sortBy(_._2.profitRatio.values.sum))
           s"""
           |Sector: $sector
           |${sorted.show}
