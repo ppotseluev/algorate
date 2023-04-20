@@ -27,8 +27,8 @@ object AssetsSelector extends IOApp.Simple {
   private val factory = Factory.io
 
   private val years = 2020 -> 2022
-  private val selectionStrategy: SelectionStrategy =
-    ByProfitRatio(1)
+  private val selectionStrategy: SelectionStrategy = SelectAll
+//    ByProfitRatio(1)
 //    ByProfitRatio(1.05)
 //    ByProfitRatio(1.1)
 //    ByWinRatio(threshold = 0.7)
@@ -99,11 +99,15 @@ object AssetsSelector extends IOApp.Simple {
   ): IO[Unit] = {
     val path = s"$baseDir/$year"
     for {
-      _ <- write(results.original, s"$path/original.txt", testDuration)
-      _ <- writeAssets(results.original, s"$path/original_assets.txt")
-
-      _ <- write(results.selected, s"$path/selected.txt", testDuration)
-      _ <- writeAssets(results.selected, s"$path/selected_assets.txt")
+      _ <- write(results.original, s"$path/original.txt", testDuration) &>
+        writeAssets(results.original, s"$path/original_assets.txt")
+      _ <-
+        if (results.selected.assets.size != results.original.assets.size) {
+          write(results.selected, s"$path/selected.txt", testDuration) &>
+            writeAssets(results.selected, s"$path/selected_assets.txt")
+        } else {
+          ().pure[IO]
+        }
     } yield ()
   }
 
@@ -149,7 +153,7 @@ object AssetsSelector extends IOApp.Simple {
       newYear = year + 1
       _ <-
         if (newYear <= years._2) {
-          loopSelect(newYear, results.selectedAssets)
+          loopSelect(newYear, results.selectedAssetsList)
         } else {
           ().pure[IO]
         }
@@ -164,7 +168,7 @@ object AssetsSelector extends IOApp.Simple {
       original: SectorsResults,
       selected: SectorsResults
   ) {
-    def selectedAssets: List[TradingAsset] = selected.flatten.keySet.toList
+    def selectedAssetsList: List[TradingAsset] = selected.assets.toList
   }
 
   sealed trait SelectionStrategy

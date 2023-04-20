@@ -138,7 +138,7 @@ object Strategies {
 //        bound <- midChannelIndicator
 //      } yield price.isLessThan(bound)
 
-    val entryShortRule =
+    val entryShortRule = //!!! long
       channel.map(_.isDefined).asRule &
         channelIsWideEnough.asRule &
         new CrossedDownIndicatorRule(closePrice, upperBoundIndicator) &
@@ -154,7 +154,7 @@ object Strategies {
 //        volumeRule //&
 //
 
-    val entryLongRule =
+    val entryLongRule = //!!! short
       channel.map(_.isDefined).asRule &
         channelIsWideEnough.asRule &
         new CrossedUpIndicatorRule(closePrice, lowerBoundIndicator) &
