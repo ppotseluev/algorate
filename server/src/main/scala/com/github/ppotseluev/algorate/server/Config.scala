@@ -21,35 +21,10 @@ case class Config(
   def telegramTrackedChats: Set[String] = Set(telegramChatId)
 
   def assets: List[TradingAsset] = List(
-    "BTC",
-    "ETH",
-    "ADA",
-    "BNB",
-    "SOL",
-    "XRP",
-    "DOT",
-    "DOGE",
-    "LINK",
-    "AVAX",
-    "ALGO",
-    "LTC",
-    "WBTC",
-    "ATOM",
     "MATIC",
-    "XLM",
-    "ICP",
-    "ETC",
-    "VET",
-    "FIL",
-    "UNI",
-    "AAVE",
-    "THETA",
+    "ADA",
     "XMR",
-    "TRX",
-    "MKR",
-    "EOS",
-    "KSM",
-    "CRO",
-    "CAKE"
+    "XLM",
+    "FIL"
   ).map(TradingAsset.crypto)
 }

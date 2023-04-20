@@ -80,6 +80,7 @@ object TestStrategy extends IOApp {
       sectorsStats: Map[String, Map[TradingAsset, TradingStats]]
   ) {
     def flatten: Map[TradingAsset, TradingStats] = sectorsStats.flatMap(_._2)
+    def assets: Set[TradingAsset] = flatten.keySet
   }
 
   object SectorsResults {

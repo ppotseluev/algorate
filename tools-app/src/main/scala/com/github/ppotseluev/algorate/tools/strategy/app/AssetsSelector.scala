@@ -27,7 +27,8 @@ object AssetsSelector extends IOApp.Simple {
   private val factory = Factory.io
 
   private val years = 2020 -> 2022
-  private val selectionStrategy: SelectionStrategy = ByProfitRatio(1.05)
+  private val selectionStrategy: SelectionStrategy =
+    ByProfitRatio(1)
 //    ByProfitRatio(1.05)
 //    ByProfitRatio(1.1)
 //    ByWinRatio(threshold = 0.7)
@@ -39,6 +40,10 @@ object AssetsSelector extends IOApp.Simple {
     s"$saveTo/$id"
   }
   Files.createDirectory(new File(baseDir).toPath)
+  (years._1 to years._2).foreach { year =>
+    val path = s"$baseDir/$year"
+    Files.createDirectory(new File(path).toPath)
+  }
 
   private def select(results: SectorsResults): Results = {
     val selected = selectionStrategy match {
@@ -79,15 +84,28 @@ object AssetsSelector extends IOApp.Simple {
       }
     }
 
+  private def writeAssets(results: SectorsResults, path: String): IO[Unit] =
+    Resource.fromAutoCloseable(IO(new PrintWriter(path))).use { printer: PrintWriter =>
+      IO.blocking {
+        val text = results.assets.map(_.instrumentId).mkString("\n")
+        printer.println(text)
+      }
+    }
+
   private def save(
       results: Results,
       year: Int,
       testDuration: FiniteDuration
-  ): IO[Unit] =
+  ): IO[Unit] = {
+    val path = s"$baseDir/$year"
     for {
-      _ <- write(results.original, s"$baseDir/${year}_original.txt", testDuration)
-      _ <- write(results.selected, s"$baseDir/${year}_selected.txt", testDuration)
+      _ <- write(results.original, s"$path/original.txt", testDuration)
+      _ <- writeAssets(results.original, s"$path/original_assets.txt")
+
+      _ <- write(results.selected, s"$path/selected.txt", testDuration)
+      _ <- writeAssets(results.selected, s"$path/selected_assets.txt")
     } yield ()
+  }
 
   private def test(done: AtomicInteger, total: Int) = (asset: TradingAsset, series: BarSeries) =>
     StrategyTester[IO](strategy).test(series, asset).map { stats =>
