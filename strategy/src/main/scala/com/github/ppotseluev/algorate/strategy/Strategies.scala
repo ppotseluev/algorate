@@ -101,9 +101,9 @@ object Strategies {
     val sma = new SMAIndicator(closePrice, 40)
 
     // Define MACD parameters
-    val shortPeriod = 30
-    val longPeriod = 60
-    val signalPeriod = 20
+    val shortPeriod = extremumWindowSize
+    val longPeriod = 2 * shortPeriod
+    val signalPeriod = longPeriod / 3
     // Calculate the MACD line
     val macd = new MACDIndicator(closePrice, shortPeriod, longPeriod)
 
