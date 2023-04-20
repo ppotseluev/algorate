@@ -22,8 +22,8 @@ private[strategy] object TestSetup { //TODO remove this shared setup
   val strategy = Strategies.intraChannel
 
   def fixedTradeCostPolicy(
-      usdTrade: Int = 200,
-      rubTrade: Int = 16000,
+      usdTrade: Int = 100,
+      rubTrade: Int = 10_000,
       allowFractionalLots: Boolean
   ): Policy = {
     val money: Money = Map("usd" -> Int.MaxValue, "rub" -> Int.MaxValue, "usdt" -> Int.MaxValue)
