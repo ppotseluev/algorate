@@ -13,14 +13,17 @@ import com.github.ppotseluev.algorate.tools.strategy.BarSeriesProvider
 import com.github.ppotseluev.algorate.tools.strategy.StrategyTester
 import com.github.ppotseluev.algorate.tools.strategy.TestSetup.strategy
 import com.github.ppotseluev.algorate.tools.strategy.app.TestStrategy.SectorsResults
+
 import java.io.File
 import fs2.Stream
+
 import java.io.PrintWriter
-import java.nio.file.Files
+import java.nio.file.{Files, Paths}
 import java.time.LocalDate
 import java.util.concurrent.atomic.AtomicInteger
 import org.ta4j.core.BarSeries
 import ru.tinkoff.piapi.contract.v1.Share
+
 import scala.concurrent.duration._
 
 object AssetsSelector extends IOApp.Simple {
@@ -34,12 +37,19 @@ object AssetsSelector extends IOApp.Simple {
 //    ByWinRatio(threshold = 0.7)
   private val assets = factory.config.assets
   private val baseDir = {
-    val saveTo = "/Users/potseluev/IdeaProjects/algorate/tools-app/data/results"
+    val saveTo = "tools-app/data/results"
     val startTime = System.currentTimeMillis().millis.toSeconds
     val id = s"${startTime}_$selectionStrategy"
     s"$saveTo/$id"
   }
   Files.createDirectory(new File(baseDir).toPath)
+  private val strategyFilePath =
+    "strategy/src/main/scala/com/github/ppotseluev/algorate/strategy/Strategies.scala"
+  Files.copy(
+    Paths.get(strategyFilePath),
+    Paths.get(s"$baseDir/Strategies.scala")
+  )
+
   (years._1 to years._2).foreach { year =>
     val path = s"$baseDir/$year"
     Files.createDirectory(new File(path).toPath)
