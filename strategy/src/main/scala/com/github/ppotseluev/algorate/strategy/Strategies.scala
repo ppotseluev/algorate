@@ -51,8 +51,8 @@ object Strategies {
   )
 
   def random(
-      enterChance: Double,
-      exitChance: Double
+      enterChance: Double = 0.01,
+      exitChance: Double = 0.05
   ): BarSeries => FullStrategy = barSeries => {
     def rule(chance: Double) = new AbstractRule {
       override def isSatisfied(index: Int, tradingRecord: TradingRecord): Boolean =
@@ -70,7 +70,7 @@ object Strategies {
     )
   }
 
-  val intraChannel: BarSeries => FullStrategy = implicit series => {
+  val default: BarSeries => FullStrategy = implicit series => {
     def num(number: Number): Num =
       series.numOf(number)
 

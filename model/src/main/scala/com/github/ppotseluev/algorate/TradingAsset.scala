@@ -4,7 +4,7 @@ case class TradingAsset(
     instrumentId: InstrumentId,
     ticker: Ticker,
     currency: Currency,
-    sector: String //TODO make optional
+    sector: String = "UNKNOWN"
 )
 
 object TradingAsset {

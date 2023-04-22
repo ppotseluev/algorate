@@ -19,7 +19,7 @@ private[strategy] object TestSetup { //TODO remove this shared setup
     resolution = OneMinute
   )
 
-  val strategy = Strategies.intraChannel
+  val strategy = Strategies.default
 
   def fixedTradeCostPolicy(
       usdTrade: Int = 100,

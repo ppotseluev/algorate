@@ -14,7 +14,7 @@ import java.time.LocalDate
 import munit.FunSuite
 
 class StrategySpec extends FunSuite {
-  val strategy = Strategies.intraChannel
+  val strategy = Strategies.default
   val asset = TradingAsset("BBG000BBS2Y0", "AMGN", "usd", "")
   val interval = CandlesInterval(
     interval = DaysInterval(

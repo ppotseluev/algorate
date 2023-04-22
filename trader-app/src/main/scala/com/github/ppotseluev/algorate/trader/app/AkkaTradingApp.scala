@@ -129,7 +129,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
       val tradingManager = TradingManager(
         assets = assets,
         broker = brokerFuture,
-        strategy = Strategies.intraChannel,
+        strategy = Strategies.default,
         moneyTracker = moneyTracker,
         policy = policy,
         keepLastBars = 12 * 60,
