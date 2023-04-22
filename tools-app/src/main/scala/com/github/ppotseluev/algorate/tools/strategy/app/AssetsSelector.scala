@@ -12,7 +12,6 @@ import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.Strategies
 import com.github.ppotseluev.algorate.tools.strategy.BarSeriesProvider
 import com.github.ppotseluev.algorate.tools.strategy.StrategyTester
-import com.github.ppotseluev.algorate.tools.strategy.TestSetup.strategy
 import com.github.ppotseluev.algorate.tools.strategy.app.TestStrategy.SectorsResults
 import com.github.ppotseluev.algorate.tools.strategy.app.backtesting.Assets._
 
@@ -38,7 +37,7 @@ object AssetsSelector extends IOApp.Simple {
 //    ByProfitRatio(1.05)
 //    ByProfitRatio(1.1)
 //    ByWinRatio(threshold = 0.7)
-  private val assets = cryptocurrencies.sample(SampleSize(20))
+  private val assets = cryptocurrencies.sample
 
 //factory.config.assets
   private val baseDir = {

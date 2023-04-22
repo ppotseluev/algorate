@@ -13,4 +13,11 @@ object TradingAsset {
 
   def crypto(name: String): TradingAsset =
     crypto(ticker = s"${name}USDT", currency = "usdt")
+
+  def share(instrumentId: InstrumentId): TradingAsset =
+    TradingAsset(
+      instrumentId = instrumentId,
+      ticker = instrumentId,
+      currency = "usdt", //TODO
+    )
 }

@@ -124,6 +124,8 @@ class ChannelIndicator private (
       val lastMin = collectExtremums[Extremum.Min](index, 1).headOption
       val lastMax = collectExtremums[Extremum.Max](index, 1).headOption
 //      isInsideChannel(channel, lastMin) && isInsideChannel(channel, lastMax) || TODO
+      // extremums inside channel probably shouldn't break it. But there is a problem with divergent channels
+      // they can become infinite in this case
       val lastExtrFit = lastMin.exists(isFit(channel, _)) && lastMax.exists(isFit(channel, _))
       val curValue = baseIndicator.getValue(index)
       val curPoint = index -> curValue.doubleValue

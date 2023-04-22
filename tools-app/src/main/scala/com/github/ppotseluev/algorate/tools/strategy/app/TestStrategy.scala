@@ -10,10 +10,13 @@ import cats.implicits._
 import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.TradingStats
 import com.github.ppotseluev.algorate.server.Factory
+import com.github.ppotseluev.algorate.strategy.Strategies
 import com.github.ppotseluev.algorate.tools.strategy.BarSeriesProvider
 import com.github.ppotseluev.algorate.tools.strategy.StrategyTester
+
 import java.util.concurrent.atomic.AtomicInteger
 import org.ta4j.core.BarSeries
+
 import scala.collection.immutable.ListMap
 import scala.concurrent.duration._
 
@@ -24,6 +27,7 @@ object TestStrategy extends IOApp {
   import com.github.ppotseluev.algorate.tools.strategy.TestSetup._
 
   val done = new AtomicInteger()
+  val strategy = Strategies.default
 
   private val test = (asset: TradingAsset, series: BarSeries) =>
     StrategyTester[IO](strategy).test(series, asset).map { stats =>
