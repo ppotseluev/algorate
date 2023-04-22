@@ -50,6 +50,9 @@ object Strategies {
     BooleanRule.FALSE
   )
 
+  val intraChannel = IntraChannel()
+  val channelBreakdown = ChannelBreakdown()
+
   def random(
       enterChance: Double = 0.01,
       exitChance: Double = 0.05
