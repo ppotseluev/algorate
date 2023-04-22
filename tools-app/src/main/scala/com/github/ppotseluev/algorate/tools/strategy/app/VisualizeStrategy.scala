@@ -38,8 +38,7 @@ object VisualizeStrategy extends IOApp with StrictLogging {
     ),
     resolution = OneMinute
   )
-//TODO implement "test" that will distinguish really working strategies from random
-  //TODO idea: increasing num of assets should increase profit on non-random stategies
+
   override def run(args: List[String]): IO[ExitCode] = {
     Factory.io.tinkoffBroker
       .use { broker =>
