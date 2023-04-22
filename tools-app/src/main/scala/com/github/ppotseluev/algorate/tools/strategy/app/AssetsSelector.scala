@@ -9,10 +9,12 @@ import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import com.github.ppotseluev.algorate.server.Factory
+import com.github.ppotseluev.algorate.strategy.Strategies
 import com.github.ppotseluev.algorate.tools.strategy.BarSeriesProvider
 import com.github.ppotseluev.algorate.tools.strategy.StrategyTester
 import com.github.ppotseluev.algorate.tools.strategy.TestSetup.strategy
 import com.github.ppotseluev.algorate.tools.strategy.app.TestStrategy.SectorsResults
+import com.github.ppotseluev.algorate.tools.strategy.app.backtesting.Assets._
 
 import java.io.File
 import fs2.Stream
@@ -29,13 +31,16 @@ import scala.concurrent.duration._
 object AssetsSelector extends IOApp.Simple {
   private val factory = Factory.io
 
-  private val years = 2020 -> 2022
+  private val strategy = Strategies.default
+  private val years = 2020 -> 2020
   private val selectionStrategy: SelectionStrategy = SelectAll
 //    ByProfitRatio(1)
 //    ByProfitRatio(1.05)
 //    ByProfitRatio(1.1)
 //    ByWinRatio(threshold = 0.7)
-  private val assets = factory.config.assets
+  private val assets = cryptocurrencies.sample(SampleSize(20))
+
+//factory.config.assets
   private val baseDir = {
     val saveTo = "tools-app/data/results"
     val startTime = System.currentTimeMillis().millis.toSeconds

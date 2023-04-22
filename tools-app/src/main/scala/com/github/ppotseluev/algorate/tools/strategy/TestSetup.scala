@@ -19,8 +19,6 @@ private[strategy] object TestSetup { //TODO remove this shared setup
     resolution = OneMinute
   )
 
-  val strategy = Strategies.default
-
   def fixedTradeCostPolicy(
       usdTrade: Int = 100,
       rubTrade: Int = 10_000,

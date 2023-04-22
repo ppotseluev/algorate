@@ -141,7 +141,11 @@ lazy val `strategy` = project
 lazy val `tools-app` = project
   .settings(
     name := "tools-app",
-    settings
+    settings,
+    libraryDependencies ++= Seq(
+      Dependency.breeze,
+      "org.scala-lang.modules" %% "scala-parallel-collections" % "1.0.3"
+    )
   )
   .dependsOn(
     `server`,

@@ -32,12 +32,12 @@ class StrategySpec extends FunSuite {
   test("strategy works as expected") {
     val seriesProvider = new BarSeriesProvider[F](archive)
     val series = seriesProvider.getBarSeries(asset, interval).unsafeRunSync()
-    val stats = StrategyTester(
+    val stats = StrategyTester[F](
       strategy,
       TestSetup
         .fixedTradeCostPolicy(allowFractionalLots = false)
         .andThen(_.allowedOrElse(Decision.Allowed(1)))
-    ).test(series, asset)
+    ).test(series, asset).unsafeRunSync()
     assertEquals(stats.long.totalClosedPositions, 9)
     assertEquals(stats.short.totalClosedPositions, 20)
     assertEquals(stats.long.winRatio(fee = false), 0.4444444444444444)
