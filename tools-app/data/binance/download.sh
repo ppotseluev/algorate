@@ -10,8 +10,7 @@ months=(01 02 03 04 05 06 07 08 09 10 11 12)
 
 force=false
 
-for arg in "$@"
-do
+for arg in "$@"; do
   if [ "$arg" = "-f" ]; then
     force=true
     break
@@ -20,9 +19,23 @@ done
 
 baseurl="https://data.binance.vision/data/spot/monthly/klines"
 
+declare -a symbols_list
+if [ -z "$symbols" ]; then
+  echo "Downloading from list file"
+  filename="binance/list.txt"
+  while IFS= read -r line; do
+    symbols_list+=("$line")
+  done <"$filename"
+else
+  symbols_list="$symbols"
+fi
+
 cd archive || exit 1
 
-for symbol in ${symbols[@]}; do
+done_count=0
+size=${#symbols_list[@]}
+
+for symbol in ${symbols_list[@]}; do
   for interval in ${intervals[@]}; do
     for year in ${years[@]}; do
       target_dir="${symbol}_${year}"
@@ -35,9 +48,9 @@ for symbol in ${symbols[@]}; do
           url="${baseurl}/${symbol}/${interval}/${zip_file_name}"
           response=$(wget --server-response -q ${url} 2>&1 | awk 'NR==1{print $2}')
           if [ ${response} == '404' ]; then
-            echo "File not exist: ${url}"
+            echo "File not exist: ${url}, skipping the year"
+            break
           else
-            echo "downloaded: ${url}"
             unzip -q "${zip_file_name}" -d "${target_dir}"
             rm "${zip_file_name}"
             csv_file_name="${file_name}.csv"
@@ -47,4 +60,6 @@ for symbol in ${symbols[@]}; do
       fi
     done
   done
+  ((done_count++))
+  echo "downloaded: ${symbol}, done: $((done_count * 100 / size))%"
 done
