@@ -1,4 +1,4 @@
-package com.github.ppotseluev.algorate.tools.backtesting
+package com.github.ppotseluev.algorate.tools.backtesting.app
 
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.implicits._
@@ -9,10 +9,11 @@ import com.github.ppotseluev.algorate.charts.TradingCharts
 import com.github.ppotseluev.algorate.math.PrettyDuration.PrettyPrintableDuration
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.Strategies
+import com.github.ppotseluev.algorate.tools.backtesting.{BarSeriesProvider, StrategyTester}
 import com.typesafe.scalalogging.StrictLogging
 
-import java.time.LocalDate
 import scala.concurrent.duration._
+import java.time.LocalDate
 
 object VisualizeStrategy extends IOApp with StrictLogging {
   val strategy = Strategies.default
@@ -22,11 +23,11 @@ object VisualizeStrategy extends IOApp with StrictLogging {
     maxParallelism = if (visualize) 1 else 8
   )
   val asset: TradingAsset = TradingAsset.crypto("CELR")
-//    TradingAsset("BBG000BJF1Z8", "FDX", "usd")
+  //    TradingAsset("BBG000BJF1Z8", "FDX", "usd")
   //    TradingAsset("BBG000BBS2Y0", "AMGN", "usd")
-//  .crypto("HFT") //KLAY KMDX
+  //  .crypto("HFT") //KLAY KMDX
 
-//    ??? /// Either[Ticker, InstrumentId] = "DOW".asLeft
+  //    ??? /// Either[Ticker, InstrumentId] = "DOW".asLeft
   val interval = CandlesInterval(
     interval = DaysInterval(
       LocalDate.of(2021, 1, 1),

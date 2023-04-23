@@ -1,4 +1,4 @@
-package com.github.ppotseluev.algorate.tools.backtesting
+package com.github.ppotseluev.algorate.tools.backtesting.app
 
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
@@ -6,6 +6,7 @@ import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution.OneMinute
 import com.github.ppotseluev.algorate.broker.Broker.{CandlesInterval, DaysInterval}
 import com.github.ppotseluev.algorate.server.Factory
+import com.github.ppotseluev.algorate.tools.backtesting.BarSeriesProvider
 import org.ta4j.core.indicators.AbstractIndicator
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator
 import org.ta4j.core.indicators.statistics.PearsonCorrelationIndicator
@@ -115,16 +116,17 @@ object CorrelationAnalyzer extends App {
 
   // Set the correlation threshold to identify duplicates
   val correlationThreshold: Double = 0.9
+  val period = 30
 
   // Set the downsampling period for the moving average
-  val downsamplingPeriod: Int = 10
+//  val downsamplingPeriod: Int = 10
 
   val done = new AtomicInteger()
 
   def removeDuplicateCoins(
       coins: List[String],
       threshold: Double,
-      downsamplingPeriod: Int
+//      downsamplingPeriod: Int
   ): List[String] = {
     val n = coins.length
     val duplicates = scala.collection.mutable.Set[String]()
@@ -144,7 +146,7 @@ object CorrelationAnalyzer extends App {
           val coinB = coins(j)
           if (!duplicates.contains(coinB)) {
             val seriesB = load(coinB).unsafeRunSync()
-            val correlation = calculatePearsonCorrelation(seriesA, seriesB, downsamplingPeriod)
+            val correlation = calculatePearsonCorrelation(seriesA, seriesB)
             if (!correlation.isNaN && correlation >= threshold) {
               println(s"$coinB correlates with $coinA, $correlation. Count $coinB as duplicate.")
               duplicates.synchronized {
@@ -168,29 +170,29 @@ object CorrelationAnalyzer extends App {
   def calculatePearsonCorrelation(
       seriesA: BarSeries,
       seriesB: BarSeries,
-      downsamplingPeriod: Int
+//      downsamplingPeriod: Int
   ): Double = {
     val minBarCount = math.min(seriesA.getBarCount, seriesB.getBarCount)
 
-    // Check if the BarSeries has enough bars for the downsampling period
-    if (minBarCount < downsamplingPeriod) {
-      return Double.NaN
-    }
+//    // Check if the BarSeries has enough bars for the downsampling period
+//    if (minBarCount < downsamplingPeriod) {
+//      return Double.NaN
+//    }
 
     val closePriceA = new ClosePriceIndicator(seriesA)
     val closePriceB = new ClosePriceIndicator(seriesB)
 
-    val downsampledClosePriceA = new DownsampledIndicator(closePriceA, downsamplingPeriod)
-    val downsampledClosePriceB = new DownsampledIndicator(closePriceB, downsamplingPeriod)
+//    val downsampledClosePriceA = new DownsampledIndicator(closePriceA, downsamplingPeriod)
+//    val downsampledClosePriceB = new DownsampledIndicator(closePriceB, downsamplingPeriod)
 
     val minEndIndex = math.min(seriesA.getEndIndex, seriesB.getEndIndex)
 
     val pearsonCorrelation = new PearsonCorrelationIndicator(
-      downsampledClosePriceA,
-      downsampledClosePriceB,
-      downsamplingPeriod
+      closePriceA,
+      closePriceB,
+      period
     )
-    pearsonCorrelation.getValue(minEndIndex / downsamplingPeriod).doubleValue()
+    pearsonCorrelation.getValue(minEndIndex).doubleValue()
   }
 
   class DownsampledIndicator(val indicator: Indicator[Num], val downsamplingPeriod: Int)
@@ -218,7 +220,7 @@ object CorrelationAnalyzer extends App {
     dataProvider.getBarSeries(asset, interval)
   }
 
-  val filteredCoins = removeDuplicateCoins(coinNames, correlationThreshold, downsamplingPeriod)
+  val filteredCoins = removeDuplicateCoins(coinNames, correlationThreshold)
   println(s"Filtered coins: $filteredCoins")
   println("")
   System.exit(0)

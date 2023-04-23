@@ -1,11 +1,12 @@
-package com.github.ppotseluev.algorate.tools.backtesting
+package com.github.ppotseluev.algorate.tools.backtesting.app
 
 import cats.effect.{IO, IOApp}
 import cats.implicits._
+import com.github.ppotseluev.algorate.tools.backtesting.Assets._
 import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.strategy.{FullStrategy, Strategies}
-import Assets.Sampler.SampleSize
-import Assets._
+import com.github.ppotseluev.algorate.tools.backtesting.Assets.Sampler.SampleSize
+import com.github.ppotseluev.algorate.tools.backtesting.{Assets, Period, Testkit}
 import org.ta4j.core.BarSeries
 
 import java.util.concurrent.atomic.AtomicInteger
