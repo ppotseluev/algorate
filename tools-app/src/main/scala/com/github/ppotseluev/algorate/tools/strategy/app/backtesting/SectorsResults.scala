@@ -13,6 +13,8 @@ case class SectorsResults(
   def flatten: Map[TradingAsset, TradingStats] = sectorsStats.flatMap(_._2)
 
   def assets: Set[TradingAsset] = flatten.keySet
+
+  def aggregatedStats: TradingStats = sectorsStats.values.flatMap(_.values).toList.combineAll
 }
 
 object SectorsResults {

@@ -44,7 +44,7 @@ object AssetsSelector extends IOApp.Simple {
       )
   }
 
-  private val testingToolkit = new TestToolkit[IO]()
+  private val testingToolkit = new Testkit[IO]()
 
   private val baseDir = {
     val saveTo = "tools-app/data/results"
@@ -95,7 +95,7 @@ object AssetsSelector extends IOApp.Simple {
     Resource.fromAutoCloseable(IO(new PrintWriter(path))).use { printer: PrintWriter =>
       IO.blocking {
         printer.println(results.show)
-        val allStats = results.sectorsStats.values.flatMap(_.values).toList.combineAll
+        val allStats = results.aggregatedStats
         printer.println()
         val assetsCount = results.flatten.size
         printer.println(s"total ($assetsCount assets): ${allStats.show}")
@@ -191,19 +191,5 @@ object AssetsSelector extends IOApp.Simple {
     case object Validate extends Mode
     case object Test extends Mode
     case class YearsRange(years: (Int, Int)) extends Mode
-  }
-
-  case class Period(year: Int, range: Option[(MonthDay, MonthDay)] = None) {
-    def start: LocalDate = {
-      val md = range.fold(MonthDay.of(1, 1))(_._1)
-      md.atYear(year)
-    }
-
-    def end: LocalDate = {
-      val md = range.fold(MonthDay.of(12, 31))(_._2)
-      md.atYear(year)
-    }
-
-    def toInterval: DaysInterval = DaysInterval(start, end)
   }
 }

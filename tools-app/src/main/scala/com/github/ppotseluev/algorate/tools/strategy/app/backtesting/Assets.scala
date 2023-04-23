@@ -14,8 +14,8 @@ object Assets {
     case object All extends Sampler
   }
 
-  implicit class SampleSyntax(val assets: List[TradingAsset]) extends AnyVal {
-    def sample(implicit sampler: Sampler): List[TradingAsset] = sampler match {
+  implicit class SampleSyntax[T](val assets: List[T]) extends AnyVal {
+    def sample(implicit sampler: Sampler): List[T] = sampler match {
       case Sampler.SampleSize(size, seed) =>
         seed.foreach(Random.setSeed)
         Random.shuffle(assets).take(size)

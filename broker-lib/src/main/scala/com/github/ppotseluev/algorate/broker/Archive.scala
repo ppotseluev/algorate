@@ -54,7 +54,7 @@ class Archive[F[_]: Sync](
       candlesInterval: CandlesInterval
   ): F[List[Bar]] = Sync[F]
     .defer {
-      println(s"Getting data for $instrumentId")
+      logger.debug(s"Getting data for $instrumentId")
       val paths = candlesInterval.interval.years
         .traverse { year =>
           val dataId = s"${instrumentId}_$year"

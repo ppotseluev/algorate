@@ -16,7 +16,10 @@ import org.ta4j.core.BarSeries
 
 import java.util.concurrent.atomic.AtomicInteger
 
-class TestToolkit[F[_]: Async: Parallel](maxConcurrent: Int = 8)(implicit factory: Factory[F]) {
+class Testkit[F[_]: Async: Parallel](
+    maxConcurrent: Int = 8,
+    logProgress: Boolean = true
+)(implicit factory: Factory[F]) {
 
   private implicit val barSeriesProvider: BarSeriesProvider[F] =
     new BarSeriesProvider(factory.archive)
@@ -32,7 +35,9 @@ class TestToolkit[F[_]: Async: Parallel](maxConcurrent: Int = 8)(implicit factor
     (asset: TradingAsset, series: BarSeries) =>
       StrategyTester[F](strategy).test(series, asset).map { stats =>
         val results = SectorsResults(asset, stats)
-        println(s"done: ${(done.incrementAndGet().toDouble * 100 / total).toInt}%")
+        if (logProgress) {
+          println(s"done: ${(done.incrementAndGet().toDouble * 100 / total).toInt}%")
+        }
         results
       }
 
