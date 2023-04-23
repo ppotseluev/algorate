@@ -1,44 +1,30 @@
-package com.github.ppotseluev.algorate.tools.strategy.app
+package com.github.ppotseluev.algorate.tools.strategy.app.backtesting
 
-import cats.effect.IO
-import cats.effect.IOApp
-import cats.effect.Resource
-import cats.implicits._
+import cats.effect.{IO, IOApp, Resource}
 import cats.kernel.Monoid
 import com.github.ppotseluev.algorate.TradingAsset
-import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
-import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
-import com.github.ppotseluev.algorate.math.PrettyDuration.PrettyPrintableDuration
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.Strategies
 import com.github.ppotseluev.algorate.tools.strategy.BarSeriesProvider
-import com.github.ppotseluev.algorate.tools.strategy.StrategyTester
-import com.github.ppotseluev.algorate.tools.strategy.app.TestStrategy.SectorsResults
 import com.github.ppotseluev.algorate.tools.strategy.app.backtesting.Assets._
+import cats.implicits._
+import com.github.ppotseluev.algorate.math.PrettyDuration.PrettyPrintableDuration
 
-import java.io.File
-import fs2.Stream
-
-import java.io.PrintWriter
+import java.io.{File, PrintWriter}
 import java.nio.file.{Files, Paths}
 import java.time.{LocalDate, MonthDay}
-import java.util.concurrent.atomic.AtomicInteger
-import org.ta4j.core.BarSeries
-import ru.tinkoff.piapi.contract.v1.Share
-
 import scala.concurrent.duration._
 
 object AssetsSelector extends IOApp.Simple {
 
-  private implicit val sampler: Sampler = Sampler
-//    .All
-    .SampleSize(400, seed = 4L.some)
-  private val mode: Mode = Mode.Validate
+  private implicit val sampler: Sampler = Sampler.All
+//    .SampleSize(500, seed = 12345L.some)
+  private val mode: Mode = Mode.Test
   private val assets = shares.sample
   private val selectionStrategy: SelectionStrategy = SelectAll
 
-  private val strategy = Strategies.default
+  private implicit val strategy = Strategies.default
 
   private val periods: List[Period] = mode match {
     case Mode.YearsRange(years) =>
@@ -57,6 +43,8 @@ object AssetsSelector extends IOApp.Simple {
         Period(2022, (MonthDay.of(7, 1) -> MonthDay.of(12, 31)).some)
       )
   }
+
+  private val testingToolkit = new TestToolkit[IO]()
 
   private val baseDir = {
     val saveTo = "tools-app/data/results"
@@ -143,30 +131,6 @@ object AssetsSelector extends IOApp.Simple {
     } yield ()
   }
 
-  private def test(done: AtomicInteger, total: Int) = (asset: TradingAsset, series: BarSeries) =>
-    StrategyTester[IO](strategy).test(series, asset).map { stats =>
-      val results = SectorsResults(asset, stats)
-      println(s"done: ${(done.incrementAndGet().toDouble * 100 / total).toInt}%")
-      results
-    }
-
-  private def testAll(period: Period, assets: List[TradingAsset])(implicit
-      barSeriesProvider: BarSeriesProvider[IO]
-  ): IO[SectorsResults] = {
-    val interval = CandlesInterval(
-      interval = period.toInterval,
-      resolution = CandleResolution.OneMinute
-    )
-    val maxConcurrent = 8
-    val counter = new AtomicInteger
-    barSeriesProvider
-      .streamBarSeries(assets, interval, maxConcurrent, skipNotFound = true)
-      .parEvalMapUnordered(maxConcurrent)(test(counter, assets.size).tupled)
-      .compile
-      .toList
-      .map(_.combineAll)
-  }
-
   private def loopSelect(
       periods: List[Period],
       assets: List[TradingAsset],
@@ -181,7 +145,7 @@ object AssetsSelector extends IOApp.Simple {
         _ <- IO {
           println(s"Start testing for $year year")
         }
-        currentBatchResults <- testAll(period, assets)
+        currentBatchResults <- testingToolkit.test(period.toInterval, assets)
         end <- IO(System.currentTimeMillis)
         results = select(currentBatchResults)
         _ <- save(results, year, (end - start).millis)

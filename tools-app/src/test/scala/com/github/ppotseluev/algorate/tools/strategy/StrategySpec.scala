@@ -34,7 +34,7 @@ class StrategySpec extends FunSuite {
     val series = seriesProvider.getBarSeries(asset, interval).unsafeRunSync()
     val stats = StrategyTester[F](
       strategy,
-      TestSetup
+      StrategyTester
         .fixedTradeCostPolicy(allowFractionalLots = false)
         .andThen(_.allowedOrElse(Decision.Allowed(1)))
     ).test(series, asset).unsafeRunSync()

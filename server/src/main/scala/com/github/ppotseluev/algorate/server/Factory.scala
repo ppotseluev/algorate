@@ -128,5 +128,5 @@ class Factory[F[_]: Async: Parallel] {
 }
 
 object Factory {
-  val io = new Factory[IO]
+  implicit val io = new Factory[IO]
 }
