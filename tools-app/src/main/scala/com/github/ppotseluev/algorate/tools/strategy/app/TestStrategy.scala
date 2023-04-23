@@ -9,6 +9,8 @@ import cats.effect.IOApp
 import cats.implicits._
 import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.TradingStats
+import com.github.ppotseluev.algorate.broker.Broker.CandleResolution.OneMinute
+import com.github.ppotseluev.algorate.broker.Broker.{CandlesInterval, DaysInterval}
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.Strategies
 import com.github.ppotseluev.algorate.tools.strategy.BarSeriesProvider
@@ -17,17 +19,21 @@ import com.github.ppotseluev.algorate.tools.strategy.StrategyTester
 import java.util.concurrent.atomic.AtomicInteger
 import org.ta4j.core.BarSeries
 
+import java.time.LocalDate
 import scala.collection.immutable.ListMap
 import scala.concurrent.duration._
 
-/**
- * Tests strategy based on [[TestSetup]] data
- */
 object TestStrategy extends IOApp {
-  import com.github.ppotseluev.algorate.tools.strategy.TestSetup._
 
   val done = new AtomicInteger()
   val strategy = Strategies.default
+  val interval = CandlesInterval(
+    interval = DaysInterval(
+      LocalDate.of(2023, 1, 1),
+      LocalDate.of(2023, 4, 11)
+    ),
+    resolution = OneMinute
+  )
 
   private val test = (asset: TradingAsset, series: BarSeries) =>
     StrategyTester[IO](strategy).test(series, asset).map { stats =>
@@ -93,7 +99,7 @@ object TestStrategy extends IOApp {
         .sortBy(_._2.values.toList.map(_.totalPositions).max)
         .map { case (sector, value) =>
           val sorted: Map[TradingAsset, TradingStats] =
-            ListMap.from(value.toList.sortBy(_._2.profitRatio.values.sum))
+            ListMap.from(value.toList.sortBy(_._1.instrumentId))
           s"""
           |Sector: $sector
           |${sorted.show}

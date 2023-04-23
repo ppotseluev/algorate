@@ -5,9 +5,9 @@ import cats.effect.kernel.Sync
 import cats.effect.std.Semaphore
 import cats.implicits._
 import cats.{Monoid, Parallel}
-import com.github.ppotseluev.algorate.{Stats, TradingAsset, TradingStats}
+import com.github.ppotseluev.algorate.{Money, Stats, TradingAsset, TradingStats}
 import com.github.ppotseluev.algorate.strategy.FullStrategy
-import com.github.ppotseluev.algorate.trader.policy.Policy
+import com.github.ppotseluev.algorate.trader.policy.{MoneyManagementPolicy, Policy}
 import com.github.ppotseluev.algorate.trader.policy.Policy.TradeRequest
 import com.typesafe.scalalogging.LazyLogging
 import org.ta4j.core.{BarSeries, BarSeriesManager}
@@ -35,9 +35,26 @@ private[strategy] case class StrategyTester[F[_]: Parallel: Concurrent](
 }
 
 private[strategy] object StrategyTester {
+  def fixedTradeCostPolicy(
+      usdTrade: Int = 1_000,
+      rubTrade: Int = 10_000,
+      allowFractionalLots: Boolean
+  ): Policy = {
+    val money: Money = Map("usd" -> Int.MaxValue, "rub" -> Int.MaxValue, "usdt" -> Int.MaxValue)
+    new MoneyManagementPolicy(() => Some(money))(
+      maxPercentage = 1,
+      maxAbsolute = Map(
+        "usd" -> usdTrade,
+        "usdt" -> usdTrade,
+        "rub" -> rubTrade
+      ),
+      allowFractionalLots = allowFractionalLots
+    )
+  }
+
   def apply[F[_]: Parallel: Concurrent: Sync](
       strategyBuilder: BarSeries => FullStrategy,
-      tradingPolicy: Policy = TestSetup.fixedTradeCostPolicy(allowFractionalLots = true),
+      tradingPolicy: Policy = fixedTradeCostPolicy(allowFractionalLots = true),
       maxParallelism: Int = 8,
       minBatchSize: Int = 50_000
   ): StrategyTester[F] =

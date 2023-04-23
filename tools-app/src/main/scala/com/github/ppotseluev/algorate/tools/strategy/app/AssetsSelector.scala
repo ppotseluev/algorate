@@ -4,10 +4,12 @@ import cats.effect.IO
 import cats.effect.IOApp
 import cats.effect.Resource
 import cats.implicits._
+import cats.kernel.Monoid
 import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
+import com.github.ppotseluev.algorate.math.PrettyDuration.PrettyPrintableDuration
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.Strategies
 import com.github.ppotseluev.algorate.tools.strategy.BarSeriesProvider
@@ -20,7 +22,7 @@ import fs2.Stream
 
 import java.io.PrintWriter
 import java.nio.file.{Files, Paths}
-import java.time.LocalDate
+import java.time.{LocalDate, MonthDay}
 import java.util.concurrent.atomic.AtomicInteger
 import org.ta4j.core.BarSeries
 import ru.tinkoff.piapi.contract.v1.Share
@@ -28,18 +30,34 @@ import ru.tinkoff.piapi.contract.v1.Share
 import scala.concurrent.duration._
 
 object AssetsSelector extends IOApp.Simple {
-  private val factory = Factory.io
+
+  private implicit val sampler: Sampler = Sampler
+//    .All
+    .SampleSize(400, seed = 4L.some)
+  private val mode: Mode = Mode.Validate
+  private val assets = shares.sample
+  private val selectionStrategy: SelectionStrategy = SelectAll
 
   private val strategy = Strategies.default
-  private val years = 2020 -> 2020
-  private val selectionStrategy: SelectionStrategy = SelectAll
-//    ByProfitRatio(1)
-//    ByProfitRatio(1.05)
-//    ByProfitRatio(1.1)
-//    ByWinRatio(threshold = 0.7)
-  private val assets = cryptocurrencies.sample
 
-//factory.config.assets
+  private val periods: List[Period] = mode match {
+    case Mode.YearsRange(years) =>
+      (years._1 to years._2).toList.map(Period(_))
+    case Mode.Train =>
+      List(
+        Period(2020),
+        Period(2021)
+      )
+    case Mode.Validate =>
+      List(
+        Period(2022, (MonthDay.of(1, 1) -> MonthDay.of(6, 30)).some)
+      )
+    case Mode.Test =>
+      List(
+        Period(2022, (MonthDay.of(7, 1) -> MonthDay.of(12, 31)).some)
+      )
+  }
+
   private val baseDir = {
     val saveTo = "tools-app/data/results"
     val startTime = System.currentTimeMillis().millis.toSeconds
@@ -54,7 +72,7 @@ object AssetsSelector extends IOApp.Simple {
     Paths.get(s"$baseDir/Strategies.scala")
   )
 
-  (years._1 to years._2).foreach { year =>
+  periods.map(_.year).foreach { year =>
     val path = s"$baseDir/$year"
     Files.createDirectory(new File(path).toPath)
   }
@@ -94,7 +112,7 @@ object AssetsSelector extends IOApp.Simple {
         val assetsCount = results.flatten.size
         printer.println(s"total ($assetsCount assets): ${allStats.show}")
         printer.println()
-        printer.println(s"Testing took $testDuration")
+        printer.println(s"Testing took ${testDuration.pretty}")
       }
     }
 
@@ -132,17 +150,14 @@ object AssetsSelector extends IOApp.Simple {
       results
     }
 
-  private def testAll(year: Int, assets: List[TradingAsset])(implicit
+  private def testAll(period: Period, assets: List[TradingAsset])(implicit
       barSeriesProvider: BarSeriesProvider[IO]
   ): IO[SectorsResults] = {
     val interval = CandlesInterval(
-      interval = DaysInterval(
-        start = LocalDate.of(year, 1, 1),
-        end = LocalDate.of(year, 12, 31)
-      ),
+      interval = period.toInterval,
       resolution = CandleResolution.OneMinute
     )
-    val maxConcurrent = 2
+    val maxConcurrent = 8
     val counter = new AtomicInteger
     barSeriesProvider
       .streamBarSeries(assets, interval, maxConcurrent, skipNotFound = true)
@@ -152,31 +167,45 @@ object AssetsSelector extends IOApp.Simple {
       .map(_.combineAll)
   }
 
-  private def loopSelect(year: Int, assets: List[TradingAsset])(implicit
+  private def loopSelect(
+      periods: List[Period],
+      assets: List[TradingAsset],
+      accResult: SectorsResults
+  )(implicit
       barSeriesProvider: BarSeriesProvider[IO]
-  ): IO[Unit] =
-    for {
-      start <- IO(System.currentTimeMillis)
-      _ <- IO {
-        println(s"Start testing for $year year")
-      }
-      currentBatchResults <- testAll(year, assets)
-      end <- IO(System.currentTimeMillis)
-      results = select(currentBatchResults)
-      _ <- save(results, year, (end - start).millis)
-      newYear = year + 1
-      _ <-
-        if (newYear <= years._2) {
-          loopSelect(newYear, results.selectedAssetsList)
-        } else {
-          ().pure[IO]
+  ): IO[SectorsResults] = periods match {
+    case period :: restPeriods =>
+      for {
+        start <- IO(System.currentTimeMillis)
+        year = period.year
+        _ <- IO {
+          println(s"Start testing for $year year")
         }
-    } yield ()
-
-  override def run: IO[Unit] = factory.tinkoffBroker.use { broker =>
-    implicit val barSeriesProvider: BarSeriesProvider[IO] = new BarSeriesProvider(broker)
-    loopSelect(years._1, assets)
+        currentBatchResults <- testAll(period, assets)
+        end <- IO(System.currentTimeMillis)
+        results = select(currentBatchResults)
+        _ <- save(results, year, (end - start).millis)
+        res <- loopSelect(restPeriods, results.selectedAssetsList, accResult |+| results.original)
+      } yield res
+    case Nil => accResult.pure[IO]
   }
+
+  override def run: IO[Unit] = Factory.io.tinkoffBroker
+    .use { broker =>
+      implicit val barSeriesProvider: BarSeriesProvider[IO] = new BarSeriesProvider(broker)
+      val start = System.currentTimeMillis()
+      loopSelect(periods, assets, Monoid[SectorsResults].empty).map { res =>
+        val end = System.currentTimeMillis()
+        res -> (end - start).millis
+      }
+    }
+    .flatMap { case (accResult, duration) =>
+      write(
+        results = accResult,
+        path = s"$baseDir/acc_results.txt",
+        testDuration = duration
+      )
+    }
 
   private case class Results(
       original: SectorsResults,
@@ -191,4 +220,26 @@ object AssetsSelector extends IOApp.Simple {
       extends SelectionStrategy //todo maybe be undefined if no loss....
   case class ByProfitRatio(threshold: Double) extends SelectionStrategy
   case class ByWinRatio(threshold: Double) extends SelectionStrategy //it makes more sense
+
+  sealed trait Mode
+  object Mode {
+    case object Train extends Mode
+    case object Validate extends Mode
+    case object Test extends Mode
+    case class YearsRange(years: (Int, Int)) extends Mode
+  }
+
+  case class Period(year: Int, range: Option[(MonthDay, MonthDay)] = None) {
+    def start: LocalDate = {
+      val md = range.fold(MonthDay.of(1, 1))(_._1)
+      md.atYear(year)
+    }
+
+    def end: LocalDate = {
+      val md = range.fold(MonthDay.of(12, 31))(_._2)
+      md.atYear(year)
+    }
+
+    def toInterval: DaysInterval = DaysInterval(start, end)
+  }
 }

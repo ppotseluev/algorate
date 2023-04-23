@@ -5,14 +5,22 @@ import com.github.ppotseluev.algorate.TradingAsset
 import scala.util.Random
 
 object Assets {
-  case class SampleSize(value: Int) extends AnyVal
-  object SampleSize {
-    implicit val default: SampleSize = SampleSize(5)
+  sealed trait Sampler
+  object Sampler {
+    case class SampleSize(
+        value: Int,
+        seed: Option[Long] = None
+    ) extends Sampler
+    case object All extends Sampler
   }
 
   implicit class SampleSyntax(val assets: List[TradingAsset]) extends AnyVal {
-    def sample(implicit size: SampleSize): List[TradingAsset] =
-      Random.shuffle(assets).take(size.value)
+    def sample(implicit sampler: Sampler): List[TradingAsset] = sampler match {
+      case Sampler.SampleSize(size, seed) =>
+        seed.foreach(Random.setSeed)
+        Random.shuffle(assets).take(size)
+      case Sampler.All => assets
+    }
   }
 
   //TODO check the list. Supposed to be 2020-2022 crypto non-correlating assets
