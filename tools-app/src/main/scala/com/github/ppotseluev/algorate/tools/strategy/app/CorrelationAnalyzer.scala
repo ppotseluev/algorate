@@ -8,20 +8,18 @@ import com.github.ppotseluev.algorate.broker.Broker.{CandlesInterval, DaysInterv
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.tools.strategy.BarSeriesProvider
 import org.ta4j.core._
-import org.ta4j.core.indicators.{AbstractIndicator, SMAIndicator}
+import org.ta4j.core.indicators.AbstractIndicator
 import org.ta4j.core.indicators.helpers._
 import org.ta4j.core.indicators.statistics._
 import org.ta4j.core.num._
 
-import scala.collection.parallel.CollectionConverters._
 import java.time.LocalDate
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
-import scala.collection.parallel.immutable.ParSeq
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-object CorrelationAnalyzer {
+object CorrelationAnalyzer extends App {
 
   // Set the list of crypto coins you want to analyze
   val coinNames: List[String] = List(
@@ -122,13 +120,13 @@ object CorrelationAnalyzer {
   // Set the downsampling period for the moving average
   val downsamplingPeriod: Int = 10
 
-  def main(args: Array[String]): Unit = {
-    val filteredCoins = removeDuplicateCoins(coinNames, correlationThreshold, downsamplingPeriod)
-    println(s"Filtered coins: $filteredCoins")
-  }
   val done = new AtomicInteger()
 
-  def removeDuplicateCoins(coins: List[String], threshold: Double, downsamplingPeriod: Int): List[String] = {
+  def removeDuplicateCoins(
+      coins: List[String],
+      threshold: Double,
+      downsamplingPeriod: Int
+  ): List[String] = {
     val n = coins.length
     val duplicates = scala.collection.mutable.Set[String]()
 
@@ -149,6 +147,7 @@ object CorrelationAnalyzer {
             val seriesB = load(coinB).unsafeRunSync()
             val correlation = calculatePearsonCorrelation(seriesA, seriesB, downsamplingPeriod)
             if (!correlation.isNaN && correlation >= threshold) {
+              println(s"$coinB correlates with $coinA, $correlation. Count $coinB as duplicate.")
               duplicates.synchronized {
                 duplicates += coinB
               }
@@ -162,10 +161,16 @@ object CorrelationAnalyzer {
     // Wait for all tasks to complete
     val _ = Await.result(Future.sequence(tasks), Duration.Inf)
 
+    println("duplicates")
+    println(duplicates)
     coins.diff(duplicates.toList)
   }
 
-  def calculatePearsonCorrelation(seriesA: BarSeries, seriesB: BarSeries, downsamplingPeriod: Int): Double = {
+  def calculatePearsonCorrelation(
+      seriesA: BarSeries,
+      seriesB: BarSeries,
+      downsamplingPeriod: Int
+  ): Double = {
     val minBarCount = math.min(seriesA.getBarCount, seriesB.getBarCount)
 
     // Check if the BarSeries has enough bars for the downsampling period
@@ -181,7 +186,11 @@ object CorrelationAnalyzer {
 
     val minEndIndex = math.min(seriesA.getEndIndex, seriesB.getEndIndex)
 
-    val pearsonCorrelation = new PearsonCorrelationIndicator(downsampledClosePriceA, downsampledClosePriceB, downsamplingPeriod)
+    val pearsonCorrelation = new PearsonCorrelationIndicator(
+      downsampledClosePriceA,
+      downsampledClosePriceB,
+      downsamplingPeriod
+    )
     pearsonCorrelation.getValue(minEndIndex / downsamplingPeriod).doubleValue()
   }
 
@@ -209,4 +218,9 @@ object CorrelationAnalyzer {
     )
     dataProvider.getBarSeries(asset, interval)
   }
+
+  val filteredCoins = removeDuplicateCoins(coinNames, correlationThreshold, downsamplingPeriod)
+  println(s"Filtered coins: $filteredCoins")
+  println("")
+  System.exit(0)
 }

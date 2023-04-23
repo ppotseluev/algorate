@@ -12,11 +12,11 @@ import java.util.concurrent.atomic.AtomicInteger
 
 object SamplingTester extends IOApp.Simple {
   val periods: List[Period] = (2020 to 2022).toList.map(Period(_)).flatMap(_.splitMonthly)
-  val assets: List[TradingAsset] = shares
-  val depth: Int = 20
+  val assets: List[TradingAsset] = Assets.shares
+  val depth: Int = 10
   val threshold = 1.05
   val assetsSampleSize = 5
-  val periodsSampleSize = 3
+  val periodsSampleSize = 5
 
   private val strategies: Map[String, BarSeries => FullStrategy] = Map(
     "current" -> Strategies.default,
