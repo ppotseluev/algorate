@@ -1,17 +1,17 @@
-package com.github.ppotseluev.algorate.tools.strategy.app.backtesting
+package com.github.ppotseluev.algorate.tools.backtesting
 
 import cats.effect.{IO, IOApp}
 import cats.implicits._
 import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.strategy.{FullStrategy, Strategies}
-import com.github.ppotseluev.algorate.tools.strategy.app.backtesting.Assets.Sampler.SampleSize
-import com.github.ppotseluev.algorate.tools.strategy.app.backtesting.Assets._
+import Assets.Sampler.SampleSize
+import Assets._
 import org.ta4j.core.BarSeries
 
 import java.util.concurrent.atomic.AtomicInteger
 
 object SamplingTester extends IOApp.Simple {
-  val periods: List[Period] = (2020 to 2022).toList.map(Period(_)).flatMap(_.splitMonthly)
+  val periods: List[Period] = (2020 to 2020).toList.map(Period(_)).flatMap(_.splitMonthly)
   val assets: List[TradingAsset] = Assets.shares
   val depth: Int = 10
   val threshold = 1.05

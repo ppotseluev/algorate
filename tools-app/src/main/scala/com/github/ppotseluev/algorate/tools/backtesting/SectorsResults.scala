@@ -1,4 +1,4 @@
-package com.github.ppotseluev.algorate.tools.strategy.app.backtesting
+package com.github.ppotseluev.algorate.tools.backtesting
 
 import cats.derived.semiauto
 import cats.{Monoid, Show}

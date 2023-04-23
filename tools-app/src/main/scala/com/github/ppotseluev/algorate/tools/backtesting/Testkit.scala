@@ -1,4 +1,4 @@
-package com.github.ppotseluev.algorate.tools.strategy.app.backtesting
+package com.github.ppotseluev.algorate.tools.backtesting
 
 import cats.implicits._
 import cats.Parallel
@@ -11,7 +11,6 @@ import com.github.ppotseluev.algorate.broker.Broker.{
 }
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.FullStrategy
-import com.github.ppotseluev.algorate.tools.strategy.{BarSeriesProvider, StrategyTester}
 import org.ta4j.core.BarSeries
 
 import java.util.concurrent.atomic.AtomicInteger

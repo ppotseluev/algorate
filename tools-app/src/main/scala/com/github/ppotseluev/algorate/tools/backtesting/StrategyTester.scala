@@ -1,19 +1,19 @@
-package com.github.ppotseluev.algorate.tools.strategy
+package com.github.ppotseluev.algorate.tools.backtesting
 
 import cats.effect.Concurrent
 import cats.effect.kernel.Sync
 import cats.effect.std.Semaphore
 import cats.implicits._
 import cats.{Monoid, Parallel}
-import com.github.ppotseluev.algorate.{Money, Stats, TradingAsset, TradingStats}
 import com.github.ppotseluev.algorate.strategy.FullStrategy
-import com.github.ppotseluev.algorate.trader.policy.{MoneyManagementPolicy, Policy}
 import com.github.ppotseluev.algorate.trader.policy.Policy.TradeRequest
+import com.github.ppotseluev.algorate.trader.policy.{MoneyManagementPolicy, Policy}
+import com.github.ppotseluev.algorate.{Money, Stats, TradingAsset, TradingStats}
 import com.typesafe.scalalogging.LazyLogging
-import org.ta4j.core.{BarSeries, BarSeriesManager}
 import org.ta4j.core.Trade.TradeType
+import org.ta4j.core.{BarSeries, BarSeriesManager}
 
-private[strategy] case class StrategyTester[F[_]: Parallel: Concurrent](
+private[backtesting] case class StrategyTester[F[_]: Parallel: Concurrent](
     impl: StrategyTester.Impl[F],
     maxParallelism: Int,
     minBatchSize: Int
@@ -34,7 +34,7 @@ private[strategy] case class StrategyTester[F[_]: Parallel: Concurrent](
   }
 }
 
-private[strategy] object StrategyTester {
+private[backtesting] object StrategyTester {
   def fixedTradeCostPolicy(
       usdTrade: Int = 1_000,
       rubTrade: Int = 10_000,

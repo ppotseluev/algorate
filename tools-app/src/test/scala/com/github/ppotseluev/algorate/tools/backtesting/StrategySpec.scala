@@ -1,4 +1,4 @@
-package com.github.ppotseluev.algorate.tools.strategy
+package com.github.ppotseluev.algorate.tools.backtesting
 
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
@@ -8,7 +8,9 @@ import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import com.github.ppotseluev.algorate.strategy.Strategies
+import com.github.ppotseluev.algorate.tools.backtesting.{BarSeriesProvider, StrategyTester}
 import com.github.ppotseluev.algorate.trader.policy.Policy.Decision
+
 import java.io.File
 import java.time.LocalDate
 import munit.FunSuite

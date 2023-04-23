@@ -1,4 +1,4 @@
-package com.github.ppotseluev.algorate.tools.strategy.app.backtesting
+package com.github.ppotseluev.algorate.tools.backtesting
 
 import cats.effect.{IO, IOApp, Resource}
 import cats.kernel.Monoid
@@ -6,8 +6,7 @@ import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.Strategies
-import com.github.ppotseluev.algorate.tools.strategy.BarSeriesProvider
-import com.github.ppotseluev.algorate.tools.strategy.app.backtesting.Assets._
+import Assets._
 import cats.implicits._
 import com.github.ppotseluev.algorate.math.PrettyDuration.PrettyPrintableDuration
 

@@ -1,4 +1,4 @@
-package com.github.ppotseluev.algorate.tools.strategy.app
+package com.github.ppotseluev.algorate.tools.backtesting
 
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
@@ -6,12 +6,11 @@ import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution.OneMinute
 import com.github.ppotseluev.algorate.broker.Broker.{CandlesInterval, DaysInterval}
 import com.github.ppotseluev.algorate.server.Factory
-import com.github.ppotseluev.algorate.tools.strategy.BarSeriesProvider
-import org.ta4j.core._
 import org.ta4j.core.indicators.AbstractIndicator
-import org.ta4j.core.indicators.helpers._
-import org.ta4j.core.indicators.statistics._
-import org.ta4j.core.num._
+import org.ta4j.core.indicators.helpers.ClosePriceIndicator
+import org.ta4j.core.indicators.statistics.PearsonCorrelationIndicator
+import org.ta4j.core.num.Num
+import org.ta4j.core.{BarSeries, Indicator}
 
 import java.time.LocalDate
 import java.util.concurrent.Executors
