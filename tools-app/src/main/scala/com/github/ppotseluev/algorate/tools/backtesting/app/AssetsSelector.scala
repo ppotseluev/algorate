@@ -18,10 +18,10 @@ import scala.concurrent.duration._
 
 object AssetsSelector extends IOApp.Simple {
 
-  private implicit val sampler: Sampler = Sampler.All
-  //    .SampleSize(500, seed = 12345L.some)
-  private val mode: Mode = Mode.Test
-  private val assets = shares.sample
+  private implicit val sampler: Sampler = Sampler//.All
+      .SampleSize(10, seed = 0L.some)
+  private val mode: Mode = Mode.Train
+  private val assets = cryptocurrencies.sample
   private val selectionStrategy: SelectionStrategy = SelectAll
 
   private implicit val strategy = Strategies.default
@@ -49,7 +49,7 @@ object AssetsSelector extends IOApp.Simple {
   private val baseDir = {
     val saveTo = "tools-app/data/results"
     val startTime = System.currentTimeMillis().millis.toSeconds
-    val id = s"${startTime}_$selectionStrategy"
+    val id = s"${startTime}_$mode"
     s"$saveTo/$id"
   }
   Files.createDirectory(new File(baseDir).toPath)
