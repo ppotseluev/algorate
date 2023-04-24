@@ -30,10 +30,10 @@ class TestBroker[F[_]: Sync] private (realBroker: Broker[F]) extends Broker[F] {
   }
 
   override def getData(
-      instrumentId: InstrumentId,
+      asset: TradingAsset,
       interval: CandlesInterval
   ): F[List[Bar]] =
-    realBroker.getData(instrumentId, interval)
+    realBroker.getData(asset, interval)
 
   def getStatistics(
       instrumentId: InstrumentId,

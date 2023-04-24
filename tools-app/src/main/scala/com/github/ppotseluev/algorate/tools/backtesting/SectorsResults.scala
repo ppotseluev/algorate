@@ -10,6 +10,15 @@ import cats.implicits._
 case class SectorsResults(
     sectorsStats: Map[String, Map[TradingAsset, TradingStats]]
 ) {
+  def keepOnly(assets: Set[TradingAsset]): SectorsResults = SectorsResults(
+    sectorsStats.map { case (sector, res) =>
+      sector -> res.filter { case (asset, _) => assets.contains(asset) }
+    }
+  )
+
+  def exclude(excludeAssets: Set[TradingAsset]): SectorsResults =
+    keepOnly(assets -- excludeAssets)
+
   def flatten: Map[TradingAsset, TradingStats] = sectorsStats.flatMap(_._2)
 
   def assets: Set[TradingAsset] = flatten.keySet

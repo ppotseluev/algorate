@@ -2,10 +2,7 @@ package com.github.ppotseluev.algorate.broker
 
 import cats.effect.Sync
 import cats.implicits._
-import com.github.ppotseluev.algorate.Bar
-import com.github.ppotseluev.algorate.InstrumentId
-import com.github.ppotseluev.algorate.Order
-import com.github.ppotseluev.algorate.OrderId
+import com.github.ppotseluev.algorate.{Bar, InstrumentId, Order, OrderId, TradingAsset}
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
 import com.typesafe.scalalogging.LazyLogging
 
@@ -14,11 +11,11 @@ class LoggingBroker[F[_]: Sync](broker: Broker[F]) extends Broker[F] with LazyLo
     broker.placeOrder(order)
 
   override def getData(
-      instrumentId: InstrumentId,
+      asset: TradingAsset,
       interval: Broker.CandlesInterval
   ): F[List[Bar]] = {
-    broker.getData(instrumentId, interval).onError { case e =>
-      Sync[F].delay(logger.error(s"Failed getData $instrumentId for $interval", e))
+    broker.getData(asset, interval).onError { case e =>
+      Sync[F].delay(logger.error(s"Failed getData ${asset.instrumentId} for $interval", e))
     }
   }
 

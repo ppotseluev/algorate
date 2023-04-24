@@ -17,7 +17,7 @@ import munit.FunSuite
 
 class StrategySpec extends FunSuite {
   val strategy = Strategies.default
-  val asset = TradingAsset("BBG000BBS2Y0", "AMGN", "usd", "")
+  val asset = TradingAsset("BBG000BBS2Y0", "AMGN", "usd", TradingAsset.Type.Share, "")
   val interval = CandlesInterval(
     interval = DaysInterval(
       LocalDate.of(2022, 1, 1),

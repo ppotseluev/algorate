@@ -156,7 +156,7 @@ object TinkoffBroker {
       }
 
     override def getData(
-        instrumentId: InstrumentId,
+        asset: TradingAsset,
         candlesInterval: CandlesInterval
     ): F[List[Bar]] = {
       val resolution = candlesInterval.resolution
@@ -164,7 +164,7 @@ object TinkoffBroker {
       def get(day: Day) = {
         api
           .getCandles(
-            instrumentId,
+            asset.instrumentId,
             day.start,
             day.end,
             candleInterval(resolution)
@@ -194,10 +194,10 @@ object TinkoffBroker {
         testBroker.placeOrder(order)
 
       override def getData(
-          instrumentId: InstrumentId,
+          asset: TradingAsset,
           candlesInterval: CandlesInterval
       ): F[List[Bar]] =
-        testBroker.getData(instrumentId, candlesInterval)
+        testBroker.getData(asset, candlesInterval)
 
       override def getPositions: F[Positions] = broker.getPositions
     }
@@ -217,10 +217,10 @@ object TinkoffBroker {
         broker.placeOrder(order)
 
       override def getData(
-          instrumentId: InstrumentId,
+          asset: TradingAsset,
           candlesInterval: CandlesInterval
       ): F[List[Bar]] =
-        broker.getData(instrumentId, candlesInterval)
+        broker.getData(asset, candlesInterval)
 
       override def getPositions: F[Positions] = _broker.getPositions
     }
@@ -257,10 +257,10 @@ object TinkoffBroker {
         broker.placeOrder(order)
 
       override def getData(
-          instrumentId: InstrumentId,
+          asset: TradingAsset,
           candlesInterval: CandlesInterval
       ): F[List[Bar]] =
-        broker.getData(instrumentId, candlesInterval)
+        broker.getData(asset, candlesInterval)
 
       override def getPositions: F[Positions] = _broker.getPositions
     }

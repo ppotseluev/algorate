@@ -25,13 +25,14 @@ import scala.concurrent.duration._
 object AkkaTradingApp extends IOApp with LazyLogging {
 
   case class StubSettings(
-      tickersMap: Map[Ticker, InstrumentId],
+      assets: List[TradingAsset],
       streamFrom: LocalDate = LocalDate.now.minusDays(10),
       streamTo: LocalDate = LocalDate.now.minusDays(2),
       rate: FiniteDuration = 1.second
   )
 
-  val assets: Map[InstrumentId, TradingAsset] = Map.empty
+  val assetsMap: Map[InstrumentId, TradingAsset] = Map.empty
+  val assets: List[TradingAsset] = assetsMap.values.toList
 //    List(
 //      TradingAsset("BBG000BNJHS8", "LUV", "usd"),
 //      TradingAsset("BBG000BRJL00", "PPL", "usd"),
@@ -91,10 +92,10 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         toF(broker.placeOrder(order))
 
       override def getData(
-          instrumentId: InstrumentId,
+          asset: TradingAsset,
           interval: Broker.CandlesInterval
       ): F[List[Bar]] =
-        toF(broker.getData(instrumentId, interval))
+        toF(broker.getData(asset, interval))
 
       override def getOrderInfo(orderId: OrderId): F[OrderPlacementInfo] =
         toF(broker.getOrderInfo(orderId))
@@ -116,7 +117,6 @@ object AkkaTradingApp extends IOApp with LazyLogging {
     } yield {
       val eventsSinkFuture = wrapEventsSink(λ[IO ~> Future](_.unsafeToFuture()))(eventsSink)
       val brokerFuture = wrapBroker(λ[IO ~> Future](_.unsafeToFuture()))(broker)
-      val figiList = assets.keys.toList
       val moneyTracker = TinkoffBroker.moneyTracker(broker)
       val policy = new MoneyManagementPolicy(() => moneyTracker.get)(
         maxPercentage = 0.025, //2.5%
@@ -127,7 +127,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         allowFractionalLots = true
       )
       val tradingManager = TradingManager(
-        assets = assets,
+        assets = assetsMap,
         broker = brokerFuture,
         strategy = Strategies.default,
         moneyTracker = moneyTracker,
@@ -140,7 +140,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         actorSystem <- IO(ActorSystem(tradingManager, "Algorate"))
         requestHandler = factory.traderRequestHandler(
           actorSystem = actorSystem,
-          assets = assets.map { case (id, asset) => asset.ticker -> id },
+          assets = assetsMap.map { case (id, asset) => asset.ticker -> id },
           eventsSink = eventsSink
         )
         api = factory.traderApi(requestHandler)
@@ -154,12 +154,12 @@ object AkkaTradingApp extends IOApp with LazyLogging {
                 streamFrom = LocalDate.now,
                 streamTo = LocalDate.now
               )
-            figiList.parTraverse(subscriber.subscribe).void
+            assets.parTraverse(subscriber.subscribe).void
           } *> MarketSubscriber //TODO fix gap between historical and realtime data
             .fromActor(actorSystem)
             .using[IO](factory.investApi)
-            .subscribe(figiList)
-        } { case StubSettings(instruments, streamFrom, streamTo, rate) =>
+            .subscribe(assets)
+        } { case StubSettings(assets, streamFrom, streamTo, rate) =>
           val subscriber = MarketSubscriber
             .fromActor(actorSystem)
             .stub[IO](
@@ -168,7 +168,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
               streamFrom = streamFrom,
               streamTo = streamTo
             )
-          instruments.values.toList.parTraverse(subscriber.subscribe).void
+          assets.parTraverse(subscriber.subscribe).void
         } &> moneyTracker.run &> api.run
       } yield exitCode
     }

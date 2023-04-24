@@ -19,7 +19,7 @@ import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 
 trait MarketSubscriber[F[_], C[_]] {
-  def subscribe(instrument: C[InstrumentId]): F[Unit]
+  def subscribe(instrument: C[TradingAsset]): F[Unit]
 }
 
 object MarketSubscriber extends LazyLogging {
@@ -32,7 +32,7 @@ object MarketSubscriber extends LazyLogging {
 
   class FromActor private[MarketSubscriber] (actor: TradingManager) {
     def using[F[_]: Sync](investApi: InvestApi): MarketSubscriber[F, List] =
-      (instruments: List[InstrumentId]) =>
+      (assets: List[TradingAsset]) =>
         Sync[F].delay {
           val streamProcessor: StreamProcessor[MarketDataResponse] =
             (data: MarketDataResponse) => {
@@ -44,6 +44,7 @@ object MarketSubscriber extends LazyLogging {
               } else
                 ()
             }
+          val instruments = assets.map(_.instrumentId)
           def makeStreamAndSubscribe(): Unit = {
             val stream = investApi.getMarketDataStreamService.newStream(
               "market-data-stream",
@@ -67,10 +68,10 @@ object MarketSubscriber extends LazyLogging {
         streamFrom: LocalDate,
         streamTo: LocalDate,
         rate: FiniteDuration
-    ): MarketSubscriber[F, Id] = (instrument: InstrumentId) =>
+    ): MarketSubscriber[F, Id] = (asset: TradingAsset) =>
       HistoryStream
         .make[F](
-          instrumentId = instrument,
+          asset = asset,
           broker = broker,
           from = streamFrom,
           to = streamTo,

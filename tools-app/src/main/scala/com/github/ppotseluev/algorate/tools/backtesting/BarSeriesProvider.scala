@@ -19,7 +19,7 @@ private[backtesting] class BarSeriesProvider[F[_]: Async: Parallel](
       interval: CandlesInterval
   ): F[BarSeries] =
     for {
-      bars <- barDataProvider.getData(asset.instrumentId, interval)
+      bars <- barDataProvider.getData(asset, interval)
     } yield BarsConverter.buildBarSeries(asset.ticker, bars)
 
   def streamBarSeries(

@@ -13,6 +13,6 @@ class ArchiveCachedBroker[F[_]](broker: Broker[F], archive: Archive[F])
   override def getOrderInfo(orderId: OrderId): F[OrderPlacementInfo] =
     broker.getOrderInfo(orderId)
 
-  override def getData(instrumentId: InstrumentId, interval: CandlesInterval): F[List[Bar]] =
-    archive.getData(instrumentId, interval)
+  override def getData(asset: TradingAsset, interval: CandlesInterval): F[List[Bar]] =
+    archive.getData(asset, interval)
 }

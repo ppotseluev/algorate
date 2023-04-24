@@ -17,7 +17,8 @@ import java.util.concurrent.atomic.AtomicInteger
 
 class Testkit[F[_]: Async: Parallel](
     maxConcurrent: Int = 8,
-    logProgress: Boolean = true
+    logProgress: Boolean = true,
+    skipNotFound: Boolean = false
 )(implicit factory: Factory[F]) {
 
   private implicit val barSeriesProvider: BarSeriesProvider[F] =
@@ -50,7 +51,7 @@ class Testkit[F[_]: Async: Parallel](
     )
     val counter = new AtomicInteger
     barSeriesProvider
-      .streamBarSeries(assets, interval, maxConcurrent, skipNotFound = false)
+      .streamBarSeries(assets, interval, maxConcurrent, skipNotFound)
       .parEvalMapUnordered(maxConcurrent)(test(counter, assets.size).tupled)
       .compile
       .toList

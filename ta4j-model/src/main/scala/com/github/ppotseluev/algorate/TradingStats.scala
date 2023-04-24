@@ -17,6 +17,8 @@ case class TradingStats(
   lazy val noFeeLoss = profit(fee = false, profitable = false.some)
   lazy val profitRatio = noFeeProfit.alignMergeWith(noFeeLoss)((x, y) => scala.math.abs(x / y))
 
+  def merged: Stats = long |+| short
+
   def totalPositions: Int = long.totalClosedPositions + short.totalClosedPositions
 
   def totalWinningPositions(fee: Boolean = false): Int =

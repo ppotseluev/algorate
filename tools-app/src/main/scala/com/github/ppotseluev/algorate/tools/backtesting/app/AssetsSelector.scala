@@ -2,11 +2,16 @@ package com.github.ppotseluev.algorate.tools.backtesting.app
 
 import cats.effect.{IO, IOApp, Resource}
 import cats.kernel.Monoid
-import com.github.ppotseluev.algorate.TradingAsset
+import com.github.ppotseluev.algorate.{TradingAsset, TradingStats}
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.Strategies
 import com.github.ppotseluev.algorate.tools.backtesting.Assets.{Sampler, shares}
-import com.github.ppotseluev.algorate.tools.backtesting.{BarSeriesProvider, Period, SectorsResults, Testkit}
+import com.github.ppotseluev.algorate.tools.backtesting.{
+  BarSeriesProvider,
+  Period,
+  SectorsResults,
+  Testkit
+}
 import cats.implicits._
 import com.github.ppotseluev.algorate.math.PrettyDuration.PrettyPrintableDuration
 import com.github.ppotseluev.algorate.tools.backtesting.Assets._
@@ -18,13 +23,15 @@ import scala.concurrent.duration._
 
 object AssetsSelector extends IOApp.Simple {
 
-  private implicit val sampler: Sampler = Sampler//.All
-      .SampleSize(10, seed = 0L.some)
+  private implicit val sampler: Sampler = Sampler //.All // Sampler.All
+    .SampleSize(10, seed = 124L.some)
   private val mode: Mode = Mode.Train
   private val assets = cryptocurrencies.sample
   private val selectionStrategy: SelectionStrategy = SelectAll
 
   private implicit val strategy = Strategies.default
+
+  private val testingToolkit = new Testkit[IO](skipNotFound = true)
 
   private val periods: List[Period] = mode match {
     case Mode.YearsRange(years) =>
@@ -44,8 +51,6 @@ object AssetsSelector extends IOApp.Simple {
       )
   }
 
-  private val testingToolkit = new Testkit[IO]()
-
   private val baseDir = {
     val saveTo = "tools-app/data/results"
     val startTime = System.currentTimeMillis().millis.toSeconds
@@ -58,6 +63,12 @@ object AssetsSelector extends IOApp.Simple {
   Files.copy(
     Paths.get(strategyFilePath),
     Paths.get(s"$baseDir/Strategies.scala")
+  )
+  private val assetsSelectorPath =
+    "/Users/potseluev/IdeaProjects/algorate/tools-app/src/main/scala/com/github/ppotseluev/algorate/tools/backtesting/app/AssetsSelector.scala"
+  Files.copy(
+    Paths.get(assetsSelectorPath),
+    Paths.get(s"$baseDir/AssetsSelector.scala")
   )
 
   periods.map(_.year).foreach { year =>
@@ -95,11 +106,24 @@ object AssetsSelector extends IOApp.Simple {
     Resource.fromAutoCloseable(IO(new PrintWriter(path))).use { printer: PrintWriter =>
       IO.blocking {
         printer.println(results.show)
-        val allStats = results.aggregatedStats
-        printer.println()
-        val assetsCount = results.flatten.size
-        printer.println(s"total ($assetsCount assets): ${allStats.show}")
-        printer.println()
+        val outliers = results.flatten.collect {
+          case (asset, stats) if stats.profitRatio.values.sum > 10 && stats.totalPositions > 50 =>
+            asset
+        }.toSet
+        def printStats(results: SectorsResults) = {
+          printer.println()
+          val assetsCount = results.flatten.size
+          printer.println(s"total ($assetsCount assets): ${results.aggregatedStats.show}")
+          //todo print profitable/non-prfitable assets ratio
+          val profitableCount = results.flatten.count(_._2.profitRatio.values.sum > 1)
+          printer.println(s"profitable: ${profitableCount * 100 / assetsCount}%")
+        }
+        printStats(results)
+        if (outliers.nonEmpty) {
+          printer.println()
+          printer.println(s"Without outliers ${outliers.map(_.instrumentId)}:")
+          printStats(results.exclude(outliers))
+        }
         printer.println(s"Testing took ${testDuration.pretty}")
       }
     }
