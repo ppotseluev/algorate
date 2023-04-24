@@ -81,7 +81,7 @@ object Strategies {
     val volumeIndicator: AbstractIndicator[Num] = new VolumeIndicator(series)
     val relativeVolumeIndicator =
       new RelativeVolumeIndicator(series, lookbackPeriod = 7.days.toMinutes.toInt)
-    val extremumWindowSize = 30
+    val extremumWindowSize = 10
     val extremum: AbstractIndicator[Option[Extremum]] =
       LocalExtremumIndicator(closePrice, extremumWindowSize)
     val channel: AbstractIndicator[Option[Channel]] = ChannelIndicator(
