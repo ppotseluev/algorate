@@ -1,7 +1,6 @@
 package com.github.ppotseluev.algorate.tools.backtesting
 
 import com.github.ppotseluev.algorate.TradingAsset
-
 import scala.util.Random
 
 object Assets {

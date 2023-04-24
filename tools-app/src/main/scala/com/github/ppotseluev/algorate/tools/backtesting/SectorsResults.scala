@@ -1,11 +1,12 @@
 package com.github.ppotseluev.algorate.tools.backtesting
 
+import cats.Monoid
+import cats.Show
 import cats.derived.semiauto
-import cats.{Monoid, Show}
-import com.github.ppotseluev.algorate.{TradingAsset, TradingStats}
-
-import scala.collection.immutable.ListMap
 import cats.implicits._
+import com.github.ppotseluev.algorate.TradingAsset
+import com.github.ppotseluev.algorate.TradingStats
+import scala.collection.immutable.ListMap
 
 case class SectorsResults(
     sectorsStats: Map[String, Map[TradingAsset, TradingStats]]

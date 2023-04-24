@@ -3,8 +3,10 @@ package com.github.ppotseluev.algorate.broker
 import com.github.ppotseluev.algorate.Order
 import com.github.ppotseluev.algorate._
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
-
-import java.time.{Instant, LocalDate, OffsetDateTime, ZoneOffset}
+import java.time.Instant
+import java.time.LocalDate
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.util.stream.Collectors
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration

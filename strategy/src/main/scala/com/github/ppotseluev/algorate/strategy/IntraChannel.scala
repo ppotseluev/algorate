@@ -2,16 +2,28 @@ package com.github.ppotseluev.algorate.strategy
 
 import cats.implicits._
 import com.github.ppotseluev.algorate.math.Approximator
-import com.github.ppotseluev.algorate.strategy.FullStrategy.{IndicatorInfo, Representation}
+import com.github.ppotseluev.algorate.strategy.FullStrategy.IndicatorInfo
+import com.github.ppotseluev.algorate.strategy.FullStrategy.Representation
 import com.github.ppotseluev.algorate.strategy.FullStrategy.Representation.Points
+import com.github.ppotseluev.algorate.strategy.indicator.ChannelIndicator
 import com.github.ppotseluev.algorate.strategy.indicator.ChannelIndicator.Channel
+import com.github.ppotseluev.algorate.strategy.indicator.ChannelUtils
+import com.github.ppotseluev.algorate.strategy.indicator.HasDataIndicator
+import com.github.ppotseluev.algorate.strategy.indicator.IndicatorSyntax
+import com.github.ppotseluev.algorate.strategy.indicator.LocalExtremumIndicator
 import com.github.ppotseluev.algorate.strategy.indicator.LocalExtremumIndicator.Extremum
-import com.github.ppotseluev.algorate.strategy.indicator.{ChannelIndicator, ChannelUtils, HasDataIndicator, IndicatorSyntax, LocalExtremumIndicator, VisualChannelIndicator, _}
+import com.github.ppotseluev.algorate.strategy.indicator.VisualChannelIndicator
+import com.github.ppotseluev.algorate.strategy.indicator._
 import org.apache.commons.math3.analysis.polynomials.PolynomialFunction
-import org.ta4j.core.{BarSeries, BaseStrategy}
+import org.ta4j.core.BarSeries
+import org.ta4j.core.BaseStrategy
 import org.ta4j.core.indicators.AbstractIndicator
-import org.ta4j.core.indicators.helpers.{ClosePriceIndicator, DifferenceIndicator, SumIndicator, VolumeIndicator}
-import org.ta4j.core.num.{NaN, Num}
+import org.ta4j.core.indicators.helpers.ClosePriceIndicator
+import org.ta4j.core.indicators.helpers.DifferenceIndicator
+import org.ta4j.core.indicators.helpers.SumIndicator
+import org.ta4j.core.indicators.helpers.VolumeIndicator
+import org.ta4j.core.num.NaN
+import org.ta4j.core.num.Num
 import org.ta4j.core.rules._
 
 private[strategy] object IntraChannel {

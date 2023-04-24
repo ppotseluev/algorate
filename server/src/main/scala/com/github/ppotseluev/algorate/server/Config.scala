@@ -2,7 +2,6 @@ package com.github.ppotseluev.algorate.server
 
 import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.trader.Api
-
 import scala.concurrent.duration.FiniteDuration
 
 case class Config(

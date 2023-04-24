@@ -4,9 +4,8 @@ import cats.Monoid
 import cats.Show
 import cats.derived.semiauto
 import cats.implicits._
-import org.apache.commons.math3.stat.descriptive.rank.Percentile
-
 import java.time.YearMonth
+import org.apache.commons.math3.stat.descriptive.rank.Percentile
 import scala.collection.immutable.SeqMap
 
 case class TradingStats(

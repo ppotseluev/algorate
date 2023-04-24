@@ -1,19 +1,16 @@
 package com.github.ppotseluev.algorate.tools.backtesting
 
-import cats.implicits._
 import cats.Parallel
 import cats.effect.Async
+import cats.implicits._
 import com.github.ppotseluev.algorate.TradingAsset
-import com.github.ppotseluev.algorate.broker.Broker.{
-  CandleResolution,
-  CandlesInterval,
-  DaysInterval
-}
+import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
+import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
+import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.FullStrategy
-import org.ta4j.core.BarSeries
-
 import java.util.concurrent.atomic.AtomicInteger
+import org.ta4j.core.BarSeries
 
 class Testkit[F[_]: Async: Parallel](
     maxConcurrent: Int = 8,

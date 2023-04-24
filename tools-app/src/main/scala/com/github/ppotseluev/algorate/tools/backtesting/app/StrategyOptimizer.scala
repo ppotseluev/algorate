@@ -1,25 +1,28 @@
 package com.github.ppotseluev.algorate.tools.backtesting.app
 
-import cats.effect.{IO, IOApp}
+import cats.effect.IO
+import cats.effect.IOApp
 import cats.implicits._
+import com.github.ppotseluev.algorate.Stats
+import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution.OneMinute
-import com.github.ppotseluev.algorate.broker.Broker.{CandlesInterval, DaysInterval}
+import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
+import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.Strategies
 import com.github.ppotseluev.algorate.strategy.indicator._
-import com.github.ppotseluev.algorate.tools.backtesting.{BarSeriesProvider, StrategyTester}
-import com.github.ppotseluev.algorate.{Stats, TradingAsset}
+import com.github.ppotseluev.algorate.tools.backtesting.BarSeriesProvider
+import com.github.ppotseluev.algorate.tools.backtesting.StrategyTester
+import java.time.LocalDate
 import org.ta4j.core._
 import org.ta4j.core.indicators._
 import org.ta4j.core.indicators.helpers._
 import org.ta4j.core.num._
 
-import java.time.LocalDate
-
 object StrategyOptimizer extends IOApp.Simple {
 
   val assets: List[TradingAsset] = List(
-    "STX",
+    "STX"
   ).map(TradingAsset.crypto)
 
   val interval = CandlesInterval(

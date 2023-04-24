@@ -1,13 +1,13 @@
 package com.github.ppotseluev.algorate.trader
 
 import cats.effect.kernel.Temporal
-import com.github.ppotseluev.algorate.{BarInfo, InstrumentId, TradingAsset}
+import com.github.ppotseluev.algorate.BarInfo
+import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution.OneMinute
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import fs2.Stream
-
 import java.time.LocalDate
 import scala.concurrent.duration.FiniteDuration
 

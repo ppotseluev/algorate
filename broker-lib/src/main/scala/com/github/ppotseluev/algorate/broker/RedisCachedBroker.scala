@@ -3,7 +3,10 @@ package com.github.ppotseluev.algorate.broker
 import cats.Monad
 import cats.Parallel
 import cats.implicits._
-import com.github.ppotseluev.algorate.{Bar, InstrumentId, Order, OrderId, TradingAsset}
+import com.github.ppotseluev.algorate.Bar
+import com.github.ppotseluev.algorate.Order
+import com.github.ppotseluev.algorate.OrderId
+import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.Day
 import com.github.ppotseluev.algorate.broker.Broker.DaysInterval

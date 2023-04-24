@@ -1,8 +1,8 @@
 package com.github.ppotseluev.algorate.strategy.indicator
 
 import org.ta4j.core.Indicator
-import org.ta4j.core.num.Num
 import org.ta4j.core.indicators.CachedIndicator
+import org.ta4j.core.num.Num
 
 class PercentileIndicator(
     val baseIndicator: Indicator[Num],

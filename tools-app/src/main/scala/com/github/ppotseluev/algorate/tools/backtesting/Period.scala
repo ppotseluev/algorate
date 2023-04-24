@@ -1,9 +1,10 @@
 package com.github.ppotseluev.algorate.tools.backtesting
 
-import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import cats.implicits._
-
-import java.time.{LocalDate, Month, MonthDay}
+import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
+import java.time.LocalDate
+import java.time.Month
+import java.time.MonthDay
 
 case class Period(year: Int, range: Option[(MonthDay, MonthDay)] = None) {
   private val startMonth = range.fold(MonthDay.of(1, 1))(_._1)

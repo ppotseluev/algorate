@@ -5,19 +5,22 @@ import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution.OneMinute
-import com.github.ppotseluev.algorate.broker.Broker.{CandlesInterval, DaysInterval}
+import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
+import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.tools.backtesting.BarSeriesProvider
-import org.apache.commons.math3.stat.correlation.PearsonsCorrelation
-import org.ta4j.core.indicators.AbstractIndicator
-import org.ta4j.core.num.Num
-import org.ta4j.core.{BarSeries, Indicator}
-
 import java.time.LocalDate
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
+import org.apache.commons.math3.stat.correlation.PearsonsCorrelation
+import org.ta4j.core.BarSeries
+import org.ta4j.core.Indicator
+import org.ta4j.core.indicators.AbstractIndicator
+import org.ta4j.core.num.Num
+import scala.concurrent.Await
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
 
 object CorrelationAnalyzer extends App {

@@ -5,8 +5,8 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import org.ta4j.core.indicators.AbstractIndicator
 import org.ta4j.core.num.Num
-import org.ta4j.core.rules.{AbstractRule, BooleanIndicatorRule}
-
+import org.ta4j.core.rules.AbstractRule
+import org.ta4j.core.rules.BooleanIndicatorRule
 import scala.util.Try
 
 package object indicator {

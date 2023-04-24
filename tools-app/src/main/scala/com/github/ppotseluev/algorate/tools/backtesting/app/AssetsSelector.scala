@@ -1,23 +1,25 @@
 package com.github.ppotseluev.algorate.tools.backtesting.app
 
-import cats.effect.{IO, IOApp, Resource}
+import cats.effect.IO
+import cats.effect.IOApp
+import cats.effect.Resource
+import cats.implicits._
 import cats.kernel.Monoid
-import com.github.ppotseluev.algorate.{TradingAsset, TradingStats}
+import com.github.ppotseluev.algorate.TradingAsset
+import com.github.ppotseluev.algorate.math.PrettyDuration.PrettyPrintableDuration
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.Strategies
-import com.github.ppotseluev.algorate.tools.backtesting.Assets.{Sampler, shares}
-import com.github.ppotseluev.algorate.tools.backtesting.{
-  BarSeriesProvider,
-  Period,
-  SectorsResults,
-  Testkit
-}
-import cats.implicits._
-import com.github.ppotseluev.algorate.math.PrettyDuration.PrettyPrintableDuration
+import com.github.ppotseluev.algorate.tools.backtesting.Assets.Sampler
 import com.github.ppotseluev.algorate.tools.backtesting.Assets._
-
-import java.io.{File, PrintWriter}
-import java.nio.file.{Files, Paths}
+import com.github.ppotseluev.algorate.tools.backtesting.Assets.shares
+import com.github.ppotseluev.algorate.tools.backtesting.BarSeriesProvider
+import com.github.ppotseluev.algorate.tools.backtesting.Period
+import com.github.ppotseluev.algorate.tools.backtesting.SectorsResults
+import com.github.ppotseluev.algorate.tools.backtesting.Testkit
+import java.io.File
+import java.io.PrintWriter
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.time.MonthDay
 import scala.concurrent.duration._
 

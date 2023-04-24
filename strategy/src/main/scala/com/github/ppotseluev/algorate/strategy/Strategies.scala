@@ -8,32 +8,20 @@ import com.github.ppotseluev.algorate.strategy.FullStrategy.Representation.Point
 import com.github.ppotseluev.algorate.strategy.indicator.ChannelIndicator
 import com.github.ppotseluev.algorate.strategy.indicator.ChannelIndicator.Channel
 import com.github.ppotseluev.algorate.strategy.indicator.ChannelUtils
-import com.github.ppotseluev.algorate.strategy.indicator.HasDataIndicator
 import com.github.ppotseluev.algorate.strategy.indicator.IndicatorSyntax
 import com.github.ppotseluev.algorate.strategy.indicator.LocalExtremumIndicator
 import com.github.ppotseluev.algorate.strategy.indicator.LocalExtremumIndicator.Extremum
 import com.github.ppotseluev.algorate.strategy.indicator.VisualChannelIndicator
-import org.ta4j.core.indicators.{
-  AbstractIndicator,
-  EMAIndicator,
-  MACDIndicator,
-  RSIIndicator,
-  SMAIndicator
-}
-import org.ta4j.core.indicators.bollinger.BollingerBandsLowerIndicator
-import org.ta4j.core.indicators.bollinger.BollingerBandsMiddleIndicator
-import org.ta4j.core.indicators.bollinger.BollingerBandsUpperIndicator
-import org.ta4j.core.indicators.statistics.StandardDeviationIndicator
 import com.github.ppotseluev.algorate.strategy.indicator._
-import org.apache.commons.math3.analysis.polynomials.PolynomialFunction
 import org.ta4j.core.BarSeries
 import org.ta4j.core.BaseStrategy
 import org.ta4j.core.Strategy
 import org.ta4j.core.TradingRecord
-import org.ta4j.core.indicators.bollinger.{
-  BollingerBandsLowerIndicator,
-  BollingerBandsMiddleIndicator
-}
+import org.ta4j.core.indicators.AbstractIndicator
+import org.ta4j.core.indicators.EMAIndicator
+import org.ta4j.core.indicators.MACDIndicator
+import org.ta4j.core.indicators.RSIIndicator
+import org.ta4j.core.indicators.SMAIndicator
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator
 import org.ta4j.core.indicators.helpers.DifferenceIndicator
 import org.ta4j.core.indicators.helpers.SumIndicator
@@ -41,7 +29,6 @@ import org.ta4j.core.indicators.helpers.VolumeIndicator
 import org.ta4j.core.num.NaN
 import org.ta4j.core.num.Num
 import org.ta4j.core.rules._
-
 import scala.concurrent.duration._
 
 object Strategies {
@@ -146,7 +133,6 @@ object Strategies {
         channelIsWideEnough.asRule &
         new CrossedDownIndicatorRule(closePrice, upperBoundIndicator) &
         new UnderIndicatorRule(macd, macdEma)
-
 
     //        new LessThanIndicator(closePrice, upperBoundIndicator, bars = 1).asRule &
 //        new GreaterThanIndicator(closePrice, upperBoundIndicator, bars = 1, offset = 1).asRule &
