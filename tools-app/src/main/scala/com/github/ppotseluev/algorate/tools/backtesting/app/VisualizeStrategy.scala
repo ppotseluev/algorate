@@ -20,9 +20,9 @@ object VisualizeStrategy extends IOApp with StrictLogging {
   val visualize = true
   val tester = StrategyTester[IO](
     strategy,
-    maxParallelism = if (visualize) 1 else 8
+    maxParallelism = 1 //if (visualize) 1 else 8
   )
-  val asset: TradingAsset = TradingAsset.crypto("ALGO")
+  val asset: TradingAsset = TradingAsset.share("BBG0081NLHR0")
   //    TradingAsset("BBG000BJF1Z8", "FDX", "usd")
   //    TradingAsset("BBG000BBS2Y0", "AMGN", "usd")
   //  .crypto("HFT") //KLAY KMDX
@@ -30,8 +30,8 @@ object VisualizeStrategy extends IOApp with StrictLogging {
   //    ??? /// Either[Ticker, InstrumentId] = "DOW".asLeft
   val interval = CandlesInterval(
     interval = DaysInterval(
-      LocalDate.of(2022, 12, 1),
-      LocalDate.of(2022, 12, 1)
+      LocalDate.of(2022, 1, 1),
+      LocalDate.of(2022, 6, 30)
     ),
     resolution = OneMinute
   )

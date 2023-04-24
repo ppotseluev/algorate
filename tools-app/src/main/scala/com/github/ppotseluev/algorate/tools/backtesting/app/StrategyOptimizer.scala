@@ -19,16 +19,13 @@ import java.time.LocalDate
 object StrategyOptimizer extends IOApp.Simple {
 
   val assets: List[TradingAsset] = List(
-    "AAVE",
-    "BNT",
-    "DOGE",
-    "ALGO"
+    "STX",
   ).map(TradingAsset.crypto)
 
   val interval = CandlesInterval(
     interval = DaysInterval(
-      LocalDate.of(2022, 1, 1),
-      LocalDate.of(2022, 6, 30)
+      LocalDate.of(2020, 1, 1),
+      LocalDate.of(2020, 12, 31)
     ),
     resolution = OneMinute
   )
@@ -98,13 +95,7 @@ object StrategyOptimizer extends IOApp.Simple {
 
       val indicators = List(
         new VolumeIndicator(series),
-        (new RSIIndicator(new VolumeIndicator(series), 5): AbstractIndicator[Num]).map { x =>
-          if (x.isLessThanOrEqual(num(55)) && x.isGreaterThanOrEqual(num(45))) num(1)
-          else num(0)
-        },
-        new DifferenceIndicator(macd, new EMAIndicator(macd, 5)),
-        stochasticOscillatorK,
-        new StochasticOscillatorDIndicator(stochasticOscillatorK)
+        (new TradeCountIndicator(series): AbstractIndicator[java.lang.Long]).map(num)
       )
 
       val results = Map(

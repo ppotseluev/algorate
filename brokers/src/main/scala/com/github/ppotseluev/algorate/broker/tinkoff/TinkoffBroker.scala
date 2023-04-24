@@ -146,6 +146,7 @@ object TinkoffBroker {
         lowPrice = TinkoffConverters.price(candle.getLow),
         highPrice = TinkoffConverters.price(candle.getHigh),
         volume = candle.getVolume.toDouble,
+        trades = 0,
         endTime = TinkoffConverters.fromProto(candle.getTime, zoneId),
         duration = candleDuration
       )

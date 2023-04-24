@@ -1,21 +1,17 @@
 package com.github.ppotseluev.algorate.tools.backtesting.app
 
-import breeze.linalg.DenseVector
-import cats.implicits._
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
+import cats.implicits._
 import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution.OneMinute
 import com.github.ppotseluev.algorate.broker.Broker.{CandlesInterval, DaysInterval}
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.tools.backtesting.BarSeriesProvider
+import org.apache.commons.math3.stat.correlation.PearsonsCorrelation
 import org.ta4j.core.indicators.AbstractIndicator
-import org.ta4j.core.indicators.helpers.ClosePriceIndicator
-import org.ta4j.core.indicators.statistics.PearsonCorrelationIndicator
 import org.ta4j.core.num.Num
 import org.ta4j.core.{BarSeries, Indicator}
-import breeze.linalg._
-import org.apache.commons.math3.stat.correlation.PearsonsCorrelation
 
 import java.time.LocalDate
 import java.util.concurrent.Executors

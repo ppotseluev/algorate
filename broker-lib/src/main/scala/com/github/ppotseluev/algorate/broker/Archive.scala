@@ -144,7 +144,8 @@ object Archive {
       highPrice = high,
       volume = volume,
       endTime = OffsetDateTime.parse(startTime).plusSeconds(duration.toSeconds),
-      duration = duration
+      duration = duration,
+      trades = 0
     )
   }
 
@@ -168,7 +169,8 @@ object Archive {
       highPrice = high,
       volume = volume,
       endTime = OffsetDateTime.ofInstant(Instant.ofEpochMilli(closeTime), ZoneOffset.UTC),
-      duration = duration
+      duration = duration,
+      trades = numberOfTrades
     )
   }
 }

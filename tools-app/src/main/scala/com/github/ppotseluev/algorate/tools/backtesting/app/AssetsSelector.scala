@@ -22,11 +22,11 @@ import java.time.MonthDay
 import scala.concurrent.duration._
 
 object AssetsSelector extends IOApp.Simple {
-
-  private implicit val sampler: Sampler = Sampler //.All // Sampler.All
-    .SampleSize(10, seed = 124L.some)
+//TODO consider not splitting dataset for more accurate results
+  private implicit val sampler: Sampler = Sampler.All // Sampler.All
+//    .SampleSize(30, seed = 560L.some)
   private val mode: Mode = Mode.Train
-  private val assets = cryptocurrencies.sample
+  private val assets = (cryptocurrencies.sample ++ shares.sample).sample
   private val selectionStrategy: SelectionStrategy = SelectAll
 
   private implicit val strategy = Strategies.default
@@ -38,7 +38,7 @@ object AssetsSelector extends IOApp.Simple {
       (years._1 to years._2).toList.map(Period(_))
     case Mode.Train =>
       List(
-        Period(2020),
+//        Period(2020),
         Period(2021)
       )
     case Mode.Validate =>
@@ -107,7 +107,7 @@ object AssetsSelector extends IOApp.Simple {
       IO.blocking {
         printer.println(results.show)
         val outliers = results.flatten.collect {
-          case (asset, stats) if stats.profitRatio.values.sum > 10 && stats.totalPositions > 50 =>
+          case (asset, stats) if stats.profitRatio.values.sum > 10 && stats.totalPositions > 10 =>
             asset
         }.toSet
         def printStats(results: SectorsResults) = {
