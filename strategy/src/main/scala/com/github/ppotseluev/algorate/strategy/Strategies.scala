@@ -68,7 +68,7 @@ object Strategies {
     val volumeIndicator: AbstractIndicator[Num] = new VolumeIndicator(series)
     val relativeVolumeIndicator =
       new RelativeVolumeIndicator(series, lookbackPeriod = 7.days.toMinutes.toInt)
-    val extremumWindowSize = 10
+    val extremumWindowSize = 15
     val extremum: AbstractIndicator[Option[Extremum]] =
       LocalExtremumIndicator(closePrice, extremumWindowSize)
     val channel: AbstractIndicator[Option[Channel]] = ChannelIndicator(
@@ -85,13 +85,13 @@ object Strategies {
       new UnderIndicatorRule(volumeRsi, 60) &
         new OverIndicatorRule(volumeRsi, 40)
 
-    val minPotentialChange = num(0.003)
+    val minPotentialChange = num(0.004)
     val maxK = Int.MaxValue
 
     val sma = new SMAIndicator(closePrice, 40)
 
     // Define MACD parameters
-    val shortPeriod = extremumWindowSize
+    val shortPeriod = extremumWindowSize - 3
     val longPeriod = 2 * shortPeriod
     val signalPeriod = longPeriod / 3
     // Calculate the MACD line

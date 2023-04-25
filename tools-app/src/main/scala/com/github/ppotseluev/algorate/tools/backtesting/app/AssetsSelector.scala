@@ -25,10 +25,10 @@ import scala.concurrent.duration._
 
 object AssetsSelector extends IOApp.Simple {
 //TODO consider not splitting dataset for more accurate results
-  private implicit val sampler: Sampler = Sampler.All // Sampler.All
-//    .SampleSize(30, seed = 560L.some)
-  private val mode: Mode = Mode.Train
-  private val assets = (cryptocurrencies.sample ++ shares.sample).sample
+  private implicit val sampler: Sampler = Sampler//.All // Sampler.All
+    .SampleSize(10, seed = 560134L.some)
+  private val mode: Mode = Mode.Validate
+  private val assets = cryptocurrencies.sample
   private val selectionStrategy: SelectionStrategy = SelectAll
 
   private implicit val strategy = Strategies.default
@@ -49,7 +49,7 @@ object AssetsSelector extends IOApp.Simple {
       )
     case Mode.Test =>
       List(
-        Period(2022, (MonthDay.of(7, 1) -> MonthDay.of(12, 31)).some)
+        Period(2023, (MonthDay.of(1, 1) -> MonthDay.of(4, 24)).some)
       )
   }
 
