@@ -25,10 +25,10 @@ import scala.concurrent.duration._
 
 object AssetsSelector extends IOApp.Simple {
 //TODO consider not splitting dataset for more accurate results
-  private implicit val sampler: Sampler = Sampler//.All // Sampler.All
-    .SampleSize(10, seed = 560134L.some)
+  private implicit val sampler: Sampler = Sampler.All
+//    .SampleSize(10)
   private val mode: Mode = Mode.Validate
-  private val assets = cryptocurrencies.sample
+  private val assets = (cryptocurrencies.sample) // ++ cryptocurrencies.sample).sample
   private val selectionStrategy: SelectionStrategy = SelectAll
 
   private implicit val strategy = Strategies.default
@@ -49,7 +49,11 @@ object AssetsSelector extends IOApp.Simple {
       )
     case Mode.Test =>
       List(
-        Period(2023, (MonthDay.of(1, 1) -> MonthDay.of(4, 24)).some)
+        Period(2022, (MonthDay.of(7, 1) -> MonthDay.of(12, 31)).some)
+      )
+    case Mode.Test2 =>
+      List(
+        Period(2023, (MonthDay.of(1, 1) -> MonthDay.of(4, 25)).some)
       )
   }
 
@@ -92,7 +96,7 @@ object AssetsSelector extends IOApp.Simple {
         }
       case ByProfitRatio(threshold) =>
         results.flatten.toList.filter { case (_, stats) =>
-          stats.profitRatio.values.sum >= threshold //FIXME
+          stats.profitRatio(fee = false).values.sum >= threshold //FIXME
         }
       case SelectAll =>
         results.flatten.toList
@@ -109,7 +113,8 @@ object AssetsSelector extends IOApp.Simple {
       IO.blocking {
         printer.println(results.show)
         val outliers = results.flatten.collect {
-          case (asset, stats) if stats.profitRatio.values.sum > 10 && stats.totalPositions > 10 =>
+          case (asset, stats)
+              if stats.profitRatio(false).values.sum > 10 && stats.totalPositions > 10 =>
             asset
         }.toSet
         def printStats(results: SectorsResults) = {
@@ -117,8 +122,11 @@ object AssetsSelector extends IOApp.Simple {
           val assetsCount = results.flatten.size
           printer.println(s"total ($assetsCount assets): ${results.aggregatedStats.show}")
           //todo print profitable/non-prfitable assets ratio
-          val profitableCount = results.flatten.count(_._2.profitRatio.values.sum > 1)
-          printer.println(s"profitable: ${profitableCount * 100 / assetsCount}%")
+          val profitableCount = results.flatten.count(_._2.profitRatio(false).values.sum > 1)
+          val hasTradesCount = Option(
+            results.flatten.count(_._2.totalPositions > 0)
+          ).filter(_ > 0).getOrElse(1)
+          printer.println(s"profitable: ${profitableCount * 100 / hasTradesCount}%")
         }
         printStats(results)
         if (outliers.nonEmpty) {
@@ -223,6 +231,8 @@ object AssetsSelector extends IOApp.Simple {
     case object Validate extends Mode
 
     case object Test extends Mode
+
+    case object Test2 extends Mode
 
     case class YearsRange(years: (Int, Int)) extends Mode
   }

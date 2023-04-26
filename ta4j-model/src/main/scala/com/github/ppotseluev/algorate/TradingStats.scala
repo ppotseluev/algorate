@@ -14,7 +14,10 @@ case class TradingStats(
 ) {
   lazy val noFeeProfit = profit(fee = false, profitable = true.some)
   lazy val noFeeLoss = profit(fee = false, profitable = false.some)
-  lazy val profitRatio = noFeeProfit.alignMergeWith(noFeeLoss)((x, y) => scala.math.abs(x / y))
+  def profitRatio(fee: Boolean) =
+    profit(fee, profitable = true.some).alignMergeWith(
+      profit(fee, profitable = false.some)
+    )((x, y) => scala.math.abs(x / y))
 
   def merged: Stats = long |+| short
 
@@ -96,7 +99,9 @@ object TradingStats {
        |SHORT (${short.totalClosedPositions}, no_fee ${short.winRatio(false)}, real ${short
       .winRatio(true)}),
        |SUM ($totalPositions, no_fee $totalNoFee, real $totalReal),
-       |NET_PROFIT: ${profit(fee = false)}, PROFIT_RATIO: $profitRatio
+       |NET_PROFIT: ${profit(fee = false)} / ${profit(fee = true)}, PROFIT_RATIO: ${profitRatio(
+      false
+    )} / ${profitRatio(true)}
        |ONLY_PROFITABLE: $noFeeProfit, ONLY_LOSS: $noFeeLoss
        |AVG_PROFIT: $avgProfit, AVG_LOSS: $avgLoss
        |AVG_DURATION: $avgDuration m, MAX_DURATION: $maxDuration, P_80: $p80

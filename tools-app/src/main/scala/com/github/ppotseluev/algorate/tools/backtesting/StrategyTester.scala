@@ -18,6 +18,7 @@ import com.typesafe.scalalogging.LazyLogging
 import org.ta4j.core.BarSeries
 import org.ta4j.core.BarSeriesManager
 import org.ta4j.core.Trade.TradeType
+import org.ta4j.core.cost.{CostModel, LinearTransactionCostModel, ZeroCostModel}
 
 private[backtesting] case class StrategyTester[F[_]: Parallel: Concurrent](
     impl: StrategyTester.Impl[F],
@@ -62,16 +63,22 @@ private[backtesting] object StrategyTester {
       strategyBuilder: BarSeries => FullStrategy,
       tradingPolicy: Policy = fixedTradeCostPolicy(allowFractionalLots = true),
       maxParallelism: Int = 8,
-      minBatchSize: Int = 50_000
+      minBatchSize: Int = 50_000,
+      transactionCostModel: CostModel = new LinearTransactionCostModel(0.0005),
+      holdingCostModel: CostModel = new ZeroCostModel
   ): StrategyTester[F] =
     new StrategyTester(
-      new Impl(strategyBuilder, tradingPolicy),
+      new Impl(strategyBuilder, tradingPolicy, transactionCostModel, holdingCostModel),
       maxParallelism = maxParallelism,
       minBatchSize = minBatchSize
     )
 
-  class Impl[F[_]: Sync](strategyBuilder: BarSeries => FullStrategy, tradingPolicy: Policy)
-      extends LazyLogging {
+  class Impl[F[_]: Sync](
+      strategyBuilder: BarSeries => FullStrategy,
+      tradingPolicy: Policy,
+      transactionCostModel: CostModel,
+      holdingCostModel: CostModel
+  ) extends LazyLogging {
     def apply(series: BarSeries, asset: TradingAsset): F[TradingStats] = Sync[F].defer {
       val strategy = strategyBuilder(series)
       val avgPrice =
@@ -82,7 +89,7 @@ private[backtesting] object StrategyTester {
         tradingPolicy.apply(TradeRequest(avgPrice.doubleValue, asset.currency)).lots
       }
       if (lots.isPositive) {
-        val seriesManager = new BarSeriesManager(series)
+        val seriesManager = new BarSeriesManager(series, transactionCostModel, holdingCostModel)
         for {
           longRecord <- Sync[F].blocking(
             seriesManager.run(strategy.longStrategy, TradeType.BUY, lots)

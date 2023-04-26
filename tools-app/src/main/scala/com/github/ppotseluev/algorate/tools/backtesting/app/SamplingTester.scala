@@ -39,7 +39,7 @@ object SamplingTester extends IOApp.Simple {
     testkit
       .test(periods.map(_.toInterval), sample)
       .map(
-        _.aggregatedStats.profitRatio.values.sum
+        _.aggregatedStats.profitRatio(false).values.sum
       ) //FIXME: it can cause sum of different currencies
 
   override def run: IO[Unit] = (1 to depth).toList
