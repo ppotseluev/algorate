@@ -9,6 +9,7 @@ import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.math.PrettyDuration.PrettyPrintableDuration
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.Strategies
+import com.github.ppotseluev.algorate.strategy.Strategies.Params
 import com.github.ppotseluev.algorate.tools.backtesting.Assets.Sampler
 import com.github.ppotseluev.algorate.tools.backtesting.Assets._
 import com.github.ppotseluev.algorate.tools.backtesting.Assets.shares
@@ -16,6 +17,7 @@ import com.github.ppotseluev.algorate.tools.backtesting.BarSeriesProvider
 import com.github.ppotseluev.algorate.tools.backtesting.Period
 import com.github.ppotseluev.algorate.tools.backtesting.SectorsResults
 import com.github.ppotseluev.algorate.tools.backtesting.Testkit
+
 import java.io.File
 import java.io.PrintWriter
 import java.nio.file.Files
@@ -26,12 +28,19 @@ import scala.concurrent.duration._
 object AssetsSelector extends IOApp.Simple {
 //TODO consider not splitting dataset for more accurate results
   private implicit val sampler: Sampler = Sampler.All
-//    .SampleSize(10)
-  private val mode: Mode = Mode.Validate
-  private val assets = (cryptocurrencies.sample) // ++ cryptocurrencies.sample).sample
+//    .SampleSize(500)//, seed = 11L.some)
+  private val mode: Mode = Mode.Test
+  private val assets = shares.sample // ++ cryptocurrencies.sample).sample
   private val selectionStrategy: SelectionStrategy = SelectAll
 
-  private implicit val strategy = Strategies.default
+  private implicit val strategy = Strategies.createDefault(
+    Params(50, 0.0008, 0.3, 0.01, 10)
+//    Params(50, 8.0E-4, 0.6, 0.005, 50)
+//    Params(30, 0.002, 0.6, 0.009000000000000001, 30)
+//      Params(30,0.002,0.6,0.011000000000000001,30)
+//    Params(10, 0.0028000000000000004, 0.6, 0.005, 10)
+//    Params(30,0.002,0.6,0.005,30)
+  )
 
   private val testingToolkit = new Testkit[IO](skipNotFound = true)
 
@@ -169,8 +178,6 @@ object AssetsSelector extends IOApp.Simple {
       periods: List[Period],
       assets: List[TradingAsset],
       accResult: SectorsResults
-  )(implicit
-      barSeriesProvider: BarSeriesProvider[IO]
   ): IO[SectorsResults] = periods match {
     case period :: restPeriods =>
       for {
@@ -188,22 +195,19 @@ object AssetsSelector extends IOApp.Simple {
     case Nil => accResult.pure[IO]
   }
 
-  override def run: IO[Unit] = Factory.io.tinkoffBroker
-    .use { broker =>
-      implicit val barSeriesProvider: BarSeriesProvider[IO] = new BarSeriesProvider(broker)
-      val start = System.currentTimeMillis()
-      loopSelect(periods, assets, Monoid[SectorsResults].empty).map { res =>
-        val end = System.currentTimeMillis()
-        res -> (end - start).millis
-      }
+  override def run: IO[Unit] = {
+    val start = System.currentTimeMillis()
+    loopSelect(periods, assets, Monoid[SectorsResults].empty).map { res =>
+      val end = System.currentTimeMillis()
+      res -> (end - start).millis
     }
-    .flatMap { case (accResult, duration) =>
-      write(
-        results = accResult,
-        path = s"$baseDir/acc_results.txt",
-        testDuration = duration
-      )
-    }
+  }.flatMap { case (accResult, duration) =>
+    write(
+      results = accResult,
+      path = s"$baseDir/acc_results.txt",
+      testDuration = duration
+    )
+  }
 
   private case class Results(
       original: SectorsResults,
