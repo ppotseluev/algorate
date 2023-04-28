@@ -6,11 +6,13 @@ import cats.implicits._
 import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.strategy.FullStrategy
 import com.github.ppotseluev.algorate.strategy.Strategies
+import com.github.ppotseluev.algorate.strategy.Strategies.Params
 import com.github.ppotseluev.algorate.tools.backtesting.Assets
 import com.github.ppotseluev.algorate.tools.backtesting.Assets.Sampler.SampleSize
 import com.github.ppotseluev.algorate.tools.backtesting.Assets._
 import com.github.ppotseluev.algorate.tools.backtesting.Period
 import com.github.ppotseluev.algorate.tools.backtesting.Testkit
+
 import java.util.concurrent.atomic.AtomicInteger
 import org.ta4j.core.BarSeries
 
@@ -23,7 +25,7 @@ object SamplingTester extends IOApp.Simple {
   val periodsSampleSize = 5
 
   private val strategies: Map[String, BarSeries => FullStrategy] = Map(
-    "current" -> Strategies.default,
+    "current" -> Strategies.createDefault(Params(50, 0.0008, 0.3, 0.01, 10)),
     "intraChannel" -> Strategies.intraChannel,
     "channelBreakdown" -> Strategies.channelBreakdown,
     "random" -> Strategies.random()

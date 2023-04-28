@@ -64,9 +64,7 @@ object Stats {
 
     override def combine(x: Stats, y: Stats): Stats =
       Stats(
-        (x.enrichedPositions ++ y.enrichedPositions)
-          .distinctBy(_.entryTime)
-          .sortBy(_.position.getEntry.getIndex)
+        (x.enrichedPositions ++ y.enrichedPositions).sortBy(_.position.getEntry.getIndex)
       )
   }
 

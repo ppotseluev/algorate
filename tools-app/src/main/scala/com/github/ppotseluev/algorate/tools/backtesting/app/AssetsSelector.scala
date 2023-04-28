@@ -69,7 +69,7 @@ object AssetsSelector extends IOApp.Simple {
   private val baseDir = {
     val saveTo = "tools-app/data/results"
     val startTime = System.currentTimeMillis().millis.toSeconds
-    val id = s"${startTime}_$mode"
+    val id = s"${startTime}_${mode}_$sampler"
     s"$saveTo/$id"
   }
   Files.createDirectory(new File(baseDir).toPath)

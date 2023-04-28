@@ -80,6 +80,8 @@ object TradingManager extends LazyLogging {
         useTrader(instrumentId)(_ ! Trader.Event.StateSnapshotRequested)
         Behaviors.same
       case Event.TraderSnapshotEvent(snapshot) =>
+        //TODO it's incorrect cuz both can contain the same trades.
+        //TODO there was a hack with distinctBy(tradeTime) in Stats.monoid but it was too dirty hack
         tradingStats = tradingStats |+| snapshot.tradingStats
         val event = com.github.ppotseluev.algorate.trader.akkabot.Event.TradingSnapshot(
           snapshot,

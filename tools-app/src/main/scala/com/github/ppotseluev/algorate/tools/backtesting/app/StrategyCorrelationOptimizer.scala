@@ -19,7 +19,7 @@ import org.ta4j.core.indicators._
 import org.ta4j.core.indicators.helpers._
 import org.ta4j.core.num._
 
-object StrategyOptimizer extends IOApp.Simple {
+object StrategyCorrelationOptimizer extends IOApp.Simple {
 
   val assets: List[TradingAsset] = List(
     "STX"

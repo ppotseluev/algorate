@@ -19,8 +19,6 @@ case class TradingStats(
       profit(fee, profitable = false.some)
     )((x, y) => scala.math.abs(x / y))
 
-  def merged: Stats = long |+| short
-
   def totalPositions: Int = long.totalClosedPositions + short.totalClosedPositions
 
   def totalWinningPositions(fee: Boolean = false): Int =

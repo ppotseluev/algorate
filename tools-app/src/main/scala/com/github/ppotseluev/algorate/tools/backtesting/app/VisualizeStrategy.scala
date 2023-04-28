@@ -12,20 +12,25 @@ import com.github.ppotseluev.algorate.charts.TradingCharts
 import com.github.ppotseluev.algorate.math.PrettyDuration.PrettyPrintableDuration
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.Strategies
+import com.github.ppotseluev.algorate.strategy.Strategies.Params
 import com.github.ppotseluev.algorate.tools.backtesting.BarSeriesProvider
 import com.github.ppotseluev.algorate.tools.backtesting.StrategyTester
 import com.typesafe.scalalogging.StrictLogging
+
 import java.time.LocalDate
 import scala.concurrent.duration._
 
 object VisualizeStrategy extends IOApp with StrictLogging {
-  val strategy = Strategies.default
-  val visualize = true
+  val params =
+//    Params(60, 0.0028000000000000004, 0.6, 0.007, 60)
+    Params(50, 0.0008, 0.3, 0.01, 10)
+  val strategy = Strategies.createDefault(params)
+  val visualize = false
   val tester = StrategyTester[IO](
     strategy,
     maxParallelism = 1 //if (visualize) 1 else 8
   )
-  val asset: TradingAsset = TradingAsset.crypto("DREP")
+  val asset: TradingAsset = TradingAsset.crypto("DOGE")
   //    TradingAsset("BBG000BJF1Z8", "FDX", "usd")
   //    TradingAsset("BBG000BBS2Y0", "AMGN", "usd")
   //  .crypto("HFT") //KLAY KMDX
@@ -33,8 +38,8 @@ object VisualizeStrategy extends IOApp with StrictLogging {
   //    ??? /// Either[Ticker, InstrumentId] = "DOW".asLeft
   val interval = CandlesInterval(
     interval = DaysInterval(
-      LocalDate.of(2021, 1, 1),
-      LocalDate.of(2021, 12, 31)
+      LocalDate.of(2020, 1, 1),
+      LocalDate.of(2023, 12, 31)
     ),
     resolution = OneMinute
   )
