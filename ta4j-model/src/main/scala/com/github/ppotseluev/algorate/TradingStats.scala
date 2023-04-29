@@ -102,7 +102,7 @@ object TradingStats {
     )} / ${profitRatio(true)}
        |ONLY_PROFITABLE: $noFeeProfit, ONLY_LOSS: $noFeeLoss
        |AVG_PROFIT: $avgProfit, AVG_LOSS: $avgLoss
-       |AVG_DURATION: $avgDuration m, MAX_DURATION: $maxDuration, P_80: $p80
+       |AVG_DURATION: $avgDuration [candles], MAX_DURATION: $maxDuration, P_80: $p80
        |DIFF: $diff%
        |""".stripMargin //.replaceAll("\n", "")
   }

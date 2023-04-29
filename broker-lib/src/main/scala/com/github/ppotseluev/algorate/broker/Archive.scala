@@ -60,10 +60,10 @@ class Archive[F[_]: Sync](
       logger.debug(s"Getting data for $instrumentId")
       val paths = candlesInterval.interval.years
         .traverse { year =>
-          val dataId = s"${instrumentId}_$year"
-          val baseDir = archiveDir.resolve(dataId).toFile
+          val dataPath = s"${candlesInterval.resolution}/${instrumentId}_$year"
+          val baseDir = archiveDir.resolve(dataPath).toFile
           val done = if (downloadIfNotExist && !baseDir.exists()) {
-            download(asset, year)
+            download(asset, year, candlesInterval.resolution)
           } else {
             ().pure[F]
           }
@@ -87,10 +87,7 @@ class Archive[F[_]: Sync](
           }
         }
         .map(_.flatten.toList)
-      val candlesResolution = candlesInterval.resolution match {
-        case CandleResolution.OneMinute => CandleResolution.OneMinute.duration
-      } //matching to safely check that resolution is supported by the archive impl
-      paths.flatMap(readAllCsv(candlesResolution))
+      paths.flatMap(readAllCsv(candlesInterval.resolution.duration))
     }
     .map { bars =>
       bars
@@ -102,7 +99,11 @@ class Archive[F[_]: Sync](
         }
     }
 
-  private def download(asset: TradingAsset, year: Int): F[Unit] = Sync[F].blocking {
+  private def download(
+      asset: TradingAsset,
+      year: Int,
+      resolution: CandleResolution
+  ): F[Unit] = Sync[F].blocking {
     val instrumentId = asset.instrumentId
     val (provider, envVars) = asset.`type` match {
       case Type.Crypto => "binance" -> Nil
@@ -111,7 +112,7 @@ class Archive[F[_]: Sync](
     val dataId = s"${instrumentId}_$year"
     logger.info(s"Downloading $dataId")
     val scriptPath = Paths.get(s"tools-app/data/$provider/download.sh").toAbsolutePath.toString
-    val command = Seq(scriptPath, year.toString, instrumentId)
+    val command = Seq(scriptPath, year.toString, instrumentId, resolution.toString)
 
     // Get the script's parent directory as the working directory
     val workingDir = Paths.get(scriptPath).getParent.getParent.toFile

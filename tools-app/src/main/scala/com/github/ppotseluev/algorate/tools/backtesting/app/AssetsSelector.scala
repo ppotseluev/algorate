@@ -6,6 +6,7 @@ import cats.effect.Resource
 import cats.implicits._
 import cats.kernel.Monoid
 import com.github.ppotseluev.algorate.TradingAsset
+import com.github.ppotseluev.algorate.broker.Broker.{CandleResolution, CandlesInterval}
 import com.github.ppotseluev.algorate.math.PrettyDuration.PrettyPrintableDuration
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.Strategies
@@ -32,6 +33,7 @@ object AssetsSelector extends IOApp.Simple {
   private val mode: Mode = Mode.Validate
   private val assets = shares.sample // ++ cryptocurrencies.sample).sample
   private val selectionStrategy: SelectionStrategy = SelectAll
+  private val candlesResolution = CandleResolution.OneMinute
 
   private implicit val strategy = Strategies.createDefault(
     Params(50, 0.0008, 0.3, 0.01, 10)
@@ -197,7 +199,8 @@ object AssetsSelector extends IOApp.Simple {
         _ <- IO {
           println(s"Start testing for $year year")
         }
-        currentBatchResults <- testingToolkit.test(period.toInterval, assets)
+        candlesInterval = CandlesInterval(period.toInterval, candlesResolution)
+        currentBatchResults <- testingToolkit.test(candlesInterval, assets)
         end <- IO(System.currentTimeMillis)
         results = select(currentBatchResults)
         _ <- save(results, year, (end - start).millis)

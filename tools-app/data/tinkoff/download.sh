@@ -2,7 +2,7 @@ figi_list=figi.txt
 token=${TINKOFF_TOKEN}
 url=https://invest-public-api.tinkoff.ru/history-data
 function download {
-  cd archive || exit 1
+  cd "archive/1m" || exit 1
   local figi=$1
   local year=$2
   local file_name=${figi}_${year}.zip

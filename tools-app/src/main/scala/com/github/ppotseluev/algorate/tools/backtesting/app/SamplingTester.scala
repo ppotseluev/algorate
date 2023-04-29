@@ -4,6 +4,7 @@ import cats.effect.IO
 import cats.effect.IOApp
 import cats.implicits._
 import com.github.ppotseluev.algorate.TradingAsset
+import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.strategy.FullStrategy
 import com.github.ppotseluev.algorate.strategy.Strategies
 import com.github.ppotseluev.algorate.strategy.Strategies.Params
@@ -17,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import org.ta4j.core.BarSeries
 
 object SamplingTester extends IOApp.Simple {
+  val candlesResolution: CandleResolution = CandleResolution.OneMinute
   val periods: List[Period] = (2020 to 2020).toList.map(Period(_)).flatMap(_.splitMonthly)
   val assets: List[TradingAsset] = Assets.shares
   val depth: Int = 10
@@ -39,7 +41,7 @@ object SamplingTester extends IOApp.Simple {
       sample: List[TradingAsset]
   )(implicit strategy: BarSeries => FullStrategy): IO[Double] =
     testkit
-      .test(periods.map(_.toInterval), sample)
+      .test(periods.map(_.toCandlesInterval(candlesResolution)), sample)
       .map(
         _.aggregatedStats.profitRatio(false).values.sum
       ) //FIXME: it can cause sum of different currencies

@@ -25,10 +25,10 @@ class Testkit[F[_]: Async: Parallel](
   private implicit val barSeriesProvider: BarSeriesProvider[F] =
     new BarSeriesProvider(factory.archive)
 
-  def test(periods: List[DaysInterval], assets: List[TradingAsset])(implicit
+  def test(intervals: List[CandlesInterval], assets: List[TradingAsset])(implicit
       strategy: BarSeries => FullStrategy
   ): F[SectorsResults] =
-    periods
+    intervals
       .traverse(test(_, assets))
       .map(_.combineAll)
 
@@ -53,13 +53,9 @@ class Testkit[F[_]: Async: Parallel](
       }
       .map(_.toMap)
 
-  def test(period: DaysInterval, assets: List[TradingAsset])(implicit
+  def test(interval: CandlesInterval, assets: List[TradingAsset])(implicit
       strategy: BarSeries => FullStrategy
   ): F[SectorsResults] = {
-    val interval = CandlesInterval(
-      interval = period,
-      resolution = CandleResolution.OneMinute
-    )
     val counter = new AtomicInteger
     barSeriesProvider
       .streamBarSeries(assets, interval, maxConcurrentAssets, skipNotFound)

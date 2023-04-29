@@ -1,7 +1,12 @@
 package com.github.ppotseluev.algorate.tools.backtesting
 
 import cats.implicits._
-import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
+import com.github.ppotseluev.algorate.broker.Broker.{
+  CandleResolution,
+  CandlesInterval,
+  DaysInterval
+}
+
 import java.time.LocalDate
 import java.time.Month
 import java.time.MonthDay
@@ -13,6 +18,8 @@ case class Period(year: Int, range: Option[(MonthDay, MonthDay)] = None) {
   def start: LocalDate = startMonth.atYear(year)
   def end: LocalDate = endMonth.atYear(year)
   def toInterval: DaysInterval = DaysInterval(start, end)
+  def toCandlesInterval(resolution: CandleResolution): CandlesInterval =
+    CandlesInterval(toInterval, resolution)
 
   def splitMonthly: List[Period] =
     (startMonth.getMonthValue to endMonth.getMonthValue).map { m =>
