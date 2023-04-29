@@ -12,23 +12,14 @@ import com.github.ppotseluev.algorate.tools.backtesting.optimizer.OptimizationTo
 object StrategyParametersFitter extends IOApp.Simple {
 
   val period: Period = Period(2021)
-  implicit val sampler: Sampler = Sampler.SampleSize(100, seed = 100030L.some)
-  val assets: List[TradingAsset] = shares.sample
-//    List(
-//    TradingAsset.crypto("ALGO"),
-//    TradingAsset.crypto("BTC")
-//  )
+  implicit val sampler: Sampler = Sampler.SampleSize(100, seed = 0L.some)
+  val assets: List[TradingAsset] = //shares.sample
+    List(
+      TradingAsset.crypto("ALGO"),
+      TradingAsset.crypto("BTC")
+    )
 
   val testkit = new Testkit[IO](maxConcurrentAssets = 8)
-
-//  def test(
-//      paramsList: List[Params]
-//  ): IO[Map[Params, PerformanceMetrics]] =
-//    paramsList
-//      .parTraverse { params =>
-//        test(params).map(params -> _)
-//      }
-//      .map(_.toMap)
 
   override def run: IO[Unit] = {
     val paramsVariety = List(
@@ -37,27 +28,29 @@ object StrategyParametersFitter extends IOApp.Simple {
 //        paramRange = 0.0008 -> 0.003,
 //        paramStep = 0.0004
 //      ),
-//      ParamVariety(
-//        set = (params, windowSize) =>
-//          params.copy(
-//            extremumWindowSize = windowSize.toInt,
-//            shortMacdPeriod = windowSize.toInt
-//          ),
-//        paramRange = 10d -> 60d,
-//        paramStep = 10
-//      ),
-//      ParamVariety(
-//        set = (params, x) => params.copy(minPotentialChange = x),
-//        paramRange = 0.005 -> 0.012,
-//        paramStep = 0.002
-//      )
       ParamVariety(
-        set = (params, x) => params.copy(shortMacdPeriod = x.toInt),
-        paramRange = 40d -> 60d,
-        paramStep = 2
+        set = (params, windowSize) =>
+          params.copy(
+            extremumWindowSize = windowSize.toInt,
+            shortMacdPeriod = windowSize.toInt
+          ),
+        paramRange = 20d -> 60d,
+        paramStep = 10
+      ),
+      ParamVariety(
+        set = (params, x) => params.copy(minPotentialChange = x),
+        paramRange = 0.005 -> 0.011,
+        paramStep = 0.002
       )
+//      ParamVariety(
+//        set = (params, x) => params.copy(shortMacdPeriod = x.toInt),
+//        paramRange = 40d -> 60d,
+//        paramStep = 2
+//      )
     )
-    val initialParams = Params(50, 0.0008, 0.6, 0.01, 10)
+    val initialParams =
+      Params(30, 0.0015, 0.45, 0.008, 30)
+    //      Params(50, 0.0008, 0.6, 0.01, 10)
     val paramList = listParams(initialParams, paramsVariety)
     println(s"all tests: ${paramList.length}")
     val strategies = paramList.map(Strategies.createDefault)
