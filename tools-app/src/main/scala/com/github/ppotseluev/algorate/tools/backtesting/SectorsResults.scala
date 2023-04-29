@@ -41,7 +41,7 @@ object SectorsResults {
       .sortBy(_._2.values.toList.map(_.totalPositions).max)
       .map { case (sector, value) =>
         val sorted: Map[TradingAsset, TradingStats] =
-          ListMap.from(value.toList.sortBy(_._1.instrumentId))
+          ListMap.from(value.toList.sortBy(_._2.profit(fee = true).values.sum))
         s"""
            |Sector: $sector
            |${sorted.show}

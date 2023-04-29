@@ -9,6 +9,7 @@ import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.broker.Broker.{CandleResolution, CandlesInterval}
 import com.github.ppotseluev.algorate.math.PrettyDuration.PrettyPrintableDuration
 import com.github.ppotseluev.algorate.server.Factory
+import scala.collection.mutable
 import com.github.ppotseluev.algorate.strategy.Strategies
 import com.github.ppotseluev.algorate.strategy.Strategies.Params
 import com.github.ppotseluev.algorate.tools.backtesting.Assets.Sampler
@@ -134,14 +135,18 @@ object AssetsSelector extends IOApp.Simple {
           val assetsCount = results.flatten.size
           printer.println("Monthly stats:")
           printer.println()
+          val monthlyStats = new mutable.TreeMap[String, Int]()
           stats.monthly.foreach { case (month, stats) =>
             val monthProfit = stats.profit(fee = true).values.sum
             val p =
               if (monthProfit > 0) "+"
               else if (monthProfit == 0) "0"
               else "-"
+            monthlyStats.updateWith(p)(x => (x.getOrElse(0) + 1).some)
             printer.println(s"($p) $month ${stats.show}")
           }
+          printer.println()
+          printer.println(s"Monthly stats: $monthlyStats")
           printer.println(s"total ($assetsCount assets): ${stats.show}")
           //todo print profitable/non-prfitable assets ratio
           val profitableCount = results.flatten.count(_._2.profitRatio(false).values.sum > 1)
