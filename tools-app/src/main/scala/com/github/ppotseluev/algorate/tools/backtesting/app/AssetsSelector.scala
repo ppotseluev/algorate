@@ -27,9 +27,9 @@ import scala.concurrent.duration._
 
 object AssetsSelector extends IOApp.Simple {
 //TODO consider not splitting dataset for more accurate results
-  private implicit val sampler: Sampler = Sampler.All
-//    .SampleSize(500)//, seed = 11L.some)
-  private val mode: Mode = Mode.Test
+  private implicit val sampler: Sampler = Sampler //.All
+    .SampleSize(100, seed = 11L.some)
+  private val mode: Mode = Mode.Validate
   private val assets = shares.sample // ++ cryptocurrencies.sample).sample
   private val selectionStrategy: SelectionStrategy = SelectAll
 
@@ -128,8 +128,19 @@ object AssetsSelector extends IOApp.Simple {
         }.toSet
         def printStats(results: SectorsResults) = {
           printer.println()
+          val stats = results.aggregatedStats
           val assetsCount = results.flatten.size
-          printer.println(s"total ($assetsCount assets): ${results.aggregatedStats.show}")
+          printer.println("Monthly stats:")
+          printer.println()
+          stats.monthly.foreach { case (month, stats) =>
+            val monthProfit = stats.profit(fee = true).values.sum
+            val p =
+              if (monthProfit > 0) "+"
+              else if (monthProfit == 0) "0"
+              else "-"
+            printer.println(s"($p) $month ${stats.show}")
+          }
+          printer.println(s"total ($assetsCount assets): ${stats.show}")
           //todo print profitable/non-prfitable assets ratio
           val profitableCount = results.flatten.count(_._2.profitRatio(false).values.sum > 1)
           val hasTradesCount = Option(
