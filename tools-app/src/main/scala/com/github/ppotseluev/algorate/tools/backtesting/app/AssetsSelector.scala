@@ -37,7 +37,9 @@ object AssetsSelector extends IOApp.Simple {
   private val candlesResolution = CandleResolution.OneMinute
 
   private implicit val strategy = Strategies.createDefault(
-    Params(50, 0.0008, 0.3, 0.01, 10)
+//    Params(50, 0.0008, 0.3, 0.01, 10)
+    Params(50, 0.0006, 0.3, 0.01, 10)
+
 //    Params(50, 8.0E-4, 0.6, 0.005, 50)
 //    Params(30, 0.002, 0.6, 0.009000000000000001, 30)
 //      Params(30,0.002,0.6,0.011000000000000001,30)
@@ -216,7 +218,7 @@ object AssetsSelector extends IOApp.Simple {
 
   override def run: IO[Unit] = {
     val start = System.currentTimeMillis()
-    loopSelect(periods, assets, Monoid[SectorsResults].empty).map { res =>
+    loopSelect(periods, assets.sample, Monoid[SectorsResults].empty).map { res =>
       val end = System.currentTimeMillis()
       res -> (end - start).millis
     }
