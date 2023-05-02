@@ -31,3 +31,11 @@ case class Period(year: Int, range: Option[(MonthDay, MonthDay)] = None) {
     }.toList
 
 }
+
+object Period {
+  def firstHalf(year: Int): Period =
+    Period(year, (MonthDay.of(1, 1) -> MonthDay.of(6, 30)).some)
+
+  def secondHalf(year: Int): Period =
+    Period(year, (MonthDay.of(7, 1) -> MonthDay.of(12, 31)).some)
+}

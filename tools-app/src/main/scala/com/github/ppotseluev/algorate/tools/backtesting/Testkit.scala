@@ -17,7 +17,7 @@ import org.ta4j.core.BarSeries
 import scala.concurrent.duration._
 
 class Testkit[F[_]: Async: Parallel](
-    maxConcurrentAssets: Int = 8,
+    maxConcurrentAssets: Int = 1,
     logProgress: Boolean = true,
     skipNotFound: Boolean = false
 )(implicit factory: Factory[F]) {
@@ -35,14 +35,16 @@ class Testkit[F[_]: Async: Parallel](
   private def testOne(done: AtomicInteger, total: Int)(implicit
       strategy: BarSeries => FullStrategy
   ) =
-    (asset: TradingAsset, series: BarSeries) =>
+    (asset: TradingAsset, series: BarSeries) => {
+      println(s"Going to test ${series.getName}")
       StrategyTester[F](strategy).test(series, asset).map { stats =>
         val results = SectorsResults(asset, stats)
         if (logProgress) {
-          println(s"done: ${(done.incrementAndGet().toDouble * 100 / total).toInt}%")
+          println(s"done: ${(done.incrementAndGet().toDouble * 100 / total).toInt}% (${series.getName})")
         }
         results
       }
+    }
 
   private def testStrategies(done: AtomicInteger, total: Int)(
       strategies: Map[Int, BarSeries => FullStrategy]

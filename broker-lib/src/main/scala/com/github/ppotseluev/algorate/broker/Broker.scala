@@ -80,5 +80,10 @@ object Broker {
       override def duration: FiniteDuration = 1.minute
       override def toString: String = "1m"
     }
+
+    case object FiveMinute extends CandleResolution {
+      override def duration: FiniteDuration = 5.minute
+      override def toString: String = "5m"
+    }
   }
 }

@@ -29,16 +29,16 @@ import scala.concurrent.duration._
 
 object AssetsSelector extends IOApp.Simple {
 //TODO consider not splitting dataset for more accurate results
-  private implicit val sampler: Sampler = Sampler //.All
-    .SampleSize(100, seed = 11L.some)
-  private val mode: Mode = Mode.Validate
-  private val assets = shares.sample // ++ cryptocurrencies.sample).sample
+  private implicit val sampler: Sampler = Sampler.All
+//    .SampleSize(15)
+  private val mode: Mode = Mode.Train
+  private val assets = cryptocurrencies.sample
   private val selectionStrategy: SelectionStrategy = SelectAll
-  private val candlesResolution = CandleResolution.OneMinute
+  private val candlesResolution = CandleResolution.FiveMinute
 
-  private implicit val strategy = Strategies.createDefault(
+  implicit val strategy = Strategies.createDefault(
 //    Params(50, 0.0008, 0.3, 0.01, 10)
-    Params(50, 0.0006, 0.3, 0.01, 10)
+    Params(100, 0.005, 0.3, 0.015, 40)
 
 //    Params(50, 8.0E-4, 0.6, 0.005, 50)
 //    Params(30, 0.002, 0.6, 0.009000000000000001, 30)
@@ -54,20 +54,19 @@ object AssetsSelector extends IOApp.Simple {
       (years._1 to years._2).toList.map(Period(_))
     case Mode.Train =>
       List(
-//        Period(2020),
         Period(2021)
       )
     case Mode.Validate =>
       List(
-        Period(2022, (MonthDay.of(1, 1) -> MonthDay.of(6, 30)).some)
+        Period.firstHalf(2022)
       )
     case Mode.Test =>
       List(
-        Period(2022, (MonthDay.of(7, 1) -> MonthDay.of(12, 31)).some)
+        Period.secondHalf(2022)
       )
     case Mode.Test2 =>
       List(
-        Period(2023, (MonthDay.of(1, 1) -> MonthDay.of(4, 25)).some)
+        Period.firstHalf(2023)
       )
   }
 
