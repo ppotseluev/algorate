@@ -31,14 +31,16 @@ object VisualizeStrategy extends IOApp with StrictLogging {
     ),
     resolution = CandleResolution.FiveMinute
   )
-  val strategy = CurrentStrategy()
+  val strategy = Strategies.createDefault(
+    CurrentStrategy.params.copy(maxError = 0.007)
+  )
 //    Strategies.createDefault(Params(50, 0.01, 0.6, 0.02, 10))
   val visualize = true
   val tester = StrategyTester[IO](
     strategy,
     maxParallelism = if (visualize) 1 else 8
   )
-  val asset: TradingAsset = TradingAsset.crypto("ARDR")
+  val asset: TradingAsset = TradingAsset.crypto("ONG")
 
   override def run(args: List[String]): IO[ExitCode] = {
     Factory.io.tinkoffBroker

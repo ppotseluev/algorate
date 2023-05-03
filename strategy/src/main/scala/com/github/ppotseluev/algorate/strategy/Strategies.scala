@@ -105,7 +105,8 @@ object Strategies {
       lower <- tradesLower
     } yield {
       tradesCount.isGreaterThanOrEqual(lower) &&
-      tradesCount.isLessThanOrEqual(upper)
+      tradesCount.isLessThanOrEqual(upper) &&
+      tradesCount.isGreaterThanOrEqual(num(50))
     }
 
     // Define MACD parameters
@@ -225,8 +226,9 @@ object Strategies {
       shortStrategy = sellingStrategy,
       getPriceIndicators = visualPriceIndicators,
       oscillators = Map(
-        "macd" -> IndicatorInfo(macd),
-        "macdEma" -> IndicatorInfo(macdEma)
+//        "macd" -> IndicatorInfo(macd),
+//        "macdEma" -> IndicatorInfo(macdEma),
+        "trades" -> IndicatorInfo(tradesCountIndicator)
       )
     )
   }

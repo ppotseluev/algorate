@@ -28,18 +28,17 @@ import java.time.MonthDay
 import scala.concurrent.duration._
 
 object CurrentStrategy {
-  val params = Params(100, 0.005, 0.3, 0.015, 40)
+  val params = Params(100, 0.01, 0.6, 0.02, 20)
   def apply() = Strategies.createDefault(params)
 }
 
 object AssetsSelector extends IOApp.Simple {
-//TODO consider not splitting dataset for more accurate results
-  private implicit val sampler: Sampler = Sampler.KFold(
-    k = 6,
-    select = 4.some
-  )
-//    .All
-//    .SampleSize(100, seed = 555L.some)
+  //TODO consider not splitting dataset for more accurate results
+  private implicit val sampler: Sampler = Sampler.All
+//    .KFold(
+//      k = 6,
+//      select = 5.some
+//    )
   private val mode: Mode = Mode.Train
   private val assets = allCryptocurrencies.sample
   private val selectionStrategy: SelectionStrategy = SelectAll
