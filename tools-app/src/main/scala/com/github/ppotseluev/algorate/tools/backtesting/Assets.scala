@@ -11,6 +11,8 @@ object Assets {
         seed: Option[Long] = None
     ) extends Sampler
     case object All extends Sampler
+    case class KFold(k: Int, select: Option[Int] = None, seed: Option[Long] = Some(0L))
+        extends Sampler
   }
 
   implicit class SampleSyntax[T](val assets: List[T]) extends AnyVal {
@@ -19,6 +21,13 @@ object Assets {
         seed.foreach(Random.setSeed)
         Random.shuffle(assets).take(size)
       case Sampler.All => assets
+      case Sampler.KFold(k, select, seed) =>
+        seed.foreach(Random.setSeed)
+        val shuffled = Random.shuffle(assets)
+        val sampleSize = shuffled.size / k
+        val samples = shuffled.grouped(sampleSize).toVector
+        val sampleIndex = select.getOrElse(Random.nextInt(samples.size))
+        samples(sampleIndex)
     }
   }
 

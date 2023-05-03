@@ -27,25 +27,25 @@ import java.nio.file.Paths
 import java.time.MonthDay
 import scala.concurrent.duration._
 
+object CurrentStrategy {
+  val params = Params(100, 0.005, 0.3, 0.015, 40)
+  def apply() = Strategies.createDefault(params)
+}
+
 object AssetsSelector extends IOApp.Simple {
 //TODO consider not splitting dataset for more accurate results
-  private implicit val sampler: Sampler = Sampler.All
-//    .SampleSize(15)
+  private implicit val sampler: Sampler = Sampler.KFold(
+    k = 6,
+    select = 4.some
+  )
+//    .All
+//    .SampleSize(100, seed = 555L.some)
   private val mode: Mode = Mode.Train
-  private val assets = cryptocurrencies.sample
+  private val assets = allCryptocurrencies.sample
   private val selectionStrategy: SelectionStrategy = SelectAll
   private val candlesResolution = CandleResolution.FiveMinute
 
-  implicit val strategy = Strategies.createDefault(
-//    Params(50, 0.0008, 0.3, 0.01, 10)
-    Params(100, 0.005, 0.3, 0.015, 40)
-
-//    Params(50, 8.0E-4, 0.6, 0.005, 50)
-//    Params(30, 0.002, 0.6, 0.009000000000000001, 30)
-//      Params(30,0.002,0.6,0.011000000000000001,30)
-//    Params(10, 0.0028000000000000004, 0.6, 0.005, 10)
-//    Params(30,0.002,0.6,0.005,30)
-  )
+  private implicit val strategy = CurrentStrategy()
 
   private val testingToolkit = new Testkit[IO](skipNotFound = true)
 
@@ -217,7 +217,7 @@ object AssetsSelector extends IOApp.Simple {
 
   override def run: IO[Unit] = {
     val start = System.currentTimeMillis()
-    loopSelect(periods, assets.sample, Monoid[SectorsResults].empty).map { res =>
+    loopSelect(periods, assets, Monoid[SectorsResults].empty).map { res =>
       val end = System.currentTimeMillis()
       res -> (end - start).millis
     }

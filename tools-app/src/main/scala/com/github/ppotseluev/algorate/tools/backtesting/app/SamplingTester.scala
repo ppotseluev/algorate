@@ -18,16 +18,16 @@ import java.util.concurrent.atomic.AtomicInteger
 import org.ta4j.core.BarSeries
 
 object SamplingTester extends IOApp.Simple {
-  val candlesResolution: CandleResolution = CandleResolution.OneMinute
-  val periods: List[Period] = (2020 to 2020).toList.map(Period(_)).flatMap(_.splitMonthly)
-  val assets: List[TradingAsset] = Assets.shares
+  val candlesResolution: CandleResolution = CandleResolution.FiveMinute
+  val periods: List[Period] = (2021 to 2021).toList.map(Period(_)).flatMap(_.splitMonthly)
+  val assets: List[TradingAsset] = Assets.cryptocurrencies
   val depth: Int = 10
   val threshold = 1.05
   val assetsSampleSize = 5
   val periodsSampleSize = 5
 
   private val strategies: Map[String, BarSeries => FullStrategy] = Map(
-    "current" -> Strategies.createDefault(Params(50, 0.0008, 0.3, 0.01, 10)),
+    "current" -> CurrentStrategy(),
     "intraChannel" -> Strategies.intraChannel,
     "channelBreakdown" -> Strategies.channelBreakdown,
     "random" -> Strategies.random()

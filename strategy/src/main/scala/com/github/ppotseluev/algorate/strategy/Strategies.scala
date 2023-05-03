@@ -22,13 +22,17 @@ import org.ta4j.core.indicators.EMAIndicator
 import org.ta4j.core.indicators.MACDIndicator
 import org.ta4j.core.indicators.RSIIndicator
 import org.ta4j.core.indicators.SMAIndicator
-import org.ta4j.core.indicators.helpers.ClosePriceIndicator
-import org.ta4j.core.indicators.helpers.DifferenceIndicator
-import org.ta4j.core.indicators.helpers.SumIndicator
-import org.ta4j.core.indicators.helpers.VolumeIndicator
+import org.ta4j.core.indicators.helpers.{
+  ClosePriceIndicator,
+  DifferenceIndicator,
+  SumIndicator,
+  TradeCountIndicator,
+  VolumeIndicator
+}
 import org.ta4j.core.num.NaN
 import org.ta4j.core.num.Num
 import org.ta4j.core.rules._
+
 import scala.concurrent.duration._
 
 object Strategies {
@@ -87,6 +91,23 @@ object Strategies {
       maxError = maxError
     ).filter(ChannelUtils.isParallel(maxParallelDelta)) //todo?
 
+    val tradesCountIndicator =
+      (new TradeCountIndicator(series): AbstractIndicator[java.lang.Long]).map(num)
+    val tradesFastSma: AbstractIndicator[Num] = // tradesCountIndicator
+      new SMAIndicator(tradesCountIndicator, 4)
+    val tradesSlowSma: AbstractIndicator[Num] = new SMAIndicator(tradesCountIndicator, 3000)
+    val tradesUpper = tradesSlowSma.map(_.multipliedBy(num(1.5)))
+    val tradesLower = tradesSlowSma.map(_.multipliedBy(num(0.5)))
+
+    val normalTrades = for {
+      tradesCount <- tradesFastSma
+      upper <- tradesUpper
+      lower <- tradesLower
+    } yield {
+      tradesCount.isGreaterThanOrEqual(lower) &&
+      tradesCount.isLessThanOrEqual(upper)
+    }
+
     // Define MACD parameters
     val shortPeriod = shortMacdPeriod
     val longPeriod = 2 * shortPeriod
@@ -116,13 +137,17 @@ object Strategies {
       channel.map(_.isDefined).asRule &
         channelIsWideEnough.asRule &
         new CrossedDownIndicatorRule(closePrice, upperBoundIndicator) &
-        new UnderIndicatorRule(macd, macdEma)
+        new UnderIndicatorRule(macd, macdEma) &
+        normalTrades.asRule //&
+//        channel.exists[Channel](c => c.k.upper > 0).asRule
 
     val entryShortRule =
       channel.map(_.isDefined).asRule &
         channelIsWideEnough.asRule &
         new CrossedUpIndicatorRule(closePrice, lowerBoundIndicator) &
-        new OverIndicatorRule(macd, macdEma)
+        new OverIndicatorRule(macd, macdEma) &
+        normalTrades.asRule //&
+//        channel.exists[Channel](c => c.k.lower < 0).asRule
 
     val exitRule = new AbstractRule {
       override def isSatisfied(index: Int, tradingRecord: TradingRecord): Boolean =

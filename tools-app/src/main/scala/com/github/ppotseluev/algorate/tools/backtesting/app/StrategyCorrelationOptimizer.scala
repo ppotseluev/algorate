@@ -5,14 +5,14 @@ import cats.effect.IOApp
 import cats.implicits._
 import com.github.ppotseluev.algorate.Stats
 import com.github.ppotseluev.algorate.TradingAsset
-import com.github.ppotseluev.algorate.broker.Broker.CandleResolution.OneMinute
+import com.github.ppotseluev.algorate.broker.Broker.CandleResolution.{FiveMinute, OneMinute}
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.Strategies
 import com.github.ppotseluev.algorate.strategy.indicator._
-import com.github.ppotseluev.algorate.tools.backtesting.BarSeriesProvider
-import com.github.ppotseluev.algorate.tools.backtesting.StrategyTester
+import com.github.ppotseluev.algorate.tools.backtesting.{Assets, BarSeriesProvider, StrategyTester}
+
 import java.time.LocalDate
 import org.ta4j.core._
 import org.ta4j.core.indicators._
@@ -21,19 +21,20 @@ import org.ta4j.core.num._
 
 object StrategyCorrelationOptimizer extends IOApp.Simple {
 
-  val assets: List[TradingAsset] = List(
-    "STX"
-  ).map(TradingAsset.crypto)
+  val assets: List[TradingAsset] = Assets.cryptocurrencies
+//    List(
+//    "STX"
+//  ).map(TradingAsset.crypto)
 
   val interval = CandlesInterval(
     interval = DaysInterval(
-      LocalDate.of(2020, 1, 1),
-      LocalDate.of(2020, 12, 31)
+      LocalDate.of(2021, 1, 1),
+      LocalDate.of(2021, 12, 31)
     ),
-    resolution = OneMinute
+    resolution = FiveMinute
   )
 
-  val strategy = Strategies.default
+  val strategy = CurrentStrategy()
 
   def calculateIndicatorCorrelations(
       series: BarSeries,
@@ -78,7 +79,7 @@ object StrategyCorrelationOptimizer extends IOApp.Simple {
   }
 
   override def run: IO[Unit] =
-    assets.parTraverse(test).void
+    assets.traverse(test).void
 
   private def test(asset: TradingAsset): IO[Unit] =
     for {

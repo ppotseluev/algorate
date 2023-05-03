@@ -30,7 +30,7 @@ import scala.sys.process._
 class Archive[F[_]: Sync](
     token: String,
     archiveDir: Path,
-    downloadIfNotExist: Boolean = true
+    downloadIfNotExist: Boolean = false //TODO
 ) extends BarDataProvider[F]
     with LazyLogging {
 
