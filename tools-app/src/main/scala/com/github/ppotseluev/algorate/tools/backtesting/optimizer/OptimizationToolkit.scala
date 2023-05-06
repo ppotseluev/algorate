@@ -27,15 +27,30 @@ object OptimizationToolkit {
 
   case class PerformanceMetrics(
       realProfitRatio: Double,
-      realProfit: Double
+      realProfit: Double,
+      numberOfTrades: Int,
+      realWinRatio: Double,
+      profitableMonthFactor: Double,
+      profitableAssetsFactor: Double
   )
 
   object PerformanceMetrics {
     implicit val ord: Ordering[PerformanceMetrics] = Ordering.by(_.realProfit)
 
-    def fromResults(sectorsResults: SectorsResults): PerformanceMetrics = PerformanceMetrics(
-      realProfit = sectorsResults.aggregatedStats.profit(fee = true).values.sum,
-      realProfitRatio = sectorsResults.aggregatedStats.profitRatio(fee = true).values.sum
-    )
+    def fromResults(sectorsResults: SectorsResults): PerformanceMetrics = {
+      val stats = sectorsResults.aggregatedStats
+      val monthlyStats = stats.monthly.values
+      val profitableMonthCount = monthlyStats.count(_.profit(fee = true).values.sum > 0)
+      val assetsStats = sectorsResults.flatten.values
+      val profitableAssetsCount = assetsStats.count(_.profit(fee = true).values.sum > 0)
+      PerformanceMetrics(
+        realProfit = stats.profit(fee = true).values.sum,
+        realProfitRatio = stats.profitRatio(fee = true).values.sum,
+        numberOfTrades = stats.totalPositions,
+        realWinRatio = stats.totalWinRatio(fee = true),
+        profitableMonthFactor = profitableMonthCount.toDouble / monthlyStats.size,
+        profitableAssetsFactor = profitableAssetsCount.toDouble / assetsStats.size
+      )
+    }
   }
 }

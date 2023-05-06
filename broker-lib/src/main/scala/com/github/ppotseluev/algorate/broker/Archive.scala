@@ -60,7 +60,11 @@ class Archive[F[_]: Sync](
       logger.debug(s"Getting data for $instrumentId")
       val paths = candlesInterval.interval.years
         .traverse { year =>
-          val dataPath = s"${candlesInterval.resolution}/${instrumentId}_$year"
+          val resolution = asset.`type` match {
+            case Type.Crypto => candlesInterval.resolution
+            case Type.Share  => CandleResolution.OneMinute
+          }
+          val dataPath = s"$resolution/${instrumentId}_$year"
           val baseDir = archiveDir.resolve(dataPath).toFile
           val done = if (downloadIfNotExist && !baseDir.exists()) {
             download(asset, year, candlesInterval.resolution)
@@ -98,6 +102,12 @@ class Archive[F[_]: Sync](
           candlesInterval.interval.contains(bar.endTime)
         }
     }
+    .map { bars =>
+      (asset.`type`, candlesInterval.resolution) match {
+        case (TradingAsset.Type.Share, CandleResolution.FiveMinute) => Archive.downsample(bars, 5)
+        case _                                                      => bars
+      }
+    }
 
   private def download(
       asset: TradingAsset,
@@ -127,6 +137,24 @@ class Archive[F[_]: Sync](
 }
 
 object Archive {
+  private def downsample(barSeries: List[Bar], factor: Int): List[Bar] = {
+    barSeries
+      .grouped(factor)
+      .map { bars =>
+        Bar(
+          openPrice = bars.head.openPrice,
+          closePrice = bars.last.closePrice,
+          lowPrice = bars.map(_.lowPrice).min,
+          highPrice = bars.map(_.highPrice).max,
+          volume = bars.foldMap(_.volume),
+          trades = bars.foldMap(_.trades),
+          endTime = bars.last.endTime,
+          duration = bars.foldMap(_.duration)
+        )
+      }
+      .toList
+  }
+
   case class ArchiveNotFound(instrumentId: InstrumentId, year: Int)
       extends RuntimeException(s"Archive ${instrumentId}_$year not found")
 

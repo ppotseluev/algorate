@@ -17,7 +17,8 @@ import org.ta4j.core.BarSeries
 import scala.concurrent.duration._
 
 class Testkit[F[_]: Async: Parallel](
-    maxConcurrentAssets: Int = 1,
+    maxConcurrentAssets: Int = 8,
+    assetParallelism: Int = 1,
     logProgress: Boolean = true,
     skipNotFound: Boolean = false
 )(implicit factory: Factory[F]) {
@@ -37,12 +38,15 @@ class Testkit[F[_]: Async: Parallel](
   ) =
     (asset: TradingAsset, series: BarSeries) => {
       println(s"Going to test ${series.getName}")
-      StrategyTester[F](strategy).test(series, asset).map { stats =>
-        val results = SectorsResults(asset, stats)
-        if (logProgress) {
-          println(s"done: ${(done.incrementAndGet().toDouble * 100 / total).toInt}% (${series.getName})")
-        }
-        results
+      StrategyTester[F](strategy, maxParallelism = assetParallelism).test(series, asset).map {
+        stats =>
+          val results = SectorsResults(asset, stats)
+          if (logProgress) {
+            println(
+              s"done: ${(done.incrementAndGet().toDouble * 100 / total).toInt}% (${series.getName})"
+            )
+          }
+          results
       }
     }
 
@@ -67,15 +71,11 @@ class Testkit[F[_]: Async: Parallel](
       .map(_.combineAll)
   }
 
-  def batchTest(period: DaysInterval, assets: List[TradingAsset])(
+  def batchTest(interval: CandlesInterval, assets: List[TradingAsset])(
       strategies: List[BarSeries => FullStrategy]
   ): F[List[SectorsResults]] = {
     val strategiesMap = strategies.zipWithIndex.swapF.toMap
     val start = System.currentTimeMillis()
-    val interval = CandlesInterval(
-      interval = period,
-      resolution = CandleResolution.OneMinute
-    )
     val counter = new AtomicInteger
     val total = assets.size * strategies.size
     barSeriesProvider

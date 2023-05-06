@@ -65,11 +65,13 @@ object Strategies {
   }
 
   case class Params(
-      extremumWindowSize: Int = 15,
-      maxError: Double = 0.002,
-      maxParallelDelta: Double = 0.6,
-      minPotentialChange: Double = 0.004,
-      shortMacdPeriod: Int = 12
+      extremumWindowSize: Int = 80,
+      maxError: Double = 0.0075,
+      maxParallelDelta: Double = 0.7,
+      minPotentialChange: Double = 0.02,
+      shortMacdPeriod: Int = 10,
+      longMacdPeriod: Int = 18,
+      macdSignalPeriod: Int = 8
   )
 
   val default = createDefault(Params())
@@ -91,13 +93,21 @@ object Strategies {
       maxError = maxError
     ).filter(ChannelUtils.isParallel(maxParallelDelta)) //todo?
 
+    val hasData: AbstractIndicator[Boolean] = new HasDataIndicator(extremumWindowSize, series)
+//    val hasFutureData =
+//      hasData.shifted( //uses future data, won't be available in real life but it's solvable
+//        extremumWindowSize,
+//        defaultValue = false
+//      )
+
     val tradesCountIndicator =
       (new TradeCountIndicator(series): AbstractIndicator[java.lang.Long]).map(num)
-    val tradesFastSma: AbstractIndicator[Num] = // tradesCountIndicator
-      new SMAIndicator(tradesCountIndicator, 4)
-    val tradesSlowSma: AbstractIndicator[Num] = new SMAIndicator(tradesCountIndicator, 3000)
-    val tradesUpper = tradesSlowSma.map(_.multipliedBy(num(1.5)))
-    val tradesLower = tradesSlowSma.map(_.multipliedBy(num(0.5)))
+//      new VolumeIndicator(series)
+    val tradesFastSma: AbstractIndicator[Num] = //tradesCountIndicator
+      new SMAIndicator(tradesCountIndicator, 2)
+    val tradesSlowSma: AbstractIndicator[Num] = new SMAIndicator(tradesCountIndicator, 200)
+    val tradesUpper = tradesSlowSma.map(_.multipliedBy(num(1.25)))
+    val tradesLower = tradesSlowSma.map(_.multipliedBy(num(0.75)))
 
     val normalTrades = for {
       tradesCount <- tradesFastSma
@@ -106,13 +116,13 @@ object Strategies {
     } yield {
       tradesCount.isGreaterThanOrEqual(lower) &&
       tradesCount.isLessThanOrEqual(upper) &&
-      tradesCount.isGreaterThanOrEqual(num(50))
+      tradesCount.isGreaterThanOrEqual(num(50)) //TODO
     }
 
     // Define MACD parameters
     val shortPeriod = shortMacdPeriod
-    val longPeriod = 2 * shortPeriod
-    val signalPeriod = longPeriod / 3
+    val longPeriod = longMacdPeriod //2 * shortPeriod
+    val signalPeriod = macdSignalPeriod //longPeriod / 3
     // Calculate the MACD line
     val macd = new MACDIndicator(closePrice, shortPeriod, longPeriod)
 
@@ -139,6 +149,8 @@ object Strategies {
         channelIsWideEnough.asRule &
         new CrossedDownIndicatorRule(closePrice, upperBoundIndicator) &
         new UnderIndicatorRule(macd, macdEma) &
+//        hasData.asRule &
+//        hasFutureData.asRule
         normalTrades.asRule //&
 //        channel.exists[Channel](c => c.k.upper > 0).asRule
 
@@ -147,6 +159,8 @@ object Strategies {
         channelIsWideEnough.asRule &
         new CrossedUpIndicatorRule(closePrice, lowerBoundIndicator) &
         new OverIndicatorRule(macd, macdEma) &
+//        hasData.asRule &
+//        hasFutureData.asRule
         normalTrades.asRule //&
 //        channel.exists[Channel](c => c.k.lower < 0).asRule
 

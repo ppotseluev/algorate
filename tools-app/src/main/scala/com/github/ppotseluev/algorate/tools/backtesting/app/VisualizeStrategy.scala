@@ -32,7 +32,7 @@ object VisualizeStrategy extends IOApp with StrictLogging {
     resolution = CandleResolution.FiveMinute
   )
   val strategy = Strategies.createDefault(
-    CurrentStrategy.params.copy(maxError = 0.007)
+    CurrentStrategy.params//.copy(maxError = 0.007)
   )
 //    Strategies.createDefault(Params(50, 0.01, 0.6, 0.02, 10))
   val visualize = true
@@ -40,7 +40,7 @@ object VisualizeStrategy extends IOApp with StrictLogging {
     strategy,
     maxParallelism = if (visualize) 1 else 8
   )
-  val asset: TradingAsset = TradingAsset.crypto("ONG")
+  val asset: TradingAsset = TradingAsset.crypto("DREP")
 
   override def run(args: List[String]): IO[ExitCode] = {
     Factory.io.tinkoffBroker
