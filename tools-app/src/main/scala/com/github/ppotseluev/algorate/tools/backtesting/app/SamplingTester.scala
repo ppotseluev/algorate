@@ -5,8 +5,7 @@ import cats.effect.IOApp
 import cats.implicits._
 import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
-import com.github.ppotseluev.algorate.strategy.FullStrategy
-import com.github.ppotseluev.algorate.strategy.Strategies
+import com.github.ppotseluev.algorate.strategy.{FullStrategy, Strategies, StrategyBuilder}
 import com.github.ppotseluev.algorate.strategy.Strategies.Params
 import com.github.ppotseluev.algorate.tools.backtesting.Assets
 import com.github.ppotseluev.algorate.tools.backtesting.Assets.Sampler.SampleSize
@@ -26,7 +25,7 @@ object SamplingTester extends IOApp.Simple {
   val assetsSampleSize = 5
   val periodsSampleSize = 5
 
-  private val strategies: Map[String, BarSeries => FullStrategy] = Map(
+  private val strategies: Map[String, StrategyBuilder] = Map(
     "current" -> CurrentStrategy(),
     "intraChannel" -> Strategies.intraChannel,
     "channelBreakdown" -> Strategies.channelBreakdown,
@@ -39,7 +38,7 @@ object SamplingTester extends IOApp.Simple {
   def profitRatio(
       periods: List[Period],
       sample: List[TradingAsset]
-  )(implicit strategy: BarSeries => FullStrategy): IO[Double] =
+  )(implicit strategy: StrategyBuilder): IO[Double] =
     testkit
       .test(periods.map(_.toCandlesInterval(candlesResolution)), sample)
       .map(

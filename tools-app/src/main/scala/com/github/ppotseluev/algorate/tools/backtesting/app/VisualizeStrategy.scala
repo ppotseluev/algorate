@@ -4,13 +4,9 @@ import cats.effect.ExitCode
 import cats.effect.IO
 import cats.effect.IOApp
 import cats.implicits._
-import com.github.ppotseluev.algorate.TradingAsset
+import com.github.ppotseluev.algorate.{AssetData, TradingAsset}
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution.OneMinute
-import com.github.ppotseluev.algorate.broker.Broker.{
-  CandleResolution,
-  CandlesInterval,
-  DaysInterval
-}
+import com.github.ppotseluev.algorate.broker.Broker.{CandleResolution, CandlesInterval, DaysInterval}
 import com.github.ppotseluev.algorate.charts.TradingCharts
 import com.github.ppotseluev.algorate.math.PrettyDuration.PrettyPrintableDuration
 import com.github.ppotseluev.algorate.server.Factory
@@ -40,19 +36,20 @@ object VisualizeStrategy extends IOApp with StrictLogging {
     strategy,
     maxParallelism = if (visualize) 1 else 8
   )
-  val asset: TradingAsset = TradingAsset.crypto("DREP")
+  val asset: TradingAsset = TradingAsset.crypto("DOGE")
 
   override def run(args: List[String]): IO[ExitCode] = {
     Factory.io.tinkoffBroker
       .use { broker =>
         val seriesProvider = new BarSeriesProvider[IO](broker)
         for {
-          series <- seriesProvider.getBarSeries(asset, interval)
+          assetData <- seriesProvider.getBarSeries(asset, interval)
+          series = assetData.barSeries
           _ <- IO {
             logger.info(s"Data has been collected (${series.getBarCount} bars), start testing...")
           }
           start = System.currentTimeMillis()
-          result <- tester.test(series, asset)
+          result <- tester.test(assetData)
           end = System.currentTimeMillis()
           _ <- IO {
             println("per month statistics")
@@ -68,7 +65,7 @@ object VisualizeStrategy extends IOApp with StrictLogging {
             if (visualize) {
               TradingCharts.display(
                 strategyBuilder = strategy,
-                series = series,
+                assetData = assetData,
                 tradingStats = Some(result),
                 title = s"${asset.ticker}",
                 profitableTradesFilter = none

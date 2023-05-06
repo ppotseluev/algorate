@@ -10,12 +10,13 @@ import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.TradingStats
 import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.broker.MoneyTracker
-import com.github.ppotseluev.algorate.strategy.FullStrategy
+import com.github.ppotseluev.algorate.strategy.{FullStrategy, StrategyBuilder}
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.CandleData
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.TraderSnapshotRequested
 import com.github.ppotseluev.algorate.trader.policy.Policy
 import com.typesafe.scalalogging.LazyLogging
 import org.ta4j.core.BarSeries
+
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration._
@@ -32,7 +33,7 @@ object TradingManager extends LazyLogging {
   def apply[F[_]](
       assets: Map[InstrumentId, TradingAsset],
       broker: Broker[Future],
-      strategy: BarSeries => FullStrategy,
+      strategy: StrategyBuilder,
       moneyTracker: MoneyTracker[F],
       policy: Policy,
       keepLastBars: Int,

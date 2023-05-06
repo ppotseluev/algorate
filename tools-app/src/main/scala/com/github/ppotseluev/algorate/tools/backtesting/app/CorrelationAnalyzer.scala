@@ -229,7 +229,7 @@ object CorrelationAnalyzer extends App {
         resolution = OneMinute
       )
     )
-    intervals.traverse(dataProvider.getBarSeries(asset, _))
+    intervals.traverse(dataProvider.getBarSeries(asset, _).map(_.barSeries))
   }
 
   val filteredCoins = removeDuplicateCoins(coinNames, correlationThreshold)

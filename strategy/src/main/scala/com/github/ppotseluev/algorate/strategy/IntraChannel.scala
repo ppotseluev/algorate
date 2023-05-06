@@ -27,7 +27,8 @@ import org.ta4j.core.num.Num
 import org.ta4j.core.rules._
 
 private[strategy] object IntraChannel {
-  def apply(): BarSeries => FullStrategy = implicit series => {
+  def apply(): StrategyBuilder = assetData => {
+    val series = assetData.barSeries
     //    def hasAlternatingExtremums(channel: Channel): Boolean = {
     //      val mins = channel.allExtremums.lower
     //      val maxs = channel.allExtremums.upper

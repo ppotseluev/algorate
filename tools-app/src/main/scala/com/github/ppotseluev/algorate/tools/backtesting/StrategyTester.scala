@@ -6,11 +6,8 @@ import cats.effect.Concurrent
 import cats.effect.kernel.Sync
 import cats.effect.std.Semaphore
 import cats.implicits._
-import com.github.ppotseluev.algorate.Money
-import com.github.ppotseluev.algorate.Stats
-import com.github.ppotseluev.algorate.TradingAsset
-import com.github.ppotseluev.algorate.TradingStats
-import com.github.ppotseluev.algorate.strategy.FullStrategy
+import com.github.ppotseluev.algorate.{AssetData, Money, Stats, TradingAsset, TradingStats}
+import com.github.ppotseluev.algorate.strategy.{FullStrategy, StrategyBuilder}
 import com.github.ppotseluev.algorate.trader.policy.MoneyManagementPolicy
 import com.github.ppotseluev.algorate.trader.policy.Policy
 import com.github.ppotseluev.algorate.trader.policy.Policy.TradeRequest
@@ -25,7 +22,9 @@ private[backtesting] case class StrategyTester[F[_]: Parallel: Concurrent](
     maxParallelism: Int,
     minBatchSize: Int
 ) {
-  def test(series: BarSeries, asset: TradingAsset): F[TradingStats] = {
+  def test(assetData: AssetData): F[TradingStats] = {
+    val series = assetData.barSeries
+    val asset = assetData.asset
     val batchSize = math.max(minBatchSize, series.getBarCount / maxParallelism)
     val batches = Iterator
       .from(0, step = batchSize)
@@ -36,7 +35,9 @@ private[backtesting] case class StrategyTester[F[_]: Parallel: Concurrent](
       .toList
     for {
       semaphore <- Semaphore[F](maxParallelism)
-      results <- batches.parTraverse(batch => semaphore.permit.use(_ => impl(batch, asset)))
+      results <- batches
+        .map(AssetData(asset, _))
+        .parTraverse(batch => semaphore.permit.use(_ => impl(batch, asset)))
     } yield results.combineAll
   }
 }
@@ -60,7 +61,7 @@ private[backtesting] object StrategyTester {
   }
 
   def apply[F[_]: Parallel: Concurrent: Sync](
-      strategyBuilder: BarSeries => FullStrategy,
+      strategyBuilder: StrategyBuilder,
       tradingPolicy: Policy = fixedTradeCostPolicy(allowFractionalLots = true),
       maxParallelism: Int = 8,
       minBatchSize: Int = 50_000,
@@ -74,13 +75,14 @@ private[backtesting] object StrategyTester {
     )
 
   class Impl[F[_]: Sync](
-      strategyBuilder: BarSeries => FullStrategy,
+      strategyBuilder: StrategyBuilder,
       tradingPolicy: Policy,
       transactionCostModel: CostModel,
       holdingCostModel: CostModel
   ) extends LazyLogging {
-    def apply(series: BarSeries, asset: TradingAsset): F[TradingStats] = Sync[F].defer {
-      val strategy = strategyBuilder(series)
+    def apply(assetData: AssetData, asset: TradingAsset): F[TradingStats] = Sync[F].defer {
+      val series = assetData.barSeries
+      val strategy = strategyBuilder(assetData)
       val avgPrice =
         series.getFirstBar.getClosePrice
           .plus(series.getLastBar.getClosePrice)

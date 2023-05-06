@@ -3,8 +3,7 @@ package com.github.ppotseluev.algorate.tools.backtesting
 import cats.Parallel
 import cats.effect.Async
 import cats.implicits._
-import com.github.ppotseluev.algorate.BarsConverter
-import com.github.ppotseluev.algorate.TradingAsset
+import com.github.ppotseluev.algorate.{AssetData, BarsConverter, TradingAsset}
 import com.github.ppotseluev.algorate.broker.Archive.ArchiveNotFound
 import com.github.ppotseluev.algorate.broker.BarDataProvider
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
@@ -18,25 +17,25 @@ private[backtesting] class BarSeriesProvider[F[_]: Async: Parallel](
   def getBarSeries(
       asset: TradingAsset,
       interval: CandlesInterval
-  ): F[BarSeries] =
+  ): F[AssetData] =
     for {
       bars <- barDataProvider.getData(asset, interval)
-    } yield BarsConverter.buildBarSeries(asset.ticker, bars)
+    } yield AssetData(
+      asset = asset,
+      barSeries = BarsConverter.buildBarSeries(asset.ticker, bars)
+    )
 
   def streamBarSeries(
       shares: List[TradingAsset],
       interval: CandlesInterval,
       maxConcurrent: Int,
       skipNotFound: Boolean
-  ): Stream[F, (TradingAsset, BarSeries)] =
+  ): Stream[F, AssetData] =
     Stream
       .emits(shares)
-      .evalMap[F, Option[(TradingAsset, BarSeries)]] { asset =>
+      .evalMap[F, Option[AssetData]] { asset =>
         getBarSeries(asset, interval)
-          .map { d =>
-//            println(s"fetched: ${fetched.incrementAndGet()}")
-            (asset -> d).some
-          }
+          .map(_.some)
           .recover { case _: ArchiveNotFound if skipNotFound => None }
       }
       .flatMap(Stream.fromOption[F].apply(_))

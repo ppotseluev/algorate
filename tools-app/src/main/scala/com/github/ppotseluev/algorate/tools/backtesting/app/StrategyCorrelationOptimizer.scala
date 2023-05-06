@@ -83,9 +83,10 @@ object StrategyCorrelationOptimizer extends IOApp.Simple {
 
   private def test(asset: TradingAsset): IO[Unit] =
     for {
-      series <- new BarSeriesProvider[IO](Factory.io.archive).getBarSeries(asset, interval)
-      tradingStats <- StrategyTester[IO](strategy).test(series, asset)
+      assetData <- new BarSeriesProvider[IO](Factory.io.archive).getBarSeries(asset, interval)
+      tradingStats <- StrategyTester[IO](strategy).test(assetData)
     } yield {
+      val series = assetData.barSeries
       val closePriceIndicator = new ClosePriceIndicator(series)
 
       val stochasticOscillatorK = new StochasticOscillatorKIndicator(

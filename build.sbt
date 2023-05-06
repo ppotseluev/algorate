@@ -131,12 +131,9 @@ lazy val `redis-utils` = project
 lazy val `strategy` = project
   .settings(
     name := "strategy",
-    settings,
-    libraryDependencies ++= Seq(
-      Dependency.ta4j
-    )
+    settings
   )
-  .dependsOn(`math-utils`)
+  .dependsOn(`math-utils`, `ta4j-model`)
 
 lazy val `tools-app` = project
   .settings(

@@ -11,7 +11,7 @@ import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus.Complet
 import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus.Failed
 import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus.Pending
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
-import com.github.ppotseluev.algorate.strategy.FullStrategy
+import com.github.ppotseluev.algorate.strategy.{FullStrategy, StrategyBuilder}
 import com.github.ppotseluev.algorate.trader.LoggingSupport
 import com.github.ppotseluev.algorate.trader.akkabot.Trader.Event.OrderUpdated
 import com.github.ppotseluev.algorate.trader.akkabot.Trader.Position.State
@@ -20,6 +20,7 @@ import com.github.ppotseluev.algorate.trader.policy.Policy
 import com.github.ppotseluev.algorate.trader.policy.Policy.Decision
 import com.github.ppotseluev.algorate.trader.policy.Policy.TradeRequest
 import io.prometheus.client.Gauge
+
 import java.time.OffsetDateTime
 import java.time.ZonedDateTime
 import org.ta4j.core.BarSeries
@@ -28,6 +29,7 @@ import org.ta4j.core.BaseTradingRecord
 import org.ta4j.core.Trade.TradeType
 import org.ta4j.core.TradingRecord
 import org.ta4j.core.cost.ZeroCostModel
+
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Failure
@@ -55,14 +57,16 @@ object Trader extends LoggingSupport {
   case class StateSnapshot(
       asset: TradingAsset,
       triggeredBy: Event,
-      strategyBuilder: BarSeries => FullStrategy,
+      strategyBuilder: StrategyBuilder,
       state: TraderState,
       firstBarTs: Option[ZonedDateTime],
       lastBar: Option[Bar],
       lag: Option[FiniteDuration],
       tradingStats: TradingStats,
       unsafe: StateSnapshot.Unsafe
-  )
+  ) {
+    def unsafeAssetData = AssetData(asset, unsafe.barSeries)
+  }
 
   object StateSnapshot {
     case class Unsafe(
@@ -121,7 +125,7 @@ object Trader extends LoggingSupport {
 
   def apply(
       asset: TradingAsset,
-      strategyBuilder: BarSeries => FullStrategy,
+      strategyBuilder: StrategyBuilder,
       policy: Policy,
       broker: Broker[Future],
       keepLastBars: Int,
@@ -154,7 +158,8 @@ object Trader extends LoggingSupport {
     Behaviors.setup { _ =>
       val barSeries = new BaseBarSeries(instrumentId)
       barSeries.setMaximumBarCount(keepLastBars)
-      val strategy = strategyBuilder(barSeries)
+      val assetData = AssetData(asset, barSeries)
+      val strategy = strategyBuilder(assetData)
       var currentBar: Option[Bar] = None
       var state: TraderState = TraderState.Empty
       val longHistory = new BaseTradingRecord(TradeType.BUY, feeModel, zeroCost)

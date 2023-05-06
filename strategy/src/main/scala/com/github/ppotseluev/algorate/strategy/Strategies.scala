@@ -47,7 +47,8 @@ object Strategies {
   def random(
       enterChance: Double = 0.01,
       exitChance: Double = 0.05
-  ): BarSeries => FullStrategy = barSeries => {
+  ): StrategyBuilder = assetData => {
+    val barSeries = assetData.barSeries
     def rule(chance: Double) = new AbstractRule {
       override def isSatisfied(index: Int, tradingRecord: TradingRecord): Boolean =
         math.random() < chance && barSeries.getBarCount > 30
@@ -76,7 +77,9 @@ object Strategies {
 
   val default = createDefault(Params())
 
-  def createDefault(params: Params): BarSeries => FullStrategy = implicit series => {
+  def createDefault(params: Params): StrategyBuilder = assetData => {
+    val series = assetData.barSeries
+    val asset = assetData.asset
     import params._
 
     def num(number: Number): Num =
@@ -93,12 +96,7 @@ object Strategies {
       maxError = maxError
     ).filter(ChannelUtils.isParallel(maxParallelDelta)) //todo?
 
-    val hasData: AbstractIndicator[Boolean] = new HasDataIndicator(extremumWindowSize, series)
-//    val hasFutureData =
-//      hasData.shifted( //uses future data, won't be available in real life but it's solvable
-//        extremumWindowSize,
-//        defaultValue = false
-//      )
+    val hasData: AbstractIndicator[Boolean] = new HasDataIndicator(extremumWindowSize / 2, series)
 
     val tradesCountIndicator =
       (new TradeCountIndicator(series): AbstractIndicator[java.lang.Long]).map(num)
@@ -149,9 +147,8 @@ object Strategies {
         channelIsWideEnough.asRule &
         new CrossedDownIndicatorRule(closePrice, upperBoundIndicator) &
         new UnderIndicatorRule(macd, macdEma) &
-//        hasData.asRule &
-//        hasFutureData.asRule
-        normalTrades.asRule //&
+        hasData.asRule.useIf(asset.isShare) &
+        normalTrades.asRule.useIf(asset.isCrypto)
 //        channel.exists[Channel](c => c.k.upper > 0).asRule
 
     val entryShortRule =
@@ -159,9 +156,8 @@ object Strategies {
         channelIsWideEnough.asRule &
         new CrossedUpIndicatorRule(closePrice, lowerBoundIndicator) &
         new OverIndicatorRule(macd, macdEma) &
-//        hasData.asRule &
-//        hasFutureData.asRule
-        normalTrades.asRule //&
+        hasData.asRule.useIf(asset.isShare) &
+        normalTrades.asRule.useIf(asset.isCrypto)
 //        channel.exists[Channel](c => c.k.lower < 0).asRule
 
     val exitRule = new AbstractRule {

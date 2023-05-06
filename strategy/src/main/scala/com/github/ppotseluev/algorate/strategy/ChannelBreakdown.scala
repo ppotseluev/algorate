@@ -27,7 +27,8 @@ import org.ta4j.core.rules._
 
 private[strategy] object ChannelBreakdown {
 
-  def apply(): BarSeries => FullStrategy = implicit series => {
+  def apply(): StrategyBuilder = assetData => {
+    val series = assetData.barSeries
     def num(number: Number): Num =
       series.numOf(number)
     val closePrice = new ClosePriceIndicator(series)

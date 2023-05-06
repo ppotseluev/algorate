@@ -1,11 +1,12 @@
 package com.github.ppotseluev.algorate.charts
 
 import com.github.ppotseluev.algorate.Ta4jUtils.BarSeriesOps
-import com.github.ppotseluev.algorate.TradingStats
-import com.github.ppotseluev.algorate.strategy.FullStrategy
+import com.github.ppotseluev.algorate.{AssetData, TradingStats}
+import com.github.ppotseluev.algorate.strategy.{FullStrategy, StrategyBuilder}
 import com.github.ppotseluev.algorate.strategy.FullStrategy.IndicatorInfo
 import com.github.ppotseluev.algorate.strategy.FullStrategy.Representation
 import com.github.ppotseluev.algorate.strategy.FullStrategy.Representation.Line
+
 import java.awt.BasicStroke
 import java.awt.Color
 import java.awt.Container
@@ -148,12 +149,14 @@ object TradingCharts {
   }
 
   private def createChart(
-      strategyBuilder: BarSeries => FullStrategy,
-      series: BarSeries,
+      strategyBuilder: StrategyBuilder,
+      assetData: AssetData,
       tradingStats: Option[TradingStats],
       title: String,
       profitableTrades: Option[Boolean]
   ): JFreeChart = {
+    val series = assetData.barSeries
+
     def addIndicators(
         series: BarSeries,
         dataset: TimeSeriesCollection,
@@ -169,7 +172,7 @@ object TradingCharts {
     val mainDataset = new TimeSeriesCollection
     val mainPointsDataset = new TimeSeriesCollection
     val indicatorsDataset = new TimeSeriesCollection
-    val strategy = strategyBuilder(series)
+    val strategy = strategyBuilder(assetData)
     addIndicators(
       series,
       mainDataset,
@@ -233,24 +236,25 @@ object TradingCharts {
   }
 
   def display(
-      strategyBuilder: BarSeries => FullStrategy,
-      series: BarSeries,
+      strategyBuilder: StrategyBuilder,
+      assetData: AssetData,
       tradingStats: Option[TradingStats],
       title: String,
       profitableTradesFilter: Option[Boolean]
   ): Unit = {
-    val chart = createChart(strategyBuilder, series, tradingStats, title, profitableTradesFilter)
+    val chart = createChart(strategyBuilder, assetData, tradingStats, title, profitableTradesFilter)
     val panel = buildPanel(chart)
     display(panel, "Algorate")
   }
 
   def buildImage(
-      strategyBuilder: BarSeries => FullStrategy,
-      series: BarSeries,
+      strategyBuilder: StrategyBuilder,
+      assetData: AssetData,
       tradingStats: Option[TradingStats],
       title: String
   ): Array[Byte] = {
-    val chart = createChart(strategyBuilder, series, tradingStats, title, profitableTrades = None)
+    val chart =
+      createChart(strategyBuilder, assetData, tradingStats, title, profitableTrades = None)
     val outputStream = new ByteArrayOutputStream()
     ChartUtilities.writeChartAsPNG(outputStream, chart, 1024, 400)
     outputStream.toByteArray

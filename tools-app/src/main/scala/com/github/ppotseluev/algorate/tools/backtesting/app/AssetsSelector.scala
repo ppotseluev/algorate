@@ -36,24 +36,13 @@ object CurrentStrategy {
 
 object AssetsSelector extends IOApp.Simple {
   //TODO consider not splitting dataset for more accurate results
-  private val _sampler: Sampler = Sampler //.All
+  private implicit val sampler: Sampler = Sampler //.All
     .KFold(
-      k = 5,
-      select = 4.some,
-      seed = 1440L.some
+      k = 10,
+      select = 0.some
     )
-  private val mode: Mode = Mode.Test
-
-  private implicit val sampler: Sampler = mode match {
-    case Mode.Test | Mode.Test2 =>
-      _sampler match {
-        case s: Sampler.SampleSize => s.copy(seed = None)
-        case s: Sampler.KFold      => s.copy(seed = None)
-        case Sampler.All           => _sampler
-      }
-    case _ => _sampler
-  }
-  private val assets = cryptocurrencies.sample
+  private val mode: Mode = Mode.Validate
+  private val assets = shares.sample
   private val selectionStrategy: SelectionStrategy = SelectAll
   private val candlesResolution = CandleResolution.FiveMinute
 
@@ -66,7 +55,7 @@ object AssetsSelector extends IOApp.Simple {
       (years._1 to years._2).toList.map(Period(_))
     case Mode.Train =>
       List(
-        Period(2021)
+        Period.secondHalf(2021)
       )
     case Mode.Validate =>
       List(
