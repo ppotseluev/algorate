@@ -52,7 +52,7 @@ object AssetsSelector extends IOApp.Simple {
       (years._1 to years._2).toList.map(Period(_))
     case Mode.Train =>
       List(
-        Period.secondHalf(2021)
+        Period(2021)
       )
     case Mode.Validate =>
       List(
