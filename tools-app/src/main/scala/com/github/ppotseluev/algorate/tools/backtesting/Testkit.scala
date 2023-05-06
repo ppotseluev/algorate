@@ -3,17 +3,13 @@ package com.github.ppotseluev.algorate.tools.backtesting
 import cats.Parallel
 import cats.effect.Async
 import cats.implicits._
-import com.github.ppotseluev.algorate.{AssetData, TradingAsset}
-import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
+import com.github.ppotseluev.algorate.AssetData
+import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
-import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import com.github.ppotseluev.algorate.math.PrettyDuration.PrettyPrintableDuration
 import com.github.ppotseluev.algorate.server.Factory
-import com.github.ppotseluev.algorate.strategy.{FullStrategy, StrategyBuilder}
-
+import com.github.ppotseluev.algorate.strategy.StrategyBuilder
 import java.util.concurrent.atomic.AtomicInteger
-import org.ta4j.core.BarSeries
-
 import scala.concurrent.duration._
 
 class Testkit[F[_]: Async: Parallel](
@@ -39,15 +35,14 @@ class Testkit[F[_]: Async: Parallel](
     val asset = assetData.asset
     val series = assetData.barSeries
     println(s"Going to test ${series.getName}")
-    StrategyTester[F](strategy, maxParallelism = assetParallelism).test(assetData).map {
-      stats =>
-        val results = SectorsResults(asset, stats)
-        if (logProgress) {
-          println(
-            s"done: ${(done.incrementAndGet().toDouble * 100 / total).toInt}% (${series.getName})"
-          )
-        }
-        results
+    StrategyTester[F](strategy, maxParallelism = assetParallelism).test(assetData).map { stats =>
+      val results = SectorsResults(asset, stats)
+      if (logProgress) {
+        println(
+          s"done: ${(done.incrementAndGet().toDouble * 100 / total).toInt}% (${series.getName})"
+        )
+      }
+      results
     }
   }
 

@@ -13,27 +13,20 @@ import com.github.ppotseluev.algorate.strategy.indicator.LocalExtremumIndicator
 import com.github.ppotseluev.algorate.strategy.indicator.LocalExtremumIndicator.Extremum
 import com.github.ppotseluev.algorate.strategy.indicator.VisualChannelIndicator
 import com.github.ppotseluev.algorate.strategy.indicator._
-import org.ta4j.core.BarSeries
 import org.ta4j.core.BaseStrategy
 import org.ta4j.core.Strategy
 import org.ta4j.core.TradingRecord
 import org.ta4j.core.indicators.AbstractIndicator
 import org.ta4j.core.indicators.EMAIndicator
 import org.ta4j.core.indicators.MACDIndicator
-import org.ta4j.core.indicators.RSIIndicator
 import org.ta4j.core.indicators.SMAIndicator
-import org.ta4j.core.indicators.helpers.{
-  ClosePriceIndicator,
-  DifferenceIndicator,
-  SumIndicator,
-  TradeCountIndicator,
-  VolumeIndicator
-}
+import org.ta4j.core.indicators.helpers.ClosePriceIndicator
+import org.ta4j.core.indicators.helpers.DifferenceIndicator
+import org.ta4j.core.indicators.helpers.SumIndicator
+import org.ta4j.core.indicators.helpers.TradeCountIndicator
 import org.ta4j.core.num.NaN
 import org.ta4j.core.num.Num
 import org.ta4j.core.rules._
-
-import scala.concurrent.duration._
 
 object Strategies {
   val doNothing: Strategy = new BaseStrategy(

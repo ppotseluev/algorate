@@ -5,16 +5,14 @@ import cats.effect.IOApp
 import cats.implicits._
 import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
-import com.github.ppotseluev.algorate.strategy.{FullStrategy, Strategies, StrategyBuilder}
-import com.github.ppotseluev.algorate.strategy.Strategies.Params
+import com.github.ppotseluev.algorate.strategy.Strategies
+import com.github.ppotseluev.algorate.strategy.StrategyBuilder
 import com.github.ppotseluev.algorate.tools.backtesting.Assets
 import com.github.ppotseluev.algorate.tools.backtesting.Assets.Sampler.SampleSize
 import com.github.ppotseluev.algorate.tools.backtesting.Assets._
 import com.github.ppotseluev.algorate.tools.backtesting.Period
 import com.github.ppotseluev.algorate.tools.backtesting.Testkit
-
 import java.util.concurrent.atomic.AtomicInteger
-import org.ta4j.core.BarSeries
 
 object SamplingTester extends IOApp.Simple {
   val candlesResolution: CandleResolution = CandleResolution.FiveMinute

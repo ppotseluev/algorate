@@ -4,18 +4,17 @@ import cats.effect.ExitCode
 import cats.effect.IO
 import cats.effect.IOApp
 import cats.implicits._
-import com.github.ppotseluev.algorate.{AssetData, TradingAsset}
-import com.github.ppotseluev.algorate.broker.Broker.CandleResolution.OneMinute
-import com.github.ppotseluev.algorate.broker.Broker.{CandleResolution, CandlesInterval, DaysInterval}
+import com.github.ppotseluev.algorate.TradingAsset
+import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
+import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
+import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import com.github.ppotseluev.algorate.charts.TradingCharts
 import com.github.ppotseluev.algorate.math.PrettyDuration.PrettyPrintableDuration
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.Strategies
-import com.github.ppotseluev.algorate.strategy.Strategies.Params
 import com.github.ppotseluev.algorate.tools.backtesting.BarSeriesProvider
 import com.github.ppotseluev.algorate.tools.backtesting.StrategyTester
 import com.typesafe.scalalogging.StrictLogging
-
 import java.time.LocalDate
 import scala.concurrent.duration._
 
@@ -28,7 +27,7 @@ object VisualizeStrategy extends IOApp with StrictLogging {
     resolution = CandleResolution.FiveMinute
   )
   val strategy = Strategies.createDefault(
-    CurrentStrategy.params//.copy(maxError = 0.007)
+    CurrentStrategy.params //.copy(maxError = 0.007)
   )
 //    Strategies.createDefault(Params(50, 0.01, 0.6, 0.02, 10))
   val visualize = true

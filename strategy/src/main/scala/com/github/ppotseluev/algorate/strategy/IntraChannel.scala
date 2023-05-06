@@ -15,7 +15,6 @@ import com.github.ppotseluev.algorate.strategy.indicator.LocalExtremumIndicator.
 import com.github.ppotseluev.algorate.strategy.indicator.VisualChannelIndicator
 import com.github.ppotseluev.algorate.strategy.indicator._
 import org.apache.commons.math3.analysis.polynomials.PolynomialFunction
-import org.ta4j.core.BarSeries
 import org.ta4j.core.BaseStrategy
 import org.ta4j.core.indicators.AbstractIndicator
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator

@@ -5,14 +5,14 @@ import cats.effect.IOApp
 import cats.implicits._
 import com.github.ppotseluev.algorate.Stats
 import com.github.ppotseluev.algorate.TradingAsset
-import com.github.ppotseluev.algorate.broker.Broker.CandleResolution.{FiveMinute, OneMinute}
+import com.github.ppotseluev.algorate.broker.Broker.CandleResolution.FiveMinute
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import com.github.ppotseluev.algorate.server.Factory
-import com.github.ppotseluev.algorate.strategy.Strategies
 import com.github.ppotseluev.algorate.strategy.indicator._
-import com.github.ppotseluev.algorate.tools.backtesting.{Assets, BarSeriesProvider, StrategyTester}
-
+import com.github.ppotseluev.algorate.tools.backtesting.Assets
+import com.github.ppotseluev.algorate.tools.backtesting.BarSeriesProvider
+import com.github.ppotseluev.algorate.tools.backtesting.StrategyTester
 import java.time.LocalDate
 import org.ta4j.core._
 import org.ta4j.core.indicators._

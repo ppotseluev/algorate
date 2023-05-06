@@ -1,12 +1,12 @@
 package com.github.ppotseluev.algorate.charts
 
+import com.github.ppotseluev.algorate.AssetData
 import com.github.ppotseluev.algorate.Ta4jUtils.BarSeriesOps
-import com.github.ppotseluev.algorate.{AssetData, TradingStats}
-import com.github.ppotseluev.algorate.strategy.{FullStrategy, StrategyBuilder}
+import com.github.ppotseluev.algorate.TradingStats
 import com.github.ppotseluev.algorate.strategy.FullStrategy.IndicatorInfo
 import com.github.ppotseluev.algorate.strategy.FullStrategy.Representation
 import com.github.ppotseluev.algorate.strategy.FullStrategy.Representation.Line
-
+import com.github.ppotseluev.algorate.strategy.StrategyBuilder
 import java.awt.BasicStroke
 import java.awt.Color
 import java.awt.Container

@@ -153,7 +153,7 @@ object TinkoffBroker {
 
     private def candleInterval(timeResolution: CandleResolution): CandleInterval =
       timeResolution match {
-        case CandleResolution.OneMinute => CandleInterval.CANDLE_INTERVAL_1_MIN
+        case CandleResolution.OneMinute  => CandleInterval.CANDLE_INTERVAL_1_MIN
         case CandleResolution.FiveMinute => CandleInterval.CANDLE_INTERVAL_5_MIN
       }
 

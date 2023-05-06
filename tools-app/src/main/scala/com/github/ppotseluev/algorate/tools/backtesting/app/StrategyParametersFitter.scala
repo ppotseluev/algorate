@@ -1,18 +1,16 @@
 package com.github.ppotseluev.algorate.tools.backtesting.app
 
+import cats.effect.IO
+import cats.effect.IOApp
 import cats.implicits._
-import cats.effect.{IO, IOApp, ParallelF}
 import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.strategy.Strategies
 import com.github.ppotseluev.algorate.strategy.Strategies.Params
-import com.github.ppotseluev.algorate.tools.backtesting.{Period, SectorsResults, Testkit}
 import com.github.ppotseluev.algorate.tools.backtesting.Assets._
+import com.github.ppotseluev.algorate.tools.backtesting.Period
+import com.github.ppotseluev.algorate.tools.backtesting.Testkit
 import com.github.ppotseluev.algorate.tools.backtesting.optimizer.OptimizationToolkit._
-import kantan.csv._
-import kantan.csv.generic._
-import kantan.csv.ops._
-
 import java.io.PrintWriter
 
 object StrategyParametersFitter extends IOApp.Simple {

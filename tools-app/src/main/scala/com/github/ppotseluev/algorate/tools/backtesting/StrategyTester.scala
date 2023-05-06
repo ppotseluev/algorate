@@ -6,16 +6,21 @@ import cats.effect.Concurrent
 import cats.effect.kernel.Sync
 import cats.effect.std.Semaphore
 import cats.implicits._
-import com.github.ppotseluev.algorate.{AssetData, Money, Stats, TradingAsset, TradingStats}
-import com.github.ppotseluev.algorate.strategy.{FullStrategy, StrategyBuilder}
+import com.github.ppotseluev.algorate.AssetData
+import com.github.ppotseluev.algorate.Money
+import com.github.ppotseluev.algorate.Stats
+import com.github.ppotseluev.algorate.TradingAsset
+import com.github.ppotseluev.algorate.TradingStats
+import com.github.ppotseluev.algorate.strategy.StrategyBuilder
 import com.github.ppotseluev.algorate.trader.policy.MoneyManagementPolicy
 import com.github.ppotseluev.algorate.trader.policy.Policy
 import com.github.ppotseluev.algorate.trader.policy.Policy.TradeRequest
 import com.typesafe.scalalogging.LazyLogging
-import org.ta4j.core.BarSeries
 import org.ta4j.core.BarSeriesManager
 import org.ta4j.core.Trade.TradeType
-import org.ta4j.core.cost.{CostModel, LinearTransactionCostModel, ZeroCostModel}
+import org.ta4j.core.cost.CostModel
+import org.ta4j.core.cost.LinearTransactionCostModel
+import org.ta4j.core.cost.ZeroCostModel
 
 private[backtesting] case class StrategyTester[F[_]: Parallel: Concurrent](
     impl: StrategyTester.Impl[F],

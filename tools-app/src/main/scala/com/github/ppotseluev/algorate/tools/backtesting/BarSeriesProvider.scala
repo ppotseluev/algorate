@@ -3,12 +3,13 @@ package com.github.ppotseluev.algorate.tools.backtesting
 import cats.Parallel
 import cats.effect.Async
 import cats.implicits._
-import com.github.ppotseluev.algorate.{AssetData, BarsConverter, TradingAsset}
+import com.github.ppotseluev.algorate.AssetData
+import com.github.ppotseluev.algorate.BarsConverter
+import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.broker.Archive.ArchiveNotFound
 import com.github.ppotseluev.algorate.broker.BarDataProvider
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import fs2.Stream
-import org.ta4j.core.BarSeries
 
 private[backtesting] class BarSeriesProvider[F[_]: Async: Parallel](
     barDataProvider: BarDataProvider[F]

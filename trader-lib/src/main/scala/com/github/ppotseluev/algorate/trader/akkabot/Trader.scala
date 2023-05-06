@@ -11,7 +11,7 @@ import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus.Complet
 import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus.Failed
 import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus.Pending
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
-import com.github.ppotseluev.algorate.strategy.{FullStrategy, StrategyBuilder}
+import com.github.ppotseluev.algorate.strategy.StrategyBuilder
 import com.github.ppotseluev.algorate.trader.LoggingSupport
 import com.github.ppotseluev.algorate.trader.akkabot.Trader.Event.OrderUpdated
 import com.github.ppotseluev.algorate.trader.akkabot.Trader.Position.State
@@ -20,7 +20,6 @@ import com.github.ppotseluev.algorate.trader.policy.Policy
 import com.github.ppotseluev.algorate.trader.policy.Policy.Decision
 import com.github.ppotseluev.algorate.trader.policy.Policy.TradeRequest
 import io.prometheus.client.Gauge
-
 import java.time.OffsetDateTime
 import java.time.ZonedDateTime
 import org.ta4j.core.BarSeries
@@ -29,7 +28,6 @@ import org.ta4j.core.BaseTradingRecord
 import org.ta4j.core.Trade.TradeType
 import org.ta4j.core.TradingRecord
 import org.ta4j.core.cost.ZeroCostModel
-
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Failure

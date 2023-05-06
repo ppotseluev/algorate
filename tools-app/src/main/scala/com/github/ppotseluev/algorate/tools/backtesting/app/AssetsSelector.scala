@@ -6,25 +6,22 @@ import cats.effect.Resource
 import cats.implicits._
 import cats.kernel.Monoid
 import com.github.ppotseluev.algorate.TradingAsset
-import com.github.ppotseluev.algorate.broker.Broker.{CandleResolution, CandlesInterval}
+import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
+import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.math.PrettyDuration.PrettyPrintableDuration
-import com.github.ppotseluev.algorate.server.Factory
-import scala.collection.mutable
 import com.github.ppotseluev.algorate.strategy.Strategies
 import com.github.ppotseluev.algorate.strategy.Strategies.Params
 import com.github.ppotseluev.algorate.tools.backtesting.Assets.Sampler
 import com.github.ppotseluev.algorate.tools.backtesting.Assets._
 import com.github.ppotseluev.algorate.tools.backtesting.Assets.shares
-import com.github.ppotseluev.algorate.tools.backtesting.BarSeriesProvider
 import com.github.ppotseluev.algorate.tools.backtesting.Period
 import com.github.ppotseluev.algorate.tools.backtesting.SectorsResults
 import com.github.ppotseluev.algorate.tools.backtesting.Testkit
-
 import java.io.File
 import java.io.PrintWriter
 import java.nio.file.Files
 import java.nio.file.Paths
-import java.time.MonthDay
+import scala.collection.mutable
 import scala.concurrent.duration._
 
 object CurrentStrategy {

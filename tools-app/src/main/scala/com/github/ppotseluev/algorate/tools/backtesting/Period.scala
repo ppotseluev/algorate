@@ -1,12 +1,9 @@
 package com.github.ppotseluev.algorate.tools.backtesting
 
 import cats.implicits._
-import com.github.ppotseluev.algorate.broker.Broker.{
-  CandleResolution,
-  CandlesInterval,
-  DaysInterval
-}
-
+import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
+import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
+import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import java.time.LocalDate
 import java.time.Month
 import java.time.MonthDay

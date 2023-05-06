@@ -3,7 +3,8 @@ package com.github.ppotseluev.algorate
 import org.ta4j.core.BarSeries
 import org.ta4j.core.Rule
 import org.ta4j.core.indicators.AbstractIndicator
-import org.ta4j.core.rules.{AndRule, BooleanRule}
+import org.ta4j.core.rules.AndRule
+import org.ta4j.core.rules.BooleanRule
 
 package object strategy {
   type StrategyBuilder = AssetData => FullStrategy
