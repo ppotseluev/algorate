@@ -34,6 +34,8 @@ object CurrentStrategy {
 object AssetsSelector extends IOApp.Simple {
   //TODO consider not splitting dataset for more accurate results
   private implicit val sampler: Sampler = Sampler.All
+//    .SampleSize(200, seed = 26L.some)
+//    .SampleSize(500, seed = 11111100L.some)
 //    .KFold(
 //      k = 10,
 //      select = 6.some
@@ -46,8 +48,9 @@ object AssetsSelector extends IOApp.Simple {
   )
   private val assets = cryptocurrencies //shares ++ allCryptocurrencies ++ cryptocurrencies
   private val selectionStrategy: SelectionStrategy =
-//    ByProfitRatio(0.9)
-    ByStability(0.5)
+    ByLowProfit(0.1)
+//    ByStability(0.5)
+    //    ByProfitRatio(0.9)
 //    SelectAll
 //    ByProfit(0.8)
 //    ByWinRatio(0.5)

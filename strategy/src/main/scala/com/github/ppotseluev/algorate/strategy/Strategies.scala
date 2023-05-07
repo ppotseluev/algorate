@@ -140,8 +140,8 @@ object Strategies {
         channelIsWideEnough.asRule &
         new CrossedDownIndicatorRule(closePrice, upperBoundIndicator) &
         new UnderIndicatorRule(macd, macdEma) &
-        hasData.asRule.useIf(asset.isShare) &
-        normalTrades.asRule.useIf(asset.isCrypto)
+        hasData.asRule.useIf(asset.isShare).orTrue &
+        normalTrades.asRule.useIf(asset.isCrypto).orTrue
 //        channel.exists[Channel](c => c.k.upper > 0).asRule
 
     val entryShortRule =
@@ -149,8 +149,8 @@ object Strategies {
         channelIsWideEnough.asRule &
         new CrossedUpIndicatorRule(closePrice, lowerBoundIndicator) &
         new OverIndicatorRule(macd, macdEma) &
-        hasData.asRule.useIf(asset.isShare) &
-        normalTrades.asRule.useIf(asset.isCrypto)
+        hasData.asRule.useIf(asset.isShare).orTrue &
+        normalTrades.asRule.useIf(asset.isCrypto).orTrue
 //        channel.exists[Channel](c => c.k.lower < 0).asRule
 
     val exitRule = new AbstractRule {

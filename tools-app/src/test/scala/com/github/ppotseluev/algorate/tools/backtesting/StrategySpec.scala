@@ -37,7 +37,7 @@ class StrategySpec extends FunSuite {
     val stats = StrategyTester[F](
       strategy,
       StrategyTester
-        .fixedTradeCostPolicy(allowFractionalLots = false)
+        .fixedTradeCostPolicy()
         .andThen(_.allowedOrElse(Decision.Allowed(1))),
       maxParallelism = 1
     ).test(assetData).unsafeRunSync()

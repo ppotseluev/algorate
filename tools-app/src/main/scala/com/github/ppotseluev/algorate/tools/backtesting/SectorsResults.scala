@@ -43,7 +43,8 @@ object SectorsResults {
         val sorted: Map[TradingAsset, TradingStats] =
           ListMap.from(value.toList.sortBy(_._2.profit(fee = true).values.sum))
         s"""
-           |Sector: $sector
+           |Sector: $sector (${value.size} assets)
+           |Aggregated: ${value.values.toList.combineAll.show}
            |${sorted.show}
            |""".stripMargin
       }

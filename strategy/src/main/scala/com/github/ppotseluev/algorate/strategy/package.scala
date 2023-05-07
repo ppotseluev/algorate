@@ -13,8 +13,13 @@ package object strategy {
     def &(other: Rule): Rule =
       new AndRule(rule, other)
 
-    def useIf(p: Boolean): Rule =
-      if (p) rule else BooleanRule.TRUE
+    def useIf(p: Boolean): Option[Rule] =
+      Option.when(p)(rule)
+  }
+
+  implicit class OptionRuleSyntax(val rule: Option[Rule]) extends AnyVal {
+    def orTrue: Rule = rule.getOrElse(BooleanRule.TRUE)
+    def orFalse: Rule = rule.getOrElse(BooleanRule.FALSE)
   }
 
   private abstract class Ind[T](implicit barSeries: BarSeries)

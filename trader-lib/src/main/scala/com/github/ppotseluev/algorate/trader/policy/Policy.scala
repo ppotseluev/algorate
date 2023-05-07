@@ -3,16 +3,15 @@ package com.github.ppotseluev.algorate.trader.policy
 import cats.Semigroup
 import cats.data.NonEmptyList
 import cats.implicits._
-import com.github.ppotseluev.algorate.Currency
-import com.github.ppotseluev.algorate.Price
+import com.github.ppotseluev.algorate.{Currency, Price, TradingAsset}
 
 object Policy {
   def combine(policy: Policy, policies: Policy*): Policy = request =>
     NonEmptyList(policy, policies.toList).reduceMap(_.apply(request))
 
   case class TradeRequest(
-      price: Price,
-      currency: Currency
+      asset: TradingAsset,
+      price: Price
   )
 
   sealed trait Decision {

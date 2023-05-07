@@ -123,8 +123,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         maxAbsolute = Map(
           "usd" -> 200,
           "rub" -> 15000
-        ),
-        allowFractionalLots = true
+        )
       )
       val tradingManager = TradingManager(
         assets = assetsMap,

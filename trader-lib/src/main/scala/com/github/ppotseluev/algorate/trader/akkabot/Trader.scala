@@ -195,7 +195,7 @@ object Trader extends LoggingSupport {
           ctx.pipeToSelf(broker.placeOrder(order))(orderPlacedEvent(order))
         def tryEnter(operationType: OperationType): Unit = {
           val trade = TradeRequest(
-            currency = asset.currency,
+            asset = asset,
             price = point.value
           )
           policy.apply(trade) match {

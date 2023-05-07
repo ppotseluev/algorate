@@ -42,16 +42,15 @@ private[backtesting] case class StrategyTester[F[_]: Parallel: Concurrent](
       semaphore <- Semaphore[F](maxParallelism)
       results <- batches
         .map(AssetData(asset, _))
-        .parTraverse(batch => semaphore.permit.use(_ => impl(batch, asset)))
+        .parTraverse(batch => semaphore.permit.use(_ => impl(batch)))
     } yield results.combineAll
   }
 }
 
 private[backtesting] object StrategyTester {
   def fixedTradeCostPolicy(
-      usdTrade: Int = 1_000,
-      rubTrade: Int = 10_000,
-      allowFractionalLots: Boolean
+      usdTrade: Int = 250,
+      rubTrade: Int = 10_000
   ): Policy = {
     val money: Money = Map("usd" -> Int.MaxValue, "rub" -> Int.MaxValue, "usdt" -> Int.MaxValue)
     new MoneyManagementPolicy(() => Some(money))(
@@ -60,14 +59,14 @@ private[backtesting] object StrategyTester {
         "usd" -> usdTrade,
         "usdt" -> usdTrade,
         "rub" -> rubTrade
-      ),
-      allowFractionalLots = allowFractionalLots
+      )
     )
   }
 
   def apply[F[_]: Parallel: Concurrent: Sync](
       strategyBuilder: StrategyBuilder,
-      tradingPolicy: Policy = fixedTradeCostPolicy(allowFractionalLots = true),
+      //todo fix shares' currencies and issue with profit.values.sum
+      tradingPolicy: Policy = fixedTradeCostPolicy(),
       maxParallelism: Int = 8,
       minBatchSize: Int = 50_000,
       transactionCostModel: CostModel = new LinearTransactionCostModel(0.0005),
@@ -85,15 +84,16 @@ private[backtesting] object StrategyTester {
       transactionCostModel: CostModel,
       holdingCostModel: CostModel
   ) extends LazyLogging {
-    def apply(assetData: AssetData, asset: TradingAsset): F[TradingStats] = Sync[F].defer {
+    def apply(assetData: AssetData): F[TradingStats] = Sync[F].defer {
       val series = assetData.barSeries
+      val asset = assetData.asset
       val strategy = strategyBuilder(assetData)
       val avgPrice =
         series.getFirstBar.getClosePrice
           .plus(series.getLastBar.getClosePrice)
           .dividedBy(series.numOf(2))
       val lots = series.numOf {
-        tradingPolicy.apply(TradeRequest(avgPrice.doubleValue, asset.currency)).lots
+        tradingPolicy.apply(TradeRequest(asset, avgPrice.doubleValue)).lots
       }
       if (lots.isPositive) {
         val seriesManager = new BarSeriesManager(series, transactionCostModel, holdingCostModel)
