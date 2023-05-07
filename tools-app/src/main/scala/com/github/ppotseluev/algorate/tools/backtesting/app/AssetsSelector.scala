@@ -57,7 +57,7 @@ object AssetsSelector extends IOApp.Simple {
 
   private implicit val strategy = CurrentStrategy()
 
-  private val testingToolkit = new Testkit[IO](skipNotFound = true, maxConcurrentAssets = 2)
+  private val testingToolkit = new Testkit[IO](skipNotFound = true)
 
   private val periods: List[Period] = mode match {
     case Mode.Periods(periods) => periods
@@ -108,18 +108,18 @@ object AssetsSelector extends IOApp.Simple {
     val selected = selectionStrategy match {
       case ByProfit(selectionFactor) =>
         val allSharesResults = results.flatten.toList.sortBy { case (_, stats) =>
-          stats.profit(fee = false).values.sum //FIXME
+          stats.profit(fee = true).values.sum //FIXME
         }
         val n = (selectionFactor * allSharesResults.size).toInt
         allSharesResults.takeRight(n)
       case ByWinRatio(threshold) =>
         results.flatten.toList.filter { case (_, stats) =>
-          stats.isEmpty || stats.totalWinRatio(fee = false) >= threshold
+          stats.isEmpty || stats.totalWinRatio(fee = true) >= threshold
         }
       case ByProfitRatio(threshold) =>
         results.flatten.toList.filter { case (_, stats) =>
           stats.isEmpty ||
-            stats.profitRatio(fee = false).values.sum >= threshold //FIXME
+            stats.profitRatio(fee = true).values.sum >= threshold //FIXME
         }
       case SelectAll =>
         results.flatten.toList
@@ -131,6 +131,13 @@ object AssetsSelector extends IOApp.Simple {
           monthlyProfits.isEmpty ||
           profitableMonthsCount.toDouble / monthlyProfits.size >= threshold
         }
+      case ByLowProfit(selectionFactor) =>
+        val allSharesResults = results.flatten.toList.sortBy { case (_, stats) =>
+          stats.profit(fee = true).values.sum //FIXME
+        }
+        val nonProfitable = allSharesResults.takeWhile(_._2.profit(fee = true).values.sum < 0)
+        val n = (selectionFactor * nonProfitable.size).toInt
+        allSharesResults.drop(n)
     }
     val selectedResults = selected.foldMap { case (share, stats) => SectorsResults(share, stats) }
     Results(
@@ -254,6 +261,8 @@ object AssetsSelector extends IOApp.Simple {
   }
 
   sealed trait SelectionStrategy
+
+  case class ByLowProfit(exclusionFactor: Double) extends SelectionStrategy
 
   case object SelectAll extends SelectionStrategy
 
