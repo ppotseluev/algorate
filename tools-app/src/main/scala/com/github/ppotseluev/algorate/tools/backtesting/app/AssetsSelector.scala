@@ -33,23 +33,34 @@ object CurrentStrategy {
 
 object AssetsSelector extends IOApp.Simple {
   //TODO consider not splitting dataset for more accurate results
-  private implicit val sampler: Sampler = Sampler //.All
-    .KFold(
-      k = 10,
-      select = 0.some
-    )
-  private val mode: Mode = Mode.Validate
-  private val assets = shares.sample
-  private val selectionStrategy: SelectionStrategy = SelectAll
+  private implicit val sampler: Sampler = Sampler.All
+//    .KFold(
+//      k = 10,
+//      select = 6.some
+//    )
+  private val mode: Mode = Mode.Periods(
+    Period(2020),
+    Period(2021),
+    Period.firstHalf(2022),
+    Period.secondHalf(2022)
+  )
+  private val assets = cryptocurrencies //shares ++ allCryptocurrencies ++ cryptocurrencies
+  private val selectionStrategy: SelectionStrategy =
+//    ByProfitRatio(0.9)
+    ByStability(0.5)
+//    SelectAll
+//    ByProfit(0.8)
+//    ByWinRatio(0.5)
+//    SelectAll
+//    ByStability(0.4)
   private val candlesResolution = CandleResolution.FiveMinute
 
   private implicit val strategy = CurrentStrategy()
 
-  private val testingToolkit = new Testkit[IO](skipNotFound = true)
+  private val testingToolkit = new Testkit[IO](skipNotFound = true, maxConcurrentAssets = 2)
 
   private val periods: List[Period] = mode match {
-    case Mode.YearsRange(years) =>
-      (years._1 to years._2).toList.map(Period(_))
+    case Mode.Periods(periods) => periods
     case Mode.Train =>
       List(
         Period(2021)
@@ -88,8 +99,8 @@ object AssetsSelector extends IOApp.Simple {
     Paths.get(s"$baseDir/AssetsSelector.scala")
   )
 
-  periods.map(_.year).foreach { year =>
-    val path = s"$baseDir/$year"
+  periods.foreach { period =>
+    val path = s"$baseDir/$period"
     Files.createDirectory(new File(path).toPath)
   }
 
@@ -103,14 +114,23 @@ object AssetsSelector extends IOApp.Simple {
         allSharesResults.takeRight(n)
       case ByWinRatio(threshold) =>
         results.flatten.toList.filter { case (_, stats) =>
-          stats.totalWinRatio(fee = false) >= threshold
+          stats.isEmpty || stats.totalWinRatio(fee = false) >= threshold
         }
       case ByProfitRatio(threshold) =>
         results.flatten.toList.filter { case (_, stats) =>
-          stats.profitRatio(fee = false).values.sum >= threshold //FIXME
+          stats.isEmpty ||
+            stats.profitRatio(fee = false).values.sum >= threshold //FIXME
         }
       case SelectAll =>
         results.flatten.toList
+      case ByStability(threshold) =>
+        results.flatten.toList.filter { case (_, stats) =>
+          val monthlyProfits =
+            stats.monthly.values.map(_.profit(fee = true).values.sum).filter(_ != 0)
+          val profitableMonthsCount = monthlyProfits.count(_ > 0)
+          monthlyProfits.isEmpty ||
+          profitableMonthsCount.toDouble / monthlyProfits.size >= threshold
+        }
     }
     val selectedResults = selected.foldMap { case (share, stats) => SectorsResults(share, stats) }
     Results(
@@ -174,10 +194,10 @@ object AssetsSelector extends IOApp.Simple {
 
   private def save(
       results: Results,
-      year: Int,
+      period: Period,
       testDuration: FiniteDuration
   ): IO[Unit] = {
-    val path = s"$baseDir/$year"
+    val path = s"$baseDir/$period"
     for {
       _ <- write(results.original, s"$path/original.txt", testDuration) &>
         writeAssets(results.original, s"$path/original_assets.txt")
@@ -199,15 +219,14 @@ object AssetsSelector extends IOApp.Simple {
     case period :: restPeriods =>
       for {
         start <- IO(System.currentTimeMillis)
-        year = period.year
         _ <- IO {
-          println(s"Start testing for $year year")
+          println(s"Start testing for $period")
         }
         candlesInterval = CandlesInterval(period.toInterval, candlesResolution)
         currentBatchResults <- testingToolkit.test(candlesInterval, assets)
         end <- IO(System.currentTimeMillis)
         results = select(currentBatchResults)
-        _ <- save(results, year, (end - start).millis)
+        _ <- save(results, period, (end - start).millis)
         res <- loopSelect(restPeriods, results.selectedAssetsList, accResult |+| results.original)
       } yield res
     case Nil => accResult.pure[IO]
@@ -245,6 +264,8 @@ object AssetsSelector extends IOApp.Simple {
 
   case class ByWinRatio(threshold: Double) extends SelectionStrategy //it makes more sense
 
+  case class ByStability(threshold: Double) extends SelectionStrategy
+
   sealed trait Mode
 
   object Mode {
@@ -256,6 +277,12 @@ object AssetsSelector extends IOApp.Simple {
 
     case object Test2 extends Mode
 
-    case class YearsRange(years: (Int, Int)) extends Mode
+    case class Periods(periods: List[Period]) extends Mode
+    object Periods {
+      def apply(years: (Int, Int)): Periods = Periods(
+        (years._1 to years._2).toList.map(Period(_))
+      )
+      def apply(periods: Period*): Periods = Periods(periods.toList)
+    }
   }
 }

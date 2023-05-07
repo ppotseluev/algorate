@@ -34,12 +34,12 @@ class Testkit[F[_]: Async: Parallel](
   ) = (assetData: AssetData) => {
     val asset = assetData.asset
     val series = assetData.barSeries
-    println(s"Going to test ${series.getName}")
+//    println(s"Going to test ${series.getName}")
     StrategyTester[F](strategy, maxParallelism = assetParallelism).test(assetData).map { stats =>
       val results = SectorsResults(asset, stats)
       if (logProgress) {
         println(
-          s"done: ${(done.incrementAndGet().toDouble * 100 / total).toInt}% (${series.getName})"
+          s"done: ${(done.incrementAndGet().toDouble * 100 / total).toInt}%"// (${series.getName})"
         )
       }
       results

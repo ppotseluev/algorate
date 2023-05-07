@@ -27,6 +27,8 @@ case class Period(year: Int, range: Option[(MonthDay, MonthDay)] = None) {
       )
     }.toList
 
+  override def toString: String =
+    s"${year}_${startMonth.getMonthValue}_${endMonth.getMonthValue}"
 }
 
 object Period {
