@@ -178,7 +178,7 @@ object AssetsSelector extends IOApp.Simple {
           printer.println(s"Monthly stats: $monthlyStats")
           printer.println(s"total ($assetsCount assets): ${stats.show}")
           //todo print profitable/non-prfitable assets ratio
-          val profitableCount = results.flatten.count(_._2.profitRatio(false).values.sum > 1)
+          val profitableCount = results.flatten.count(_._2.profit(fee = true).values.sum > 0)
           val hasTradesCount = Option(
             results.flatten.count(_._2.totalPositions > 0)
           ).filter(_ > 0).getOrElse(1)
