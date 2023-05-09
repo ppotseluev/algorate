@@ -4,8 +4,8 @@
 
 # space separated values
 years=$1
-symbols=$2
-interval=$3
+interval=$2
+symbols=$3
 months=(01 02 03 04 05 06 07 08 09 10 11 12)
 
 force=false

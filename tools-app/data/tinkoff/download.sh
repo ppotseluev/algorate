@@ -1,4 +1,4 @@
-figi_list=figi.txt
+figi_list=tinkoff/figi.txt
 token=${TINKOFF_TOKEN}
 url=https://invest-public-api.tinkoff.ru/history-data
 function download {

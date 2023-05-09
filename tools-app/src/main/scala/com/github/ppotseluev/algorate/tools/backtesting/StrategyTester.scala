@@ -1,26 +1,22 @@
 package com.github.ppotseluev.algorate.tools.backtesting
 
-import cats.Monoid
 import cats.Parallel
 import cats.effect.Concurrent
 import cats.effect.kernel.Sync
 import cats.effect.std.Semaphore
 import cats.implicits._
-import com.github.ppotseluev.algorate.AssetData
-import com.github.ppotseluev.algorate.Money
-import com.github.ppotseluev.algorate.Stats
-import com.github.ppotseluev.algorate.TradingAsset
-import com.github.ppotseluev.algorate.TradingStats
+import com.github.ppotseluev.algorate.{AssetData, Money, Stats, TradingStats}
 import com.github.ppotseluev.algorate.strategy.StrategyBuilder
-import com.github.ppotseluev.algorate.trader.policy.MoneyManagementPolicy
-import com.github.ppotseluev.algorate.trader.policy.Policy
+import com.github.ppotseluev.algorate.ta4j.BarSeriesManager
+import com.github.ppotseluev.algorate.trader.policy.{MoneyManagementPolicy, Policy}
 import com.github.ppotseluev.algorate.trader.policy.Policy.TradeRequest
 import com.typesafe.scalalogging.LazyLogging
-import org.ta4j.core.BarSeriesManager
+import org.ta4j.core.Bar
 import org.ta4j.core.Trade.TradeType
-import org.ta4j.core.cost.CostModel
-import org.ta4j.core.cost.LinearTransactionCostModel
-import org.ta4j.core.cost.ZeroCostModel
+import org.ta4j.core.cost.{CostModel, LinearTransactionCostModel, ZeroCostModel}
+import org.ta4j.core.num.Num
+
+import java.util.function.Function
 
 private[backtesting] case class StrategyTester[F[_]: Parallel: Concurrent](
     impl: StrategyTester.Impl[F],
@@ -88,30 +84,23 @@ private[backtesting] object StrategyTester {
       val series = assetData.barSeries
       val asset = assetData.asset
       val strategy = strategyBuilder(assetData)
-      val avgPrice =
-        series.getFirstBar.getClosePrice
-          .plus(series.getLastBar.getClosePrice)
-          .dividedBy(series.numOf(2))
-      val lots = series.numOf {
-        tradingPolicy.apply(TradeRequest(asset, avgPrice.doubleValue)).lots
+      val lots: Function[Bar, Num] = bar => {
+        series.numOf {
+          tradingPolicy.apply(TradeRequest(asset, bar.getClosePrice.doubleValue)).lots
+        }
       }
-      if (lots.isPositive) {
-        val seriesManager = new BarSeriesManager(series, transactionCostModel, holdingCostModel)
-        for {
-          longRecord <- Sync[F].blocking(
-            seriesManager.run(strategy.longStrategy, TradeType.BUY, lots)
-          )
-          shortRecord <- Sync[F].blocking(
-            seriesManager.run(strategy.shortStrategy, TradeType.SELL, lots)
-          )
-        } yield TradingStats(
-          long = Stats.fromRecord(longRecord, series, asset),
-          short = Stats.fromRecord(shortRecord, series, asset)
+      val seriesManager = new BarSeriesManager(series, transactionCostModel, holdingCostModel)
+      for {
+        longRecord <- Sync[F].blocking(
+          seriesManager.run(strategy.longStrategy, TradeType.BUY, lots)
         )
-      } else {
-        logger.info(s"Skipping ${asset.ticker} ($avgPrice ${asset.currency})")
-        Monoid[TradingStats].empty.pure[F]
-      }
+        shortRecord <- Sync[F].blocking(
+          seriesManager.run(strategy.shortStrategy, TradeType.SELL, lots)
+        )
+      } yield TradingStats(
+        long = Stats.fromRecord(longRecord, series, asset),
+        short = Stats.fromRecord(shortRecord, series, asset)
+      )
     }
   }
 }

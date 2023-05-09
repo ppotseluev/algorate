@@ -130,7 +130,7 @@ class Archive[F[_]: Sync](
     val dataId = s"${instrumentId}_$year"
     logger.info(s"Downloading $dataId")
     val scriptPath = Paths.get(s"tools-app/data/$provider/download.sh").toAbsolutePath.toString
-    val command = Seq(scriptPath, year.toString, instrumentId, resolution.toString)
+    val command = Seq(scriptPath, year.toString, resolution.toString, instrumentId)
 
     // Get the script's parent directory as the working directory
     val workingDir = Paths.get(scriptPath).getParent.getParent.toFile
