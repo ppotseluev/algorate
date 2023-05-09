@@ -1,8 +1,10 @@
 package com.github.ppotseluev.algorate.trader.policy
 
 import cats.implicits._
+import com.github.ppotseluev.algorate.Currency
+import com.github.ppotseluev.algorate.Money
+import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.TradingAsset.Type
-import com.github.ppotseluev.algorate.{Currency, Money, TradingAsset}
 import com.github.ppotseluev.algorate.trader.policy.Policy.Decision
 import com.github.ppotseluev.algorate.trader.policy.Policy.TradeRequest
 

@@ -13,16 +13,13 @@ import com.github.ppotseluev.algorate.strategy.Strategies
 import com.github.ppotseluev.algorate.strategy.Strategies.Params
 import com.github.ppotseluev.algorate.tools.backtesting.Assets.Sampler
 import com.github.ppotseluev.algorate.tools.backtesting.Assets._
-import com.github.ppotseluev.algorate.tools.backtesting.Assets.shares
 import com.github.ppotseluev.algorate.tools.backtesting.Period
 import com.github.ppotseluev.algorate.tools.backtesting.SectorsResults
 import com.github.ppotseluev.algorate.tools.backtesting.Testkit
-
 import java.io.File
 import java.io.PrintWriter
 import java.nio.file.Files
 import java.nio.file.Paths
-import java.time.MonthDay
 import scala.collection.mutable
 import scala.concurrent.duration._
 

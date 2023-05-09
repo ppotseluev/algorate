@@ -39,7 +39,7 @@ class Testkit[F[_]: Async: Parallel](
       val results = SectorsResults(asset, stats)
       if (logProgress) {
         println(
-          s"done: ${(done.incrementAndGet().toDouble * 100 / total).toInt}%"// (${series.getName})"
+          s"done: ${(done.incrementAndGet().toDouble * 100 / total).toInt}%" // (${series.getName})"
         )
       }
       results

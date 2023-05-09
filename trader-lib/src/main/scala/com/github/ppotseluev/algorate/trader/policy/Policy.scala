@@ -3,7 +3,8 @@ package com.github.ppotseluev.algorate.trader.policy
 import cats.Semigroup
 import cats.data.NonEmptyList
 import cats.implicits._
-import com.github.ppotseluev.algorate.{Currency, Price, TradingAsset}
+import com.github.ppotseluev.algorate.Price
+import com.github.ppotseluev.algorate.TradingAsset
 
 object Policy {
   def combine(policy: Policy, policies: Policy*): Policy = request =>
