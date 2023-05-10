@@ -50,7 +50,7 @@ private[backtesting] case class StrategyTester[F[_]: Parallel: Concurrent](
 
 private[backtesting] object StrategyTester {
   def fixedTradeCostPolicy(
-      usdTrade: Int = 250,
+      usdTrade: Int = 1000,
       rubTrade: Int = 10_000
   ): Policy = {
     val money: Money = Map("usd" -> Int.MaxValue, "rub" -> Int.MaxValue, "usdt" -> Int.MaxValue)
