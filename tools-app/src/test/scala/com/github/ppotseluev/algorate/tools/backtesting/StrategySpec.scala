@@ -17,7 +17,7 @@ import munit.FunSuite
 
 class StrategySpec extends FunSuite {
   val strategy = Strategies.default
-  val asset = TradingAsset.share("BBG000BBS2Y0")
+  val asset = TradingAsset.share("BBG000BJDB15")
   val interval = CandlesInterval(
     interval = DaysInterval(
       LocalDate.of(2022, 1, 1),
@@ -41,9 +41,9 @@ class StrategySpec extends FunSuite {
         .andThen(_.allowedOrElse(Decision.Allowed(1))),
       maxParallelism = 1
     ).test(assetData).unsafeRunSync()
-    assertEquals(stats.long.totalClosedPositions, 4)
-    assertEquals(stats.short.totalClosedPositions, 9)
-    assertEquals(stats.long.winRatio(fee = false), 0.25)
-    assertEquals(stats.short.winRatio(fee = false), 0.3333333333333333)
+    assertEquals(stats.long.totalClosedPositions, 2)
+    assertEquals(stats.short.totalClosedPositions, 3)
+    assertEquals(stats.long.winRatio(fee = false), 1d)
+    assertEquals(stats.short.winRatio(fee = false), 0.6666666666666666)
   }
 }
