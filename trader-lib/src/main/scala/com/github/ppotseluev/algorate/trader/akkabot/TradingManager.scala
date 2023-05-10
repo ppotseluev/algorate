@@ -10,12 +10,11 @@ import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.TradingStats
 import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.broker.MoneyTracker
-import com.github.ppotseluev.algorate.strategy.FullStrategy
+import com.github.ppotseluev.algorate.strategy.StrategyBuilder
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.CandleData
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.TraderSnapshotRequested
 import com.github.ppotseluev.algorate.trader.policy.Policy
 import com.typesafe.scalalogging.LazyLogging
-import org.ta4j.core.BarSeries
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration._
@@ -32,7 +31,7 @@ object TradingManager extends LazyLogging {
   def apply[F[_]](
       assets: Map[InstrumentId, TradingAsset],
       broker: Broker[Future],
-      strategy: BarSeries => FullStrategy,
+      strategy: StrategyBuilder,
       moneyTracker: MoneyTracker[F],
       policy: Policy,
       keepLastBars: Int,
@@ -48,7 +47,6 @@ object TradingManager extends LazyLogging {
     def trader(instrumentId: InstrumentId): Behavior[Trader.Event] = {
       val asset = assets(instrumentId)
       Trader(
-        instrumentId = instrumentId,
         asset = asset,
         strategyBuilder = strategy,
         policy = policy,
@@ -81,6 +79,8 @@ object TradingManager extends LazyLogging {
         useTrader(instrumentId)(_ ! Trader.Event.StateSnapshotRequested)
         Behaviors.same
       case Event.TraderSnapshotEvent(snapshot) =>
+        //TODO it's incorrect cuz both can contain the same trades.
+        //TODO there was a hack with distinctBy(tradeTime) in Stats.monoid but it was too dirty hack
         tradingStats = tradingStats |+| snapshot.tradingStats
         val event = com.github.ppotseluev.algorate.trader.akkabot.Event.TradingSnapshot(
           snapshot,

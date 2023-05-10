@@ -3,16 +3,16 @@ package com.github.ppotseluev.algorate.trader.policy
 import cats.Semigroup
 import cats.data.NonEmptyList
 import cats.implicits._
-import com.github.ppotseluev.algorate.Currency
 import com.github.ppotseluev.algorate.Price
+import com.github.ppotseluev.algorate.TradingAsset
 
 object Policy {
   def combine(policy: Policy, policies: Policy*): Policy = request =>
     NonEmptyList(policy, policies.toList).reduceMap(_.apply(request))
 
   case class TradeRequest(
-      price: Price,
-      currency: Currency
+      asset: TradingAsset,
+      price: Price
   )
 
   sealed trait Decision {
@@ -20,7 +20,7 @@ object Policy {
       case allowed: Decision.Allowed => allowed
       case _: Decision.Denied        => decision
     }
-    def lots: Int
+    def lots: Double
   }
 
   object Decision {
@@ -32,9 +32,9 @@ object Policy {
         case (Denied(message1), Denied(message2)) => Denied(s"$message1, $message2")
       }
 
-    case class Allowed(lots: Int) extends Decision
+    case class Allowed(lots: Double) extends Decision
     case class Denied(message: String) extends Decision {
-      override def lots: Int = 0
+      override def lots: Double = 0
     }
   }
 }

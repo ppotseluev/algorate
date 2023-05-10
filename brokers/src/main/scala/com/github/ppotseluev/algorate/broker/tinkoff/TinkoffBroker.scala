@@ -97,11 +97,14 @@ object TinkoffBroker {
         .map(TinkoffConverters.convert)
         .map(OrderPlacementInfo(orderId, _))
 
-    override def placeOrder(order: Order): F[OrderPlacementInfo] =
-      api
+    override def placeOrder(order: Order): F[OrderPlacementInfo] = {
+      val lots = order.lots.toInt
+      Sync[F].raiseWhen(lots != order.lots)(
+        new RuntimeException(s"invalid lots ${order.lots}")
+      ) >> api
         .postOrder(
           order.instrumentId,
-          order.lots,
+          lots,
           price(order),
           orderDirection(order),
           brokerAccountId,
@@ -114,6 +117,7 @@ object TinkoffBroker {
             status = TinkoffConverters.convert(r.getExecutionReportStatus)
           )
         }
+    }
 
     private def price(order: Order): Quotation = {
       val RealNumber(units, nano) = order.price.asRealNumber
@@ -141,18 +145,20 @@ object TinkoffBroker {
         closePrice = TinkoffConverters.price(candle.getClose),
         lowPrice = TinkoffConverters.price(candle.getLow),
         highPrice = TinkoffConverters.price(candle.getHigh),
-        volume = candle.getVolume,
+        volume = candle.getVolume.toDouble,
+        trades = 0,
         endTime = TinkoffConverters.fromProto(candle.getTime, zoneId),
         duration = candleDuration
       )
 
     private def candleInterval(timeResolution: CandleResolution): CandleInterval =
       timeResolution match {
-        case CandleResolution.OneMinute => CandleInterval.CANDLE_INTERVAL_1_MIN
+        case CandleResolution.OneMinute  => CandleInterval.CANDLE_INTERVAL_1_MIN
+        case CandleResolution.FiveMinute => CandleInterval.CANDLE_INTERVAL_5_MIN
       }
 
     override def getData(
-        instrumentId: InstrumentId,
+        asset: TradingAsset,
         candlesInterval: CandlesInterval
     ): F[List[Bar]] = {
       val resolution = candlesInterval.resolution
@@ -160,7 +166,7 @@ object TinkoffBroker {
       def get(day: Day) = {
         api
           .getCandles(
-            instrumentId,
+            asset.instrumentId,
             day.start,
             day.end,
             candleInterval(resolution)
@@ -190,10 +196,10 @@ object TinkoffBroker {
         testBroker.placeOrder(order)
 
       override def getData(
-          instrumentId: InstrumentId,
+          asset: TradingAsset,
           candlesInterval: CandlesInterval
       ): F[List[Bar]] =
-        testBroker.getData(instrumentId, candlesInterval)
+        testBroker.getData(asset, candlesInterval)
 
       override def getPositions: F[Positions] = broker.getPositions
     }
@@ -213,10 +219,10 @@ object TinkoffBroker {
         broker.placeOrder(order)
 
       override def getData(
-          instrumentId: InstrumentId,
+          asset: TradingAsset,
           candlesInterval: CandlesInterval
       ): F[List[Bar]] =
-        broker.getData(instrumentId, candlesInterval)
+        broker.getData(asset, candlesInterval)
 
       override def getPositions: F[Positions] = _broker.getPositions
     }
@@ -253,10 +259,10 @@ object TinkoffBroker {
         broker.placeOrder(order)
 
       override def getData(
-          instrumentId: InstrumentId,
+          asset: TradingAsset,
           candlesInterval: CandlesInterval
       ): F[List[Bar]] =
-        broker.getData(instrumentId, candlesInterval)
+        broker.getData(asset, candlesInterval)
 
       override def getPositions: F[Positions] = _broker.getPositions
     }

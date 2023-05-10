@@ -17,6 +17,12 @@ case class Stats(enrichedPositions: Seq[EnrichedPosition]) {
     if (fee) p.hasProfit
     else p.getGrossProfit.isPositive
   }
+
+  def nonWinningPositions(fee: Boolean): Int = positions.count { p =>
+    if (fee) !p.hasProfit
+    else !p.getGrossProfit.isPositive
+  }
+
   def winRatio(fee: Boolean): Double = winningPositions(fee).toDouble / totalClosedPositions
 
   def forMonth(month: YearMonth): Stats = {
@@ -58,7 +64,7 @@ object Stats {
 
     override def combine(x: Stats, y: Stats): Stats =
       Stats(
-        (x.enrichedPositions ++ y.enrichedPositions).distinctBy(_.entryTime)
+        (x.enrichedPositions ++ y.enrichedPositions).sortBy(_.position.getEntry.getIndex)
       )
   }
 

@@ -5,6 +5,7 @@ import com.github.ppotseluev.algorate._
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
 import java.time.Instant
 import java.time.LocalDate
+import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.stream.Collectors
 import scala.concurrent.duration.DurationInt
@@ -39,6 +40,21 @@ object Broker {
   case class DaysInterval(start: LocalDate, end: LocalDate) {
     require(!start.isAfter(end), "start can't be after end")
 
+    def contains(dateTime: OffsetDateTime): Boolean =
+      dateTime.isAfter(start.atStartOfDay.atOffset(ZoneOffset.UTC)) &&
+        dateTime.isBefore(end.plusDays(1).atStartOfDay.atOffset(ZoneOffset.UTC))
+
+    def contains(year: Int, month: Int): Boolean =
+      if (years.size == 1) {
+        years.contains(year) && month >= start.getMonth.getValue && month <= end.getMonth.getValue
+      } else {
+        (year < end.getYear && year > start.getYear) ||
+        (year == start.getYear && month >= start.getMonth.getValue) ||
+        (year == end.getYear && month <= end.getMonth.getValue)
+      }
+
+    def years: Seq[Int] = start.getYear to end.getYear
+
     def days: List[Day] =
       start
         .datesUntil(end.plusDays(1))
@@ -62,6 +78,12 @@ object Broker {
   object CandleResolution {
     case object OneMinute extends CandleResolution {
       override def duration: FiniteDuration = 1.minute
+      override def toString: String = "1m"
+    }
+
+    case object FiveMinute extends CandleResolution {
+      override def duration: FiniteDuration = 5.minute
+      override def toString: String = "5m"
     }
   }
 }

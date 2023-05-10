@@ -44,7 +44,7 @@ object EventsSink extends LoggingSupport {
              |""".stripMargin
             val img = TradingCharts.buildImage(
               strategyBuilder = snapshot.strategyBuilder,
-              series = snapshot.unsafe.barSeries,
+              assetData = snapshot.unsafeAssetData,
               tradingStats = Some(snapshot.tradingStats),
               title = s"${snapshot.asset.ticker}"
             )

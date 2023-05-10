@@ -5,7 +5,7 @@ import enumeratum._
 
 case class Order(
     instrumentId: InstrumentId,
-    lots: Int,
+    lots: Double,
     operationType: OperationType,
     details: Order.Details,
     info: Order.Info

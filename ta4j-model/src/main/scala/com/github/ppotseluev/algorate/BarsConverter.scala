@@ -11,7 +11,7 @@ import scala.jdk.DurationConverters._
 
 object BarsConverter {
   def convertBar(bar: Bar): Ta4jBar = {
-    val Bar(openPrice, closePrice, lowPrice, highPrice, volume, endTime, duration) = bar
+    val Bar(openPrice, closePrice, lowPrice, highPrice, volume, trades, endTime, duration) = bar
     BaseBar
       .builder[BigDecimal](x => DecimalNum.valueOf(x.bigDecimal), null)
       .openPrice(openPrice)
@@ -19,6 +19,7 @@ object BarsConverter {
       .lowPrice(lowPrice)
       .highPrice(highPrice)
       .volume(volume)
+      .trades(trades)
       .timePeriod(duration.toJava)
       .endTime(endTime.toZonedDateTime)
       .build

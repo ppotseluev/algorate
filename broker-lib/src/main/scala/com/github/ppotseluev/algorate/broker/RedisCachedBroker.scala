@@ -4,9 +4,9 @@ import cats.Monad
 import cats.Parallel
 import cats.implicits._
 import com.github.ppotseluev.algorate.Bar
-import com.github.ppotseluev.algorate.InstrumentId
 import com.github.ppotseluev.algorate.Order
 import com.github.ppotseluev.algorate.OrderId
+import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.Day
 import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
@@ -22,9 +22,10 @@ class RedisCachedBroker[F[_]: Monad: Parallel](
   override def placeOrder(order: Order): F[OrderPlacementInfo] = broker.placeOrder(order)
 
   override def getData(
-      instrumentId: InstrumentId,
+      asset: TradingAsset,
       candlesInterval: CandlesInterval
   ): F[List[Bar]] = {
+    val instrumentId = asset.instrumentId
     def key(day: Day) = s"${instrumentId}_${candlesInterval.resolution}_${day.id}"
     val days = candlesInterval.interval.days
     for {
@@ -37,7 +38,7 @@ class RedisCachedBroker[F[_]: Monad: Parallel](
               logger.info(s"Cache miss $instrumentId $day")
               for {
                 newData <- broker.getData(
-                  instrumentId,
+                  asset,
                   candlesInterval.copy(interval = DaysInterval.singleDay(day))
                 )
                 _ <- barsCache.set(key(day), newData)

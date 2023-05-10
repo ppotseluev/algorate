@@ -51,7 +51,8 @@ object Codecs {
         closePrice: BigDecimal,
         lowPrice: BigDecimal,
         highPrice: BigDecimal,
-        volume: Long,
+        volume: Double,
+        trades: Long,
         endTimeSeconds: Long,
         endTimeNano: Int,
         duration: FiniteDuration
@@ -62,6 +63,7 @@ object Codecs {
         lowPrice = lowPrice,
         highPrice = highPrice,
         volume = volume,
+        trades = trades,
         endTime = OffsetDateTime.ofInstant(
           Instant.ofEpochSecond(endTimeSeconds).plusNanos(endTimeNano),
           ZoneOffset.UTC
@@ -79,7 +81,8 @@ object Codecs {
         volume = bar.volume,
         endTimeSeconds = bar.endTime.toEpochSecond,
         endTimeNano = bar.endTime.getNano,
-        duration = bar.duration
+        duration = bar.duration,
+        trades = bar.trades
       )
 
     new Pickler[Bar] {

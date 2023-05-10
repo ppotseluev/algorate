@@ -6,6 +6,7 @@ import com.github.ppotseluev.algorate.math.Approximator
 import com.github.ppotseluev.algorate.math.Approximator.Approximation
 import com.github.ppotseluev.algorate.math.WeightedPoint
 import com.github.ppotseluev.algorate.strategy.indicator.ExtremumCollector._
+import org.apache.commons.math3.analysis.polynomials.PolynomialFunction
 import org.ta4j.core.indicators.AbstractIndicator
 import org.ta4j.core.indicators.RecursiveCachedIndicator
 import org.ta4j.core.num.Num
@@ -123,6 +124,8 @@ class ChannelIndicator private (
       val lastMin = collectExtremums[Extremum.Min](index, 1).headOption
       val lastMax = collectExtremums[Extremum.Max](index, 1).headOption
 //      isInsideChannel(channel, lastMin) && isInsideChannel(channel, lastMax) || TODO
+      // extremums inside channel probably shouldn't break it. But there is a problem with divergent channels
+      // they can become infinite in this case
       val lastExtrFit = lastMin.exists(isFit(channel, _)) && lastMax.exists(isFit(channel, _))
       val curValue = baseIndicator.getValue(index)
       val curPoint = index -> curValue.doubleValue
@@ -205,6 +208,13 @@ object ChannelIndicator {
       allExtremums: Bounds[List[Extremum]],
       startIndex: Int
   ) {
+    def k: Bounds[Double] = bounds.map {
+      _.func
+        .asInstanceOf[PolynomialFunction]
+        .getCoefficients
+        .last
+    }
+
     def addExtremums(extremums: Iterable[Extremum]): Channel =
       extremums.foldLeft(this)(_ addExtremum _)
 

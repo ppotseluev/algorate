@@ -71,4 +71,6 @@ object Dependency {
     val csvGeneric = "com.nrinaudo" %% "kantan.csv-generic" % version
     val all = Seq(csv, csvGeneric)
   }
+
+  val breeze = "org.scalanlp" %% "breeze" % "2.1.0"
 }

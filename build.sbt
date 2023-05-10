@@ -74,7 +74,7 @@ lazy val `ta4j-model` = project //TODO rework
       Dependency.ta4j
     )
   )
-  .dependsOn(`model`)
+  .dependsOn(`model`, `math-utils`)
 
 lazy val `trader-charts` = project
   .settings(
@@ -131,17 +131,18 @@ lazy val `redis-utils` = project
 lazy val `strategy` = project
   .settings(
     name := "strategy",
-    settings,
-    libraryDependencies ++= Seq(
-      Dependency.ta4j
-    )
+    settings
   )
-  .dependsOn(`math-utils`)
+  .dependsOn(`math-utils`, `ta4j-model`)
 
 lazy val `tools-app` = project
   .settings(
     name := "tools-app",
-    settings
+    settings,
+    libraryDependencies ++= Seq(
+      Dependency.breeze,
+      "org.scala-lang.modules" %% "scala-parallel-collections" % "1.0.3"
+    )
   )
   .dependsOn(
     `server`,

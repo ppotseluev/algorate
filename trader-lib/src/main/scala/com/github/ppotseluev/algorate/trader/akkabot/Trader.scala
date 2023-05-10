@@ -11,7 +11,7 @@ import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus.Complet
 import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus.Failed
 import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus.Pending
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
-import com.github.ppotseluev.algorate.strategy.FullStrategy
+import com.github.ppotseluev.algorate.strategy.StrategyBuilder
 import com.github.ppotseluev.algorate.trader.LoggingSupport
 import com.github.ppotseluev.algorate.trader.akkabot.Trader.Event.OrderUpdated
 import com.github.ppotseluev.algorate.trader.akkabot.Trader.Position.State
@@ -55,14 +55,16 @@ object Trader extends LoggingSupport {
   case class StateSnapshot(
       asset: TradingAsset,
       triggeredBy: Event,
-      strategyBuilder: BarSeries => FullStrategy,
+      strategyBuilder: StrategyBuilder,
       state: TraderState,
       firstBarTs: Option[ZonedDateTime],
       lastBar: Option[Bar],
       lag: Option[FiniteDuration],
       tradingStats: TradingStats,
       unsafe: StateSnapshot.Unsafe
-  )
+  ) {
+    def unsafeAssetData = AssetData(asset, unsafe.barSeries)
+  }
 
   object StateSnapshot {
     case class Unsafe(
@@ -120,9 +122,8 @@ object Trader extends LoggingSupport {
   }
 
   def apply(
-      instrumentId: InstrumentId,
       asset: TradingAsset,
-      strategyBuilder: BarSeries => FullStrategy,
+      strategyBuilder: StrategyBuilder,
       policy: Policy,
       broker: Broker[Future],
       keepLastBars: Int,
@@ -130,12 +131,14 @@ object Trader extends LoggingSupport {
       snapshotSink: TraderSnapshotSink,
       maxLag: Option[FiniteDuration]
   ): Behavior[Event] = {
+    val instrumentId = asset.instrumentId
+
     val logger = getLogger(s"Trader-${asset.ticker}")
 
     def buildOrder(
         point: Point,
         operationType: OperationType,
-        lots: Int
+        lots: Double
     ): Order = Order(
       instrumentId = instrumentId,
       lots = lots,
@@ -153,7 +156,8 @@ object Trader extends LoggingSupport {
     Behaviors.setup { _ =>
       val barSeries = new BaseBarSeries(instrumentId)
       barSeries.setMaximumBarCount(keepLastBars)
-      val strategy = strategyBuilder(barSeries)
+      val assetData = AssetData(asset, barSeries)
+      val strategy = strategyBuilder(assetData)
       var currentBar: Option[Bar] = None
       var state: TraderState = TraderState.Empty
       val longHistory = new BaseTradingRecord(TradeType.BUY, feeModel, zeroCost)
@@ -191,7 +195,7 @@ object Trader extends LoggingSupport {
           ctx.pipeToSelf(broker.placeOrder(order))(orderPlacedEvent(order))
         def tryEnter(operationType: OperationType): Unit = {
           val trade = TradeRequest(
-            currency = asset.currency,
+            asset = asset,
             price = point.value
           )
           policy.apply(trade) match {

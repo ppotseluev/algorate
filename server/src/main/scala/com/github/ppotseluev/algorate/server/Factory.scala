@@ -10,6 +10,7 @@ import cats.implicits._
 import com.github.ppotseluev.algorate.Bar
 import com.github.ppotseluev.algorate.InstrumentId
 import com.github.ppotseluev.algorate.Ticker
+import com.github.ppotseluev.algorate.broker.Archive
 import com.github.ppotseluev.algorate.broker.tinkoff.TinkoffApi
 import com.github.ppotseluev.algorate.broker.tinkoff.TinkoffBroker
 import com.github.ppotseluev.algorate.redis.RedisCodecs
@@ -54,6 +55,11 @@ class Factory[F[_]: Async: Parallel] {
   lazy val investApi: InvestApi = InvestApi.createSandbox(tinkoffAccessToken)
 
   val redisClient: Resource[F, RedisClient] = RedisClient[F].from("redis://localhost")
+
+  val archive = new Archive[F](
+    tinkoffAccessToken,
+    new File(historicalDataArchive.getOrElse("unknown")).toPath
+  )
 
   val tinkoffBroker: Resource[F, TinkoffBroker[F]] = for {
     candlesLimiter <- Limiter.start[F](candlesMinInterval)
@@ -121,5 +127,5 @@ class Factory[F[_]: Async: Parallel] {
 }
 
 object Factory {
-  val io = new Factory[IO]
+  implicit val io = new Factory[IO]
 }

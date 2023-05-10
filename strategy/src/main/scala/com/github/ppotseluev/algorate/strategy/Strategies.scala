@@ -8,22 +8,22 @@ import com.github.ppotseluev.algorate.strategy.FullStrategy.Representation.Point
 import com.github.ppotseluev.algorate.strategy.indicator.ChannelIndicator
 import com.github.ppotseluev.algorate.strategy.indicator.ChannelIndicator.Channel
 import com.github.ppotseluev.algorate.strategy.indicator.ChannelUtils
-import com.github.ppotseluev.algorate.strategy.indicator.HasDataIndicator
 import com.github.ppotseluev.algorate.strategy.indicator.IndicatorSyntax
 import com.github.ppotseluev.algorate.strategy.indicator.LocalExtremumIndicator
 import com.github.ppotseluev.algorate.strategy.indicator.LocalExtremumIndicator.Extremum
 import com.github.ppotseluev.algorate.strategy.indicator.VisualChannelIndicator
 import com.github.ppotseluev.algorate.strategy.indicator._
-import org.apache.commons.math3.analysis.polynomials.PolynomialFunction
-import org.ta4j.core.BarSeries
 import org.ta4j.core.BaseStrategy
 import org.ta4j.core.Strategy
 import org.ta4j.core.TradingRecord
 import org.ta4j.core.indicators.AbstractIndicator
+import org.ta4j.core.indicators.EMAIndicator
+import org.ta4j.core.indicators.MACDIndicator
+import org.ta4j.core.indicators.SMAIndicator
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator
 import org.ta4j.core.indicators.helpers.DifferenceIndicator
 import org.ta4j.core.indicators.helpers.SumIndicator
-import org.ta4j.core.indicators.helpers.VolumeIndicator
+import org.ta4j.core.indicators.helpers.TradeCountIndicator
 import org.ta4j.core.num.NaN
 import org.ta4j.core.num.Num
 import org.ta4j.core.rules._
@@ -34,10 +34,14 @@ object Strategies {
     BooleanRule.FALSE
   )
 
+  val intraChannel = IntraChannel()
+  val channelBreakdown = ChannelBreakdown()
+
   def random(
-      enterChance: Double,
-      exitChance: Double
-  ): BarSeries => FullStrategy = barSeries => {
+      enterChance: Double = 0.01,
+      exitChance: Double = 0.05
+  ): StrategyBuilder = assetData => {
+    val barSeries = assetData.barSeries
     def rule(chance: Double) = new AbstractRule {
       override def isSatisfied(index: Int, tradingRecord: TradingRecord): Boolean =
         math.random() < chance && barSeries.getBarCount > 30
@@ -54,65 +58,67 @@ object Strategies {
     )
   }
 
-  val intraChannel: BarSeries => FullStrategy = implicit series => {
-//    def hasAlternatingExtremums(channel: Channel): Boolean = {
-//      val mins = channel.allExtremums.lower
-//      val maxs = channel.allExtremums.upper
-//      (mins ++ maxs)
-//        .sortBy(_.index)
-//        .foldLeft((true, none[Extremum])) { case ((accFlag, last), extr) =>
-//          def ok = (last, extr) match {
-//            case (Some(_: Extremum.Max), _: Extremum.Min) => true
-//            case (Some(_: Extremum.Min), _: Extremum.Max) => true
-//            case (None, _)                                => true
-//            case _                                        => false
-//          }
-//          (accFlag && ok) -> extr.some
-//        }
-//        ._1
-//    }
+  case class Params(
+      extremumWindowSize: Int = 80,
+      maxError: Double = 0.0075,
+      maxParallelDelta: Double = 0.7,
+      minPotentialChange: Double = 0.02,
+      shortMacdPeriod: Int = 10,
+      longMacdPeriod: Int = 18,
+      macdSignalPeriod: Int = 8
+  )
+
+  val default = createDefault(Params())
+
+  def createDefault(params: Params): StrategyBuilder = assetData => {
+    val series = assetData.barSeries
+    val asset = assetData.asset
+    import params._
 
     def num(number: Number): Num =
       series.numOf(number)
 
-//    it's not very useful cuz different assets may have different trading periods.
-//    So `hasFutureData` is used for now instead.
-//    val tradeTimeRange = new TimeRange(
-//      LocalTime.of(7, 0),
-//      LocalTime.of(16, 0)
-//    )
-//    val time: AbstractIndicator[ZonedDateTime] = new DateTimeIndicator(series)
     val closePrice = new ClosePriceIndicator(series)
-    val volumeIndicator: AbstractIndicator[Num] = new VolumeIndicator(series)
-    val extremumWindowSize = 30
-    val hasData: AbstractIndicator[Boolean] = new HasDataIndicator(extremumWindowSize, series)
-    val hasFutureData =
-      hasData.shifted( //uses future data, won't be available in real life but it's solvable
-        extremumWindowSize,
-        defaultValue = false
-      )
-    val _extremum: AbstractIndicator[Option[Extremum]] =
+    val extremum: AbstractIndicator[Option[Extremum]] =
       LocalExtremumIndicator(closePrice, extremumWindowSize)
-    val extremum: AbstractIndicator[Option[Extremum]] = _extremum
-//      new FilteredExtremumIndicator(
-//        extremumIndicator = _extremum,
-//        minIndexDelta = 10,
-//        minPercent = 0.01
-//      )
-//    val minRelativeWidth = num(0.002) //todo...
     val channel: AbstractIndicator[Option[Channel]] = ChannelIndicator(
       baseIndicator = closePrice,
       extremumIndicator = extremum,
       approximator = Approximator.Linear,
       numOfPoints = 3,
-      maxError = 0.0009 //0.0007 0.003🤔
-    ).filter(ChannelUtils.isParallel(maxDelta = 0.6)) //todo?
-//      .filter(ChannelUtils.isWide(minPercent = 0.05))
+      maxError = maxError
+    ).filter(ChannelUtils.isParallel(maxParallelDelta)) //todo?
 
-    //TODO was (6, 0.5). (2, 0.2) - better?
+    val hasData: AbstractIndicator[Boolean] = new HasDataIndicator(extremumWindowSize / 2, series)
 
-    val feeFraction = 0.0005
-    val leastFeeFactor = 2
+    val tradesCountIndicator =
+      (new TradeCountIndicator(series): AbstractIndicator[java.lang.Long]).map(num)
+//      new VolumeIndicator(series)
+    val tradesFastSma: AbstractIndicator[Num] = //tradesCountIndicator
+      new SMAIndicator(tradesCountIndicator, 2)
+    val tradesSlowSma: AbstractIndicator[Num] = new SMAIndicator(tradesCountIndicator, 200)
+    val tradesUpper = tradesSlowSma.map(_.multipliedBy(num(1.25)))
+    val tradesLower = tradesSlowSma.map(_.multipliedBy(num(0.75)))
+
+    val normalTrades = for {
+      tradesCount <- tradesFastSma
+      upper <- tradesUpper
+      lower <- tradesLower
+    } yield {
+      tradesCount.isGreaterThanOrEqual(lower) &&
+      tradesCount.isLessThanOrEqual(upper) &&
+      tradesCount.isGreaterThanOrEqual(num(50)) //TODO
+    }
+
+    // Define MACD parameters
+    val shortPeriod = shortMacdPeriod
+    val longPeriod = longMacdPeriod //2 * shortPeriod
+    val signalPeriod = macdSignalPeriod //longPeriod / 3
+    // Calculate the MACD line
+    val macd = new MACDIndicator(closePrice, shortPeriod, longPeriod)
+
+    // Calculate the signal line (an EMA of the MACD line)
+    val macdEma = new EMAIndicator(macd, signalPeriod)
 
     val lowerBoundIndicator = channel.map(_.map(_.section.lowerBound).getOrElse(NaN.NaN))
     val upperBoundIndicator = channel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
@@ -120,94 +126,49 @@ object Strategies {
     val channelDiffIndicator: AbstractIndicator[Num] =
       new DifferenceIndicator(upperBoundIndicator, lowerBoundIndicator)
     val halfChannel = channelDiffIndicator.map(_.dividedBy(num(2)))
-
-    val channelIsDefinedRule = new BooleanIndicatorRule(channel.map(_.isDefined))
-
-    val leastLongTarget = (closePrice: AbstractIndicator[Num]).map { price =>
-      price.multipliedBy(num(1 + leastFeeFactor * feeFraction))
-    }
-
-    val leastShortTarget = (closePrice: AbstractIndicator[Num]).map { price =>
-      price.multipliedBy(num(1 - leastFeeFactor * feeFraction))
-    }
-
     val midChannelIndicator: AbstractIndicator[Num] =
       new SumIndicator(lowerBoundIndicator, halfChannel)
 
-    val exitLongRule =
-      //todo consider channel width
-      new StopLossRule(closePrice, 1)
-        .or(new StopGainRule(closePrice, 1))
-        .or(new CrossedUpIndicatorRule(closePrice, midChannelIndicator))
-        .or(new CrossedDownIndicatorRule(closePrice, lowerBoundIndicator \-\ halfChannel))
-        .or(channelIsDefinedRule.negation)
-
-    val priceIsNotTooHigh: AbstractIndicator[java.lang.Boolean] =
+    val channelIsWideEnough =
       for {
-        price <- leastLongTarget
-        bound <- midChannelIndicator
-      } yield price.isLessThan(bound)
+        p <- closePrice: AbstractIndicator[Num]
+        h <- halfChannel
+      } yield h.dividedBy(p).isGreaterThan(num(minPotentialChange))
 
-    val coreLongRule =
-      channelIsDefinedRule &
-        new BooleanIndicatorRule(
-          channel.map(
-            _.exists(
-              _.lowerBoundApproximation.func
-                .asInstanceOf[PolynomialFunction]
-                .getCoefficients
-                .last < 0 //todo 🤔🤔🤔
-            )
-          )
-        ) &
-        new CrossedUpIndicatorRule(closePrice, lowerBoundIndicator) &
-        new BooleanIndicatorRule(priceIsNotTooHigh) &
-        new BooleanIndicatorRule(
-          volumeIndicator.map(_.isGreaterThan(num(500)))
-        ) //TODO research... maybe use some derived ind?
-    val coreShortRule = {
-      val priceIsNotTooLow: AbstractIndicator[java.lang.Boolean] =
-        for {
-          price <- leastShortTarget
-          bound <- midChannelIndicator
-        } yield price.isGreaterThan(bound)
-      channelIsDefinedRule &
-        new BooleanIndicatorRule(
-          channel.map(
-            _.exists(
-              _.upperBoundApproximation.func
-                .asInstanceOf[PolynomialFunction]
-                .getCoefficients
-                .last > 0
-            )
-          )
-        ) &
-        new CrossedDownIndicatorRule(closePrice, upperBoundIndicator) &
-        new BooleanIndicatorRule(priceIsNotTooLow) &
-        new BooleanIndicatorRule(
-          volumeIndicator.map(_.isGreaterThan(num(500)))
-        )
-    }
-//    val timeRule =
-//      new TimeRangeRule(Seq(tradeTimeRange).asJava, time.asInstanceOf[DateTimeIndicator])
     val entryLongRule =
-      new BooleanIndicatorRule(hasData.map(boolean2Boolean)) &
-        new BooleanIndicatorRule(hasFutureData.map(boolean2Boolean)) &
-//        timeRule &
-        coreLongRule
+      channel.map(_.isDefined).asRule &
+        channelIsWideEnough.asRule &
+        new CrossedDownIndicatorRule(closePrice, upperBoundIndicator) &
+        new UnderIndicatorRule(macd, macdEma) &
+        hasData.asRule.useIf(asset.isShare).orTrue &
+        normalTrades.asRule.useIf(asset.isCrypto).orTrue
+//        channel.exists[Channel](c => c.k.upper > 0).asRule
+
     val entryShortRule =
-      new BooleanIndicatorRule(hasData.map(boolean2Boolean)) &
-        new BooleanIndicatorRule(hasFutureData.map(boolean2Boolean)) &
-//        timeRule &
-        coreShortRule
-    val exitShortRule =
-      new StopLossRule(closePrice, 1)
-        .or(new StopGainRule(closePrice, 1))
-        .or(new CrossedDownIndicatorRule(closePrice, midChannelIndicator))
-        .or(new CrossedUpIndicatorRule(closePrice, upperBoundIndicator \+\ halfChannel))
-        .or(channelIsDefinedRule.negation)
-    val buyingStrategy = new BaseStrategy(entryLongRule, exitLongRule)
-    val sellingStrategy = new BaseStrategy(entryShortRule, exitShortRule)
+      channel.map(_.isDefined).asRule &
+        channelIsWideEnough.asRule &
+        new CrossedUpIndicatorRule(closePrice, lowerBoundIndicator) &
+        new OverIndicatorRule(macd, macdEma) &
+        hasData.asRule.useIf(asset.isShare).orTrue &
+        normalTrades.asRule.useIf(asset.isCrypto).orTrue
+//        channel.exists[Channel](c => c.k.lower < 0).asRule
+
+    val exitRule = new AbstractRule {
+      override def isSatisfied(index: Int, tradingRecord: TradingRecord): Boolean =
+        Option(tradingRecord.getCurrentPosition) match {
+          case Some(position) =>
+            val entryIndex = position.getEntry.getIndex
+            val h = halfChannel.getValue(entryIndex)
+            val price = closePrice.getValue(index)
+            val entryPrice = closePrice.getValue(entryIndex)
+            price.isGreaterThanOrEqual(entryPrice.plus(h)) ||
+            price.isLessThanOrEqual(entryPrice.minus(h))
+          case None => false
+        }
+    }
+
+    val buyingStrategy = new BaseStrategy(entryLongRule, exitRule)
+    val sellingStrategy = new BaseStrategy(entryShortRule, exitRule)
 
     def visualPriceIndicators() = {
       val visualExtremum: AbstractIndicator[Option[Extremum]] =
@@ -221,14 +182,25 @@ object Strategies {
         visualChannel.map(_.map(_.section.lowerBound).getOrElse(NaN.NaN))
       val visualUpperBoundIndicator =
         visualChannel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
-      val leastTargetIndicator = (closePrice: AbstractIndicator[Num]).zipWithIndex
+
+      val takeProfitIndicator = (closePrice: AbstractIndicator[Num]).zipWithIndex
         .map { case (index, price) =>
           if (entryShortRule.isSatisfied(index))
-            price.multipliedBy(num(1 - leastFeeFactor * feeFraction))
+            (closePrice \-\ halfChannel).getValue(index)
           else if (entryLongRule.isSatisfied(index))
-            price.multipliedBy(num(1 + leastFeeFactor * feeFraction))
+            (closePrice \+\ halfChannel).getValue(index)
           else NaN.NaN
         }
+
+      val stopLossIndicator = (closePrice: AbstractIndicator[Num]).zipWithIndex
+        .map { case (index, price) =>
+          if (entryShortRule.isSatisfied(index))
+            price.plus(halfChannel.getValue(index))
+          else if (entryLongRule.isSatisfied(index))
+            price.minus(halfChannel.getValue(index))
+          else NaN.NaN
+        }
+
       Map(
         "close price" -> IndicatorInfo(closePrice),
         "extrMin" -> IndicatorInfo(
@@ -247,7 +219,8 @@ object Strategies {
         ),
         "lowerBound" -> IndicatorInfo(visualLowerBoundIndicator),
         "upperBound" -> IndicatorInfo(visualUpperBoundIndicator),
-        "leastTarget" -> IndicatorInfo(leastTargetIndicator, Representation.Points),
+        "takeProfit" -> IndicatorInfo(takeProfitIndicator, Representation.Points),
+        "stopLoss" -> IndicatorInfo(stopLossIndicator, Representation.Points),
         "mid" -> IndicatorInfo(midChannelIndicator)
       )
     }
@@ -256,9 +229,9 @@ object Strategies {
       shortStrategy = sellingStrategy,
       getPriceIndicators = visualPriceIndicators,
       oscillators = Map(
-//        "hasData" -> IndicatorInfo(hasData.map(if (_) num(50) else series.num(0))),
-//        "width" -> IndicatorInfo(relativeWidthIndicator),
-        "volume" -> IndicatorInfo(volumeIndicator)
+//        "macd" -> IndicatorInfo(macd),
+//        "macdEma" -> IndicatorInfo(macdEma),
+        "trades" -> IndicatorInfo(tradesCountIndicator)
       )
     )
   }

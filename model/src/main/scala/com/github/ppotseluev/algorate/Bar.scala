@@ -8,7 +8,8 @@ case class Bar(
     closePrice: Price,
     lowPrice: Price,
     highPrice: Price,
-    volume: Long,
+    volume: Double,
+    trades: Long,
     endTime: OffsetDateTime,
     duration: FiniteDuration
 )
