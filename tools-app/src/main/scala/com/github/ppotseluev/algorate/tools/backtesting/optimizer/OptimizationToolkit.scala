@@ -35,7 +35,7 @@ object OptimizationToolkit {
   )
 
   object PerformanceMetrics {
-    implicit val ord: Ordering[PerformanceMetrics] = Ordering.by(_.realProfit)
+    val ordByProfit: Ordering[PerformanceMetrics] = Ordering.by(_.realProfit)
 
     def fromResults(sectorsResults: SectorsResults): PerformanceMetrics = {
       val stats = sectorsResults.aggregatedStats

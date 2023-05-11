@@ -25,21 +25,23 @@ import scala.concurrent.duration._
 
 object CurrentStrategy {
 
-  val params = Params()
+  val params = Params(
+    enableFeature = true
+  )
 
   def apply() = Strategies.createDefault(params)
 }
 
 object AssetsSelector extends IOApp.Simple {
   //TODO consider not splitting dataset for more accurate results
-  private implicit val sampler: Sampler = Sampler.All
-//    .SampleSize(200, seed = 27441L.some)
+  private implicit val sampler: Sampler = Sampler //.All
+//    .SampleSize(200, seed = 12L.some)
 //    .SampleSize(500, seed = 11111100L.some)
-//    .KFold(
-//      k = 10,c
-//      select = 6.some
-//    )
-  private val mode: Mode = Mode.Periods(Period(2022))
+    .KFold(
+      k = 6,
+      select = 0.some
+    )
+  private val mode: Mode = Mode.Validate
 //Mode.Periods(
 //  Period(2022, (MonthDay.of(1, 25) -> MonthDay.of(3, 5)).some)
 //    Period(2021)
@@ -52,7 +54,8 @@ object AssetsSelector extends IOApp.Simple {
 //    Period.secondHalf(2022)
 //  )
 
-  private val assets = cryptocurrencies.sample //shares ++ allCryptocurrencies ++ cryptocurrencies
+  private val assets =
+    allCryptocurrencies.sample //shares ++ allCryptocurrencies ++ cryptocurrencies
   private val selectionStrategy: SelectionStrategy = SelectAll
 //    ByLowProfit(0.1)
 //    ByStability(0.5)

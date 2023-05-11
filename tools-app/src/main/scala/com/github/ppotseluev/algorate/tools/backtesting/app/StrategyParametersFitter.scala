@@ -82,7 +82,7 @@ object StrategyParametersFitter extends IOApp.Simple {
       .map(_.map(PerformanceMetrics.fromResults).zip(paramList).swapF)
       .map { result =>
         val report = result
-          .sortBy(_._2)
+          .sortBy(_._2)(PerformanceMetrics.ordByProfit)
           .map { case (params, metrics) =>
             val values = params.productIterator.toList ++ metrics.productIterator.toList
             values.mkString(",")

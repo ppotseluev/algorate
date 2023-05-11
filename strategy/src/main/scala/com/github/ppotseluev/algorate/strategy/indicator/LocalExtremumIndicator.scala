@@ -41,6 +41,8 @@ object LocalExtremumIndicator {
     def value: Num
 
     def index: Int
+
+    final def point = index -> value.doubleValue
   }
 
   object Extremum {
