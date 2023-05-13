@@ -16,9 +16,9 @@ package object strategy {
     def useIf(p: Boolean): Option[Rule] =
       Option.when(p)(rule)
 
-    def featureRuleOrTrue(implicit feature: StrategyFeature): Rule = feature match {
-      case StrategyFeature.Disabled => BooleanRule.TRUE
-      case StrategyFeature.Enabled  => rule
+    def featureRule(implicit feature: StrategyFeature): Option[Rule] = feature match {
+      case StrategyFeature.Enabled  => Some(rule)
+      case StrategyFeature.Disabled => None
     }
   }
 

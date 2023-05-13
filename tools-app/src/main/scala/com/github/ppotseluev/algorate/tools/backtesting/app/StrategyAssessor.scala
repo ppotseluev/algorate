@@ -20,16 +20,21 @@ import scala.util.Random
 object StrategyAssessor extends IOApp.Simple {
   //total number of tests = periods.size * samplesCount * 2 (strategies count)
 
-  val samplesCount = 4
+  val samplesCount = 10
   val intervals: List[CandlesInterval] = List(
-    Period.firstHalf(2021),
-    Period.secondHalf(2021),
-    Period.firstHalf(2022),
-    Period.secondHalf(2022)
+//    Period.firstHalf(2021),
+//    Period.secondHalf(2021),
+    Period.firstHalf(2021)
+//    Period.secondHalf(2022)
   ).map(_.toCandlesInterval(CandleResolution.FiveMinute))
+
   val assets: List[TradingAsset] = {
-    implicit val sampler: Sampler = Sampler.SampleSize(100, seed = 5L.some)
-    allCryptocurrencies.sample
+    implicit val sampler: Sampler = Sampler.SampleSize(400, seed = 123000L.some)
+    (
+      shares.sample ++
+        cryptocurrencies.sample ++
+        allCryptocurrencies.sample
+    ).sample
   }
 
   private val strategies: StrategiesSet[StrategyBuilder] = StrategiesSet(

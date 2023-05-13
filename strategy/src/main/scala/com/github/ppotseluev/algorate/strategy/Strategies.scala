@@ -16,14 +16,7 @@ import com.github.ppotseluev.algorate.strategy.indicator._
 import org.ta4j.core.BaseStrategy
 import org.ta4j.core.Strategy
 import org.ta4j.core.TradingRecord
-import org.ta4j.core.indicators.{
-  AbstractIndicator,
-  EMAIndicator,
-  MACDIndicator,
-  SMAIndicator,
-  StochasticOscillatorDIndicator,
-  StochasticOscillatorKIndicator
-}
+import org.ta4j.core.indicators.{AbstractIndicator, EMAIndicator, MACDIndicator, RSIIndicator, SMAIndicator, StochasticOscillatorDIndicator, StochasticOscillatorKIndicator}
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator
 import org.ta4j.core.indicators.helpers.DifferenceIndicator
 import org.ta4j.core.indicators.helpers.SumIndicator
@@ -143,50 +136,26 @@ object Strategies {
         h <- halfChannel
       } yield h.dividedBy(p).isGreaterThan(num(minPotentialChange))
 
-    def featureRule(long: Boolean) = {
-//      val channelIsLongEnough =
-//        channel.zipWithIndex.map { case (i, ch) =>
-//          ch.exists { c =>
-//            i - c.startIndex > extremumWindowSize * 3
-//          }
-//        }
-//      channel.exists[Channel] { ch =>
-//        ch.k.map(math.abs).foldU { case (x, y) =>
-//          math.abs(x - y) / math.max(x, y)
-//        } < 0.5
-//      }
-//      if (long) {
-//        new CrossedUpIndicatorRule(stochasticK, stochasticD) &
-//          (stochasticK: AbstractIndicator[Num]).map(_.isLessThanOrEqual(num(20))).asRule
-//      } else {
-//        new CrossedDownIndicatorRule(stochasticK, stochasticD) &
-//          (stochasticK: AbstractIndicator[Num]).map(_.isGreaterThanOrEqual(num(80))).asRule
-//      }
-
-//      stochasticIndicator.map { x =>
-//        if (long) x.isGreaterThanOrEqual(num(40))
-//        else x.isLessThanOrEqual(num(60))
-//      }
-      BooleanRule.TRUE
-    }.featureRuleOrTrue
+    val stochastic: AbstractIndicator[Num] = new StochasticOscillatorKIndicator(
+      series,
+      signalPeriod //TODO
+    )
 
     val entryLongRule =
       channel.map(_.isDefined).asRule &
         channelIsWideEnough.asRule &
         new CrossedDownIndicatorRule(closePrice, upperBoundIndicator) &
-        new UnderIndicatorRule(macd, macdEma) &
+        stochastic.map(_.isGreaterThanOrEqual(num(60))).asRule.featureRule.getOrElse(new UnderIndicatorRule(macd, macdEma)) &
         hasData.asRule.useIf(asset.isShare).orTrue &
-        normalTrades.asRule.useIf(asset.isCrypto).orTrue &
-        featureRule(true)
+        normalTrades.asRule.useIf(asset.isCrypto).orTrue
 
     val entryShortRule =
       channel.map(_.isDefined).asRule &
         channelIsWideEnough.asRule &
         new CrossedUpIndicatorRule(closePrice, lowerBoundIndicator) &
-        new OverIndicatorRule(macd, macdEma) &
+        stochastic.map(_.isLessThanOrEqual(num(40))).asRule.featureRule.getOrElse(new OverIndicatorRule(macd, macdEma)) &
         hasData.asRule.useIf(asset.isShare).orTrue &
-        normalTrades.asRule.useIf(asset.isCrypto).orTrue &
-        featureRule(false)
+        normalTrades.asRule.useIf(asset.isCrypto).orTrue
 
     val exitRule = new AbstractRule {
       override def isSatisfied(index: Int, tradingRecord: TradingRecord): Boolean =

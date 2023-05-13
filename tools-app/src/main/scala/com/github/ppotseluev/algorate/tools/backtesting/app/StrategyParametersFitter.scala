@@ -15,15 +15,15 @@ import java.io.PrintWriter
 
 object StrategyParametersFitter extends IOApp.Simple {
 
-  val interval = Period(2021).toCandlesInterval(
-    CandleResolution.FiveMinute
-  )
-  implicit val sampler: Sampler = Sampler //.SampleSize(100, seed = 0L.some)
-    .KFold(
-      k = 4,
-      select = 1.some,
-      seed = 106L.some
-    )
+  val interval = Period
+    .firstHalf(2022)
+    .toCandlesInterval(CandleResolution.FiveMinute)
+  implicit val sampler: Sampler = Sampler.All //.SampleSize(100, seed = 0L.some)
+//    .KFold(
+//      k = 4,
+//      select = 1.some,
+//      seed = 106L.some
+//    )
   val assets: List[TradingAsset] = cryptocurrencies.sample
 
   val testkit = new Testkit[IO]()
@@ -35,11 +35,11 @@ object StrategyParametersFitter extends IOApp.Simple {
 //        paramRange = 60d -> 100d,
 //        paramStep = 5
 //      ),
-      ParamVariety(
-        set = (params, x) => params.copy(minPotentialChange = x),
-        paramRange = 0.01 -> 0.03,
-        paramStep = 0.001
-      )
+//      ParamVariety(
+//        set = (params, x) => params.copy(minPotentialChange = x),
+//        paramRange = 0.01 -> 0.03,
+//        paramStep = 0.001
+//      )
 //      ParamVariety(
 //        set = (params, x) => params.copy(maxError = x),
 //        paramRange = 0.004 -> 0.0085,
@@ -71,7 +71,9 @@ object StrategyParametersFitter extends IOApp.Simple {
 //        paramStep = 2
 //      )
     )
-    val initialParams = Params()
+    val initialParams = Params(
+      enableFeature = true
+    )
     val paramList = listParams(initialParams, paramsVariety).filter { params =>
       params.longMacdPeriod > params.shortMacdPeriod
     }

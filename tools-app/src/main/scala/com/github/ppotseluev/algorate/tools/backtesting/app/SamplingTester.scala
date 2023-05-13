@@ -6,28 +6,31 @@ import cats.implicits._
 import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.strategy.Strategies
+import com.github.ppotseluev.algorate.strategy.Strategies.Params
 import com.github.ppotseluev.algorate.strategy.StrategyBuilder
 import com.github.ppotseluev.algorate.tools.backtesting.Assets
 import com.github.ppotseluev.algorate.tools.backtesting.Assets.Sampler.SampleSize
 import com.github.ppotseluev.algorate.tools.backtesting.Assets._
 import com.github.ppotseluev.algorate.tools.backtesting.Period
 import com.github.ppotseluev.algorate.tools.backtesting.Testkit
+
 import java.util.concurrent.atomic.AtomicInteger
 
 object SamplingTester extends IOApp.Simple {
   val candlesResolution: CandleResolution = CandleResolution.FiveMinute
   val periods: List[Period] = (2021 to 2021).toList.map(Period(_)).flatMap(_.splitMonthly)
-  val assets: List[TradingAsset] = Assets.cryptocurrencies
+  val assets: List[TradingAsset] = Assets.shares
   val depth: Int = 10
   val threshold = 1.05
-  val assetsSampleSize = 5
-  val periodsSampleSize = 5
+  val assetsSampleSize = 100
+  val periodsSampleSize = 6
 
   private val strategies: Map[String, StrategyBuilder] = Map(
-    "current" -> CurrentStrategy(),
+    "current" -> Strategies.default,
+    "feature" -> Strategies.createDefault(Params(enableFeature = true)),
     "intraChannel" -> Strategies.intraChannel,
-    "channelBreakdown" -> Strategies.channelBreakdown,
-    "random" -> Strategies.random()
+//    "channelBreakdown" -> Strategies.channelBreakdown,
+//    "random" -> Strategies.random()
   )
 
   val done = new AtomicInteger()
