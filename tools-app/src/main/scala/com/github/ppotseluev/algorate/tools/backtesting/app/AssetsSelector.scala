@@ -23,26 +23,21 @@ import java.nio.file.Paths
 import scala.collection.mutable
 import scala.concurrent.duration._
 
-object CurrentStrategy {
-
-  val params = Params(
-    enableFeature = false
+object AssetsSelector extends IOApp.Simple {
+  private implicit val strategy = Strategies.createDefault(
+    Params().switchOnFeature
   )
 
-  def apply() = Strategies.createDefault(params)
-}
-
-object AssetsSelector extends IOApp.Simple {
   //TODO consider not splitting dataset for more accurate results
-  private implicit val sampler: Sampler = Sampler //.All
-    .SampleSize(200, seed = 1249002L.some)
+  private implicit val sampler: Sampler = Sampler.All
+//    .SampleSize(300, seed = 12300L.some)
 //    .SampleSize(500, seed = 11111100L.some)
 //    .KFold(
 //      k = 6,
-//      select = 1.some,
+//      select = 2.some,
 //      seed = 123400100L.some
 //    )
-  private val mode: Mode = Mode.Validate
+  private val mode: Mode = Mode.Test
 //  .Test
 //Mode.Periods(
 //  Period(2022, (MonthDay.of(1, 25) -> MonthDay.of(3, 5)).some)
@@ -56,8 +51,8 @@ object AssetsSelector extends IOApp.Simple {
 //    Period.secondHalf(2022)
 //  )
 
-  private val assets =
-    (shares.sample ++ allCryptocurrencies.sample ++ cryptocurrencies.sample).sample
+  private val assets = cryptocurrencies.sample
+//    (shares.sample ++ allCryptocurrencies.sample ++ cryptocurrencies.sample).sample
   private val selectionStrategy: SelectionStrategy = SelectAll
 //    ByLowProfit(0.1)
 //    ByStability(0.5)
@@ -68,8 +63,6 @@ object AssetsSelector extends IOApp.Simple {
 //    SelectAll
 //    ByStability(0.4)
   private val candlesResolution = CandleResolution.FiveMinute
-
-  private implicit val strategy = CurrentStrategy()
 
   private val testingToolkit = new Testkit[IO](skipNotFound = true)
 
