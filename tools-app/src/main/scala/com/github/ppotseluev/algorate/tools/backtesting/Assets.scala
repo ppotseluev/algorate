@@ -84,7 +84,7 @@ object Assets {
     "ONG"
   ).map(TradingAsset.crypto)
 
-  val allCryptocurrencies = List(
+  val restCryptocurrencies = List(
     "1INCH",
     "AAVE",
     "ACA",
@@ -467,6 +467,8 @@ object Assets {
     "ZIL",
     "ZRX"
   ).map(TradingAsset.crypto).filterNot(cryptocurrencies.contains)
+
+  val allCryptocurrencies: List[TradingAsset] = cryptocurrencies ++ restCryptocurrencies
 
   val shares = List(
     "BBG000C3W281",

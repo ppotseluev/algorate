@@ -29,11 +29,7 @@ object StrategyAssessor extends IOApp.Simple {
 
   val assets: List[TradingAsset] = {
     implicit val sampler: Sampler = Sampler.SampleSize(400, seed = 14730120L.some)
-    (
-      shares.sample ++
-        cryptocurrencies.sample ++
-        allCryptocurrencies.sample
-    ).sample
+    (shares.sample ++ allCryptocurrencies.sample).sample
   }
 
   private val strategies: StrategiesSet[StrategyBuilder] = StrategiesSet(
