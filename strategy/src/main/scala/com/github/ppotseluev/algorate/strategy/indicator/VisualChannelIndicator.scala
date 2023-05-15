@@ -26,9 +26,9 @@ class VisualChannelIndicator(channelIndicator: Indicator[Option[Channel]])
       }
       .map { c =>
         c.copy(
-          section = Section(
-            lowerBound = numOf(c.lowerBoundApproximation.func.value(index)),
-            upperBound = numOf(c.upperBoundApproximation.func.value(index))
+          section = Bounds(
+            lower = numOf(c.lowerBoundApproximation.func.value(index)),
+            upper = numOf(c.upperBoundApproximation.func.value(index))
           )
         )
       }

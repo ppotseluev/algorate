@@ -24,12 +24,11 @@ object StrategyAssessor extends IOApp.Simple {
   val intervals: List[CandlesInterval] = List(
 //    Period.firstHalf(2021),
 //    Period.secondHalf(2021),
-    Period.firstHalf(2021)
-//    Period.secondHalf(2022)
+    Period.firstHalf(2022)
   ).map(_.toCandlesInterval(CandleResolution.FiveMinute))
 
   val assets: List[TradingAsset] = {
-    implicit val sampler: Sampler = Sampler.SampleSize(400, seed = 123000L.some)
+    implicit val sampler: Sampler = Sampler.SampleSize(400, seed = 14730120L.some)
     (
       shares.sample ++
         cryptocurrencies.sample ++

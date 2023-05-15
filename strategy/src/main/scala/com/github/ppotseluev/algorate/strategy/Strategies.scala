@@ -4,11 +4,24 @@ import cats.implicits._
 import com.github.ppotseluev.algorate.math.Approximator
 import com.github.ppotseluev.algorate.strategy.FullStrategy.{IndicatorInfo, Representation}
 import com.github.ppotseluev.algorate.strategy.FullStrategy.Representation.Points
+import com.github.ppotseluev.algorate.strategy.indicator.ChannelBreakIndicator.{Break, BreakType}
 import com.github.ppotseluev.algorate.strategy.indicator.ChannelIndicator.Channel
 import com.github.ppotseluev.algorate.strategy.indicator.LocalExtremumIndicator.Extremum
-import com.github.ppotseluev.algorate.strategy.indicator.{ChannelIndicator, ChannelUtils, IndicatorSyntax, LocalExtremumIndicator, VisualChannelIndicator, _}
+import com.github.ppotseluev.algorate.strategy.indicator.{
+  ChannelIndicator,
+  ChannelUtils,
+  IndicatorSyntax,
+  LocalExtremumIndicator,
+  VisualChannelIndicator,
+  _
+}
 import org.ta4j.core.{BaseStrategy, Strategy, TradingRecord}
-import org.ta4j.core.indicators.helpers.{ClosePriceIndicator, DifferenceIndicator, SumIndicator, TradeCountIndicator}
+import org.ta4j.core.indicators.helpers.{
+  ClosePriceIndicator,
+  DifferenceIndicator,
+  SumIndicator,
+  TradeCountIndicator
+}
 import org.ta4j.core.indicators.{AbstractIndicator, EMAIndicator, MACDIndicator, SMAIndicator}
 import org.ta4j.core.num.{NaN, Num}
 import org.ta4j.core.rules._
@@ -51,8 +64,11 @@ object Strategies {
       shortMacdPeriod: Int = 10,
       longMacdPeriod: Int = 18,
       macdSignalPeriod: Int = 8,
-      enableFeature: Boolean = false
+      enableFeature: Boolean = false,
+      maxBreakError: Option[Double] = None
   ) {
+    def getMaxBreakError: Double = maxBreakError.getOrElse(maxError)
+
     def switchOnFeature: Params = copy(enableFeature = true)
 
     implicit val featureMode: StrategyFeature =
@@ -77,7 +93,8 @@ object Strategies {
       extremumIndicator = extremum,
       approximator = Approximator.Linear,
       numOfPoints = 3,
-      maxError = maxError
+      maxError = maxError,
+      maxBreakError = getMaxBreakError
     ).filter(ChannelUtils.isParallel(maxParallelDelta)) //todo?
 
     val hasData: AbstractIndicator[Boolean] = new HasDataIndicator(extremumWindowSize / 2, series)
@@ -111,8 +128,8 @@ object Strategies {
     // Calculate the signal line (an EMA of the MACD line)
     val macdEma = new EMAIndicator(macd, signalPeriod)
 
-    val lowerBoundIndicator = channel.map(_.map(_.section.lowerBound).getOrElse(NaN.NaN))
-    val upperBoundIndicator = channel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
+    val lowerBoundIndicator = channel.map(_.map(_.section.lower).getOrElse(NaN.NaN))
+    val upperBoundIndicator = channel.map(_.map(_.section.upper).getOrElse(NaN.NaN))
 
     val channelDiffIndicator: AbstractIndicator[Num] =
       new DifferenceIndicator(upperBoundIndicator, lowerBoundIndicator)
@@ -168,9 +185,9 @@ object Strategies {
       val visualChannel: AbstractIndicator[Option[Channel]] =
         new VisualChannelIndicator(channel)
       val visualLowerBoundIndicator =
-        visualChannel.map(_.map(_.section.lowerBound).getOrElse(NaN.NaN))
+        visualChannel.map(_.map(_.section.lower).getOrElse(NaN.NaN))
       val visualUpperBoundIndicator =
-        visualChannel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
+        visualChannel.map(_.map(_.section.upper).getOrElse(NaN.NaN))
 
       val takeProfitIndicator = (closePrice: AbstractIndicator[Num]).zipWithIndex
         .map { case (index, price) =>

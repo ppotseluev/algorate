@@ -25,19 +25,21 @@ import scala.concurrent.duration._
 
 object AssetsSelector extends IOApp.Simple {
   private implicit val strategy = Strategies.createDefault(
-    Params().switchOnFeature
+    Params(
+//      maxBreakError = 0.006.some,
+    )//.switchOnFeature
   )
 
   //TODO consider not splitting dataset for more accurate results
   private implicit val sampler: Sampler = Sampler.All
-//    .SampleSize(300, seed = 12300L.some)
+//    .SampleSize(200, seed = 12300L.some)
 //    .SampleSize(500, seed = 11111100L.some)
 //    .KFold(
-//      k = 6,
+//      k = 10,
 //      select = 2.some,
-//      seed = 123400100L.some
+//      seed = 173514L.some
 //    )
-  private val mode: Mode = Mode.Test
+  private val mode: Mode = Mode.Train
 //  .Test
 //Mode.Periods(
 //  Period(2022, (MonthDay.of(1, 25) -> MonthDay.of(3, 5)).some)

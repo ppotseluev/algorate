@@ -39,7 +39,8 @@ private[strategy] object ChannelBreakdown {
       extremumIndicator = extremum,
       approximator = Approximator.Linear,
       numOfPoints = 3,
-      maxError = 0.0009
+      maxError = 0.0009,
+      maxBreakError = 0.0009
     )
       .filter(ChannelUtils.isParallel(maxDelta = 0.6))
       .filter(ChannelUtils.isWide(0.1))
@@ -47,8 +48,8 @@ private[strategy] object ChannelBreakdown {
     val feeFraction = 0.0005
     val leastFeeFactor = 2
 
-    val lowerBoundIndicator = channel.map(_.map(_.section.lowerBound).getOrElse(NaN.NaN))
-    val upperBoundIndicator = channel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
+    val lowerBoundIndicator = channel.map(_.map(_.section.lower).getOrElse(NaN.NaN))
+    val upperBoundIndicator = channel.map(_.map(_.section.upper).getOrElse(NaN.NaN))
 
     val channelDiffIndicator: AbstractIndicator[Num] =
       new DifferenceIndicator(upperBoundIndicator, lowerBoundIndicator)
@@ -143,9 +144,9 @@ private[strategy] object ChannelBreakdown {
       val visualChannel: AbstractIndicator[Option[Channel]] =
         new VisualChannelIndicator(channel)
       val visualLowerBoundIndicator =
-        visualChannel.map(_.map(_.section.lowerBound).getOrElse(NaN.NaN))
+        visualChannel.map(_.map(_.section.lower).getOrElse(NaN.NaN))
       val visualUpperBoundIndicator =
-        visualChannel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
+        visualChannel.map(_.map(_.section.upper).getOrElse(NaN.NaN))
       val leastTargetIndicator = (closePrice: AbstractIndicator[Num]).zipWithIndex
         .map { case (index, price) =>
           if (coreLongRule.isSatisfied(index))
