@@ -10,6 +10,7 @@ import com.github.ppotseluev.algorate.charts.TradingCharts
 import com.github.ppotseluev.algorate.math.PrettyDuration.PrettyPrintableDuration
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.Strategies
+import com.github.ppotseluev.algorate.strategy.Strategies.Params
 import com.github.ppotseluev.algorate.tools.backtesting.BarSeriesProvider
 import com.github.ppotseluev.algorate.tools.backtesting.Period
 import com.github.ppotseluev.algorate.tools.backtesting.StrategyTester
@@ -17,9 +18,9 @@ import com.typesafe.scalalogging.StrictLogging
 import scala.concurrent.duration._
 
 object VisualizeStrategy extends IOApp with StrictLogging {
-  val interval = Period.firstHalf(2022).toCandlesInterval(CandleResolution.FiveMinute)
+  val interval = Period(2021).toCandlesInterval(CandleResolution.FiveMinute)
   val strategy = Strategies.createDefault(
-    CurrentStrategy.params //.copy(maxError = 0.007)
+    Params().switchOnFeature //.copy(maxError = 0.007)
   )
 //    Strategies.createDefault(Params(50, 0.01, 0.6, 0.02, 10))
   val visualize = true
@@ -27,7 +28,7 @@ object VisualizeStrategy extends IOApp with StrictLogging {
     strategy,
     maxParallelism = if (visualize) 1 else 8
   )
-  val asset: TradingAsset = TradingAsset.crypto("HOT")
+  val asset: TradingAsset = TradingAsset.crypto("FET")
 
   override def run(args: List[String]): IO[ExitCode] = {
     val archive = Factory.io.archive

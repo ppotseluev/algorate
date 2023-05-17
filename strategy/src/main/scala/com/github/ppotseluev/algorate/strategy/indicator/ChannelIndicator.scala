@@ -16,7 +16,6 @@ import ChannelIndicator.CalculatedChannel
 import ChannelIndicator.Channel
 import ChannelIndicator.ChannelState
 import ChannelIndicator.NeedNewChannel
-import ChannelIndicator.Section
 import LocalExtremumIndicator.Extremum
 
 class ChannelIndicator private (
@@ -25,6 +24,7 @@ class ChannelIndicator private (
     approximator: Approximator,
     numOfPoints: Int,
     maxError: Double,
+    maxBreakError: Double,
     mergeExtremumsWithin: Int = 1
 ) extends RecursiveCachedIndicator[ChannelState](extremumIndicator.getBarSeries) {
 
@@ -83,7 +83,7 @@ class ChannelIndicator private (
     }
     val p = WeightedPoint(1, point.index, point.value.doubleValue) //todo use weight?
     val cost = approximator.cost(appr, p)
-    cost <= maxError
+    cost <= maxBreakError
   }
 
   private def isInsideChannel(channel: Channel, point: (Int, Double)): Boolean = { //todo
@@ -108,7 +108,7 @@ class ChannelIndicator private (
     for {
       (minExtr, lowerBound, lowerAppr) <- calc[Extremum.Min](index)
       (maxExtr, upperBound, upperAppr) <- calc[Extremum.Max](index)
-      section = Section(lowerBound = lowerBound, upperBound = upperBound)
+      section = Bounds(lower = lowerBound, upper = upperBound)
       bounds = Bounds(lower = lowerAppr, upper = upperAppr)
       List(minStartIndex, maxStartIndex) = List(lowerAppr, upperAppr)
         .map(_.points.head.x.toInt)
@@ -135,9 +135,9 @@ class ChannelIndicator private (
       if (lastExtrFit && curPointFit) {
         val updated = channel
           .copy(
-            section = Section(
-              lowerBound = numOf(channel.lowerBoundApproximation.func.value(index)),
-              upperBound = numOf(channel.upperBoundApproximation.func.value(index))
+            section = Bounds(
+              lower = numOf(channel.lowerBoundApproximation.func.value(index)),
+              upper = numOf(channel.upperBoundApproximation.func.value(index))
             )
           )
           .addExtremums(lastMin ++ lastMax)
@@ -178,14 +178,16 @@ object ChannelIndicator {
       extremumIndicator: AbstractIndicator[Option[Extremum]],
       approximator: Approximator,
       numOfPoints: Int,
-      maxError: Double
+      maxError: Double,
+      maxBreakError: Double
   ): AbstractIndicator[Option[Channel]] = {
     val impl: AbstractIndicator[ChannelState] = new ChannelIndicator(
       baseIndicator,
       extremumIndicator,
       approximator,
       numOfPoints,
-      maxError
+      maxError,
+      maxBreakError
     )
     impl.map {
       case NeedNewChannel(_) | Empty  => None
@@ -198,7 +200,7 @@ object ChannelIndicator {
   case class CalculatedChannel(channel: Channel) extends ChannelState
   case object Empty extends ChannelState
 
-  case class Section(lowerBound: Num, upperBound: Num)
+  type Section = Bounds[Num]
 
   type ChannelBounds = Bounds[Approximation]
 

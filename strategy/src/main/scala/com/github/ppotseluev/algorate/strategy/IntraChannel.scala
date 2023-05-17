@@ -78,7 +78,8 @@ private[strategy] object IntraChannel {
       extremumIndicator = extremum,
       approximator = Approximator.Linear,
       numOfPoints = 3,
-      maxError = 0.0009 //0.0007 0.003🤔
+      maxError = 0.0009, //0.0007 0.003🤔
+      maxBreakError = 0.0009
     ).filter(ChannelUtils.isParallel(maxDelta = 0.6)) //todo?
     //      .filter(ChannelUtils.isWide(minPercent = 0.05))
 
@@ -90,8 +91,8 @@ private[strategy] object IntraChannel {
     val minVolume = num(Int.MinValue)
     val maxVolume = num(Int.MaxValue)
 
-    val lowerBoundIndicator = channel.map(_.map(_.section.lowerBound).getOrElse(NaN.NaN))
-    val upperBoundIndicator = channel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
+    val lowerBoundIndicator = channel.map(_.map(_.section.lower).getOrElse(NaN.NaN))
+    val upperBoundIndicator = channel.map(_.map(_.section.upper).getOrElse(NaN.NaN))
 
     val channelDiffIndicator: AbstractIndicator[Num] =
       new DifferenceIndicator(upperBoundIndicator, lowerBoundIndicator)
@@ -193,9 +194,9 @@ private[strategy] object IntraChannel {
       val visualChannel: AbstractIndicator[Option[Channel]] =
         new VisualChannelIndicator(channel)
       val visualLowerBoundIndicator =
-        visualChannel.map(_.map(_.section.lowerBound).getOrElse(NaN.NaN))
+        visualChannel.map(_.map(_.section.lower).getOrElse(NaN.NaN))
       val visualUpperBoundIndicator =
-        visualChannel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
+        visualChannel.map(_.map(_.section.upper).getOrElse(NaN.NaN))
       val leastTargetIndicator = (closePrice: AbstractIndicator[Num]).zipWithIndex
         .map { case (index, price) =>
           if (entryShortRule.isSatisfied(index))

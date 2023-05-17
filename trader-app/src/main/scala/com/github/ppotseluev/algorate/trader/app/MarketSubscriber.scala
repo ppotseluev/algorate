@@ -53,7 +53,7 @@ object MarketSubscriber extends LazyLogging {
             )
             stream.subscribeCandles(
               instruments.asJava,
-              SubscriptionInterval.SUBSCRIPTION_INTERVAL_ONE_MINUTE
+              SubscriptionInterval.SUBSCRIPTION_INTERVAL_ONE_MINUTE // TODO pass as parameter
             )
           }
           def logErrorsHandler: Consumer[Throwable] = t => {

@@ -65,8 +65,17 @@ object Strategies {
       minPotentialChange: Double = 0.02,
       shortMacdPeriod: Int = 10,
       longMacdPeriod: Int = 18,
-      macdSignalPeriod: Int = 8
-  )
+      macdSignalPeriod: Int = 8,
+      enableFeature: Boolean = false,
+      maxBreakError: Option[Double] = None
+  ) {
+    def getMaxBreakError: Double = maxBreakError.getOrElse(maxError)
+
+    def switchOnFeature: Params = copy(enableFeature = true)
+
+    implicit val featureMode: StrategyFeature =
+      if (enableFeature) StrategyFeature.Enabled else StrategyFeature.Disabled
+  }
 
   val default = createDefault(Params())
 
@@ -86,7 +95,8 @@ object Strategies {
       extremumIndicator = extremum,
       approximator = Approximator.Linear,
       numOfPoints = 3,
-      maxError = maxError
+      maxError = maxError,
+      maxBreakError = getMaxBreakError
     ).filter(ChannelUtils.isParallel(maxParallelDelta)) //todo?
 
     val hasData: AbstractIndicator[Boolean] = new HasDataIndicator(extremumWindowSize / 2, series)
@@ -120,8 +130,8 @@ object Strategies {
     // Calculate the signal line (an EMA of the MACD line)
     val macdEma = new EMAIndicator(macd, signalPeriod)
 
-    val lowerBoundIndicator = channel.map(_.map(_.section.lowerBound).getOrElse(NaN.NaN))
-    val upperBoundIndicator = channel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
+    val lowerBoundIndicator = channel.map(_.map(_.section.lower).getOrElse(NaN.NaN))
+    val upperBoundIndicator = channel.map(_.map(_.section.upper).getOrElse(NaN.NaN))
 
     val channelDiffIndicator: AbstractIndicator[Num] =
       new DifferenceIndicator(upperBoundIndicator, lowerBoundIndicator)
@@ -142,7 +152,6 @@ object Strategies {
         new UnderIndicatorRule(macd, macdEma) &
         hasData.asRule.useIf(asset.isShare).orTrue &
         normalTrades.asRule.useIf(asset.isCrypto).orTrue
-//        channel.exists[Channel](c => c.k.upper > 0).asRule
 
     val entryShortRule =
       channel.map(_.isDefined).asRule &
@@ -151,7 +160,6 @@ object Strategies {
         new OverIndicatorRule(macd, macdEma) &
         hasData.asRule.useIf(asset.isShare).orTrue &
         normalTrades.asRule.useIf(asset.isCrypto).orTrue
-//        channel.exists[Channel](c => c.k.lower < 0).asRule
 
     val exitRule = new AbstractRule {
       override def isSatisfied(index: Int, tradingRecord: TradingRecord): Boolean =
@@ -179,9 +187,9 @@ object Strategies {
       val visualChannel: AbstractIndicator[Option[Channel]] =
         new VisualChannelIndicator(channel)
       val visualLowerBoundIndicator =
-        visualChannel.map(_.map(_.section.lowerBound).getOrElse(NaN.NaN))
+        visualChannel.map(_.map(_.section.lower).getOrElse(NaN.NaN))
       val visualUpperBoundIndicator =
-        visualChannel.map(_.map(_.section.upperBound).getOrElse(NaN.NaN))
+        visualChannel.map(_.map(_.section.upper).getOrElse(NaN.NaN))
 
       val takeProfitIndicator = (closePrice: AbstractIndicator[Num]).zipWithIndex
         .map { case (index, price) =>

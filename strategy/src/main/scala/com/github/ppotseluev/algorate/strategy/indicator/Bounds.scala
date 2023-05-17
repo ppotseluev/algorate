@@ -8,7 +8,9 @@ case class Bounds[T](
     lower: T,
     upper: T
 ) {
+  def tuple = (lower, upper)
   def both: List[T] = lower :: upper :: Nil
+  def foldU(f: (T, T) => T): T = f(upper, lower)
 }
 
 object Bounds {

@@ -15,6 +15,11 @@ package object strategy {
 
     def useIf(p: Boolean): Option[Rule] =
       Option.when(p)(rule)
+
+    def featureRule(implicit feature: StrategyFeature): Option[Rule] = feature match {
+      case StrategyFeature.Enabled  => Some(rule)
+      case StrategyFeature.Disabled => None
+    }
   }
 
   implicit class OptionRuleSyntax(val rule: Option[Rule]) extends AnyVal {
