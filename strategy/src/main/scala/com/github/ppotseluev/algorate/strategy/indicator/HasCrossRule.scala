@@ -1,10 +1,13 @@
 package com.github.ppotseluev.algorate.strategy.indicator
 
 import com.github.ppotseluev.algorate.strategy.indicator.HasCrossRule.Direction
+import org.ta4j.core.Indicator
+import org.ta4j.core.TradingRecord
 import org.ta4j.core.indicators.helpers.ConstantIndicator
 import org.ta4j.core.num.Num
-import org.ta4j.core.{Indicator, TradingRecord}
-import org.ta4j.core.rules.{AbstractRule, CrossedDownIndicatorRule, CrossedUpIndicatorRule}
+import org.ta4j.core.rules.AbstractRule
+import org.ta4j.core.rules.CrossedDownIndicatorRule
+import org.ta4j.core.rules.CrossedUpIndicatorRule
 
 class HasCrossRule(
     direction: Direction,

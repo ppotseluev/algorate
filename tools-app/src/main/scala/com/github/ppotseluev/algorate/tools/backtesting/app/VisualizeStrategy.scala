@@ -15,7 +15,6 @@ import com.github.ppotseluev.algorate.tools.backtesting.BarSeriesProvider
 import com.github.ppotseluev.algorate.tools.backtesting.Period
 import com.github.ppotseluev.algorate.tools.backtesting.StrategyTester
 import com.typesafe.scalalogging.StrictLogging
-
 import scala.concurrent.duration._
 
 object VisualizeStrategy extends IOApp with StrictLogging {

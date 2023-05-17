@@ -15,7 +15,6 @@ import com.github.ppotseluev.algorate.strategy.indicator._
 import com.github.ppotseluev.algorate.tools.backtesting.Assets
 import com.github.ppotseluev.algorate.tools.backtesting.BarSeriesProvider
 import com.github.ppotseluev.algorate.tools.backtesting.StrategyTester
-
 import java.time.LocalDate
 import org.ta4j.core._
 import org.ta4j.core.indicators._

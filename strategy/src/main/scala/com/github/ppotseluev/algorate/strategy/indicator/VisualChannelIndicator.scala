@@ -4,7 +4,6 @@ import org.ta4j.core.Indicator
 import org.ta4j.core.indicators.CachedIndicator
 
 import ChannelIndicator.Channel
-import ChannelIndicator.Section
 
 class VisualChannelIndicator(channelIndicator: Indicator[Option[Channel]])
     extends CachedIndicator[Option[Channel]](channelIndicator) {

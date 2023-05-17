@@ -16,7 +16,6 @@ import ChannelIndicator.CalculatedChannel
 import ChannelIndicator.Channel
 import ChannelIndicator.ChannelState
 import ChannelIndicator.NeedNewChannel
-import ChannelIndicator.Section
 import LocalExtremumIndicator.Extremum
 
 class ChannelIndicator private (

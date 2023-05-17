@@ -1,18 +1,22 @@
 package com.github.ppotseluev.algorate.tools.backtesting.app
 
+import cats.Monoid
+import cats.Show
 import cats.derived.semiauto
-import cats.effect.{IO, IOApp}
+import cats.effect.IO
+import cats.effect.IOApp
 import cats.implicits._
-import cats.{Monoid, Show}
 import com.github.ppotseluev.algorate.TradingAsset
-import com.github.ppotseluev.algorate.broker.Broker.{CandleResolution, CandlesInterval}
+import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
+import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
+import com.github.ppotseluev.algorate.strategy.Strategies
 import com.github.ppotseluev.algorate.strategy.Strategies.Params
-import com.github.ppotseluev.algorate.strategy.{Strategies, StrategyBuilder}
+import com.github.ppotseluev.algorate.strategy.StrategyBuilder
 import com.github.ppotseluev.algorate.tools.backtesting.Assets._
-import com.github.ppotseluev.algorate.tools.backtesting.{Period, Testkit}
+import com.github.ppotseluev.algorate.tools.backtesting.Period
+import com.github.ppotseluev.algorate.tools.backtesting.Testkit
 import com.github.ppotseluev.algorate.tools.backtesting.optimizer.OptimizationToolkit.PerformanceMetrics
 import enumeratum._
-
 import java.util.concurrent.atomic.AtomicInteger
 import scala.math.Ordered.orderingToOrdered
 import scala.util.Random

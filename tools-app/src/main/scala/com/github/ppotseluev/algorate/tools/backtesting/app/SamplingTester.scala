@@ -13,7 +13,6 @@ import com.github.ppotseluev.algorate.tools.backtesting.Assets.Sampler.SampleSiz
 import com.github.ppotseluev.algorate.tools.backtesting.Assets._
 import com.github.ppotseluev.algorate.tools.backtesting.Period
 import com.github.ppotseluev.algorate.tools.backtesting.Testkit
-
 import java.util.concurrent.atomic.AtomicInteger
 
 object SamplingTester extends IOApp.Simple {
@@ -28,7 +27,7 @@ object SamplingTester extends IOApp.Simple {
   private val strategies: Map[String, StrategyBuilder] = Map(
     "current" -> Strategies.default,
     "feature" -> Strategies.createDefault(Params(enableFeature = true)),
-    "intraChannel" -> Strategies.intraChannel,
+    "intraChannel" -> Strategies.intraChannel
 //    "channelBreakdown" -> Strategies.channelBreakdown,
 //    "random" -> Strategies.random()
   )

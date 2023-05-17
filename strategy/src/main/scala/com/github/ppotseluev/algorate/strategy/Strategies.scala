@@ -2,28 +2,30 @@ package com.github.ppotseluev.algorate.strategy
 
 import cats.implicits._
 import com.github.ppotseluev.algorate.math.Approximator
-import com.github.ppotseluev.algorate.strategy.FullStrategy.{IndicatorInfo, Representation}
+import com.github.ppotseluev.algorate.strategy.FullStrategy.IndicatorInfo
+import com.github.ppotseluev.algorate.strategy.FullStrategy.Representation
 import com.github.ppotseluev.algorate.strategy.FullStrategy.Representation.Points
-import com.github.ppotseluev.algorate.strategy.indicator.ChannelBreakIndicator.{Break, BreakType}
+import com.github.ppotseluev.algorate.strategy.indicator.ChannelIndicator
 import com.github.ppotseluev.algorate.strategy.indicator.ChannelIndicator.Channel
+import com.github.ppotseluev.algorate.strategy.indicator.ChannelUtils
+import com.github.ppotseluev.algorate.strategy.indicator.IndicatorSyntax
+import com.github.ppotseluev.algorate.strategy.indicator.LocalExtremumIndicator
 import com.github.ppotseluev.algorate.strategy.indicator.LocalExtremumIndicator.Extremum
-import com.github.ppotseluev.algorate.strategy.indicator.{
-  ChannelIndicator,
-  ChannelUtils,
-  IndicatorSyntax,
-  LocalExtremumIndicator,
-  VisualChannelIndicator,
-  _
-}
-import org.ta4j.core.{BaseStrategy, Strategy, TradingRecord}
-import org.ta4j.core.indicators.helpers.{
-  ClosePriceIndicator,
-  DifferenceIndicator,
-  SumIndicator,
-  TradeCountIndicator
-}
-import org.ta4j.core.indicators.{AbstractIndicator, EMAIndicator, MACDIndicator, SMAIndicator}
-import org.ta4j.core.num.{NaN, Num}
+import com.github.ppotseluev.algorate.strategy.indicator.VisualChannelIndicator
+import com.github.ppotseluev.algorate.strategy.indicator._
+import org.ta4j.core.BaseStrategy
+import org.ta4j.core.Strategy
+import org.ta4j.core.TradingRecord
+import org.ta4j.core.indicators.AbstractIndicator
+import org.ta4j.core.indicators.EMAIndicator
+import org.ta4j.core.indicators.MACDIndicator
+import org.ta4j.core.indicators.SMAIndicator
+import org.ta4j.core.indicators.helpers.ClosePriceIndicator
+import org.ta4j.core.indicators.helpers.DifferenceIndicator
+import org.ta4j.core.indicators.helpers.SumIndicator
+import org.ta4j.core.indicators.helpers.TradeCountIndicator
+import org.ta4j.core.num.NaN
+import org.ta4j.core.num.Num
 import org.ta4j.core.rules._
 
 object Strategies {

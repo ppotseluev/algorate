@@ -27,7 +27,7 @@ object AssetsSelector extends IOApp.Simple {
   private implicit val strategy = Strategies.createDefault(
     Params(
 //      maxBreakError = 0.006.some,
-    )//.switchOnFeature
+    ) //.switchOnFeature
   )
 
   //TODO consider not splitting dataset for more accurate results

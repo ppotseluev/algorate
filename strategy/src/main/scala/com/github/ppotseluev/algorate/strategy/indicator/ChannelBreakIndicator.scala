@@ -1,7 +1,8 @@
 package com.github.ppotseluev.algorate.strategy.indicator
 
 import cats.implicits._
-import com.github.ppotseluev.algorate.strategy.indicator.ChannelBreakIndicator.{Break, BreakType}
+import com.github.ppotseluev.algorate.strategy.indicator.ChannelBreakIndicator.Break
+import com.github.ppotseluev.algorate.strategy.indicator.ChannelBreakIndicator.BreakType
 import com.github.ppotseluev.algorate.strategy.indicator.ChannelIndicator.Channel
 import org.ta4j.core.indicators.AbstractIndicator
 import org.ta4j.core.num.Num
