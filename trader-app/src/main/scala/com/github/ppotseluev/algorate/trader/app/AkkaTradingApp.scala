@@ -111,18 +111,18 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         api = factory.traderApi(requestHandler)
         subscription = MarketSubscriber.fromActor(actorSystem, candleResolution)
         exitCode <- useHistoricalData.fold {
-//          {
-//            val subscriber = subscription.stub[IO]( TODO uncomment...
-//              broker,
-//              rate = 0.millis,
-//              streamFrom = LocalDate.now.minusDays(1),
-//              streamTo = LocalDate.now
-//            )
-//            assets.parTraverse(subscriber.subscribe).void
-//          } *>
-          subscription //TODO fix gap between historical and realtime data
-            .using[IO](factory.investApi)
-            .subscribe(assets)
+          {
+            val subscriber = subscription.stub[IO](
+              broker,
+              rate = 0.millis,
+              streamFrom = LocalDate.now,
+              streamTo = LocalDate.now
+            )
+            assets.parTraverse(subscriber.subscribe).void
+          } *>
+            subscription //TODO fix gap between historical and realtime data
+              .using[IO](factory.investApi)
+              .subscribe(assets)
         } { case StubSettings(assets, streamFrom, streamTo, rate) =>
           val subscriber = subscription.stub[IO](
             broker,
