@@ -27,7 +27,7 @@ object EventsSink extends LoggingSupport {
       .catchNonFatal {
         val (text, image) = event match {
           case TradingSnapshot(snapshot, aggregatedStats, money) =>
-            val profit = new ProfitLossPercentageCriterion()
+            val profit = new ProfitLossPercentageCriterion() //todo take from stats
             val longProfit =
               profit.calculate(snapshot.unsafe.barSeries, snapshot.unsafe.longHistory)
             val shortProfit =
