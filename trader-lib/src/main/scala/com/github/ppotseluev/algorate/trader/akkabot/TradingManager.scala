@@ -3,9 +3,10 @@ package com.github.ppotseluev.algorate.trader.akkabot
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import cats.implicits._
-import cats.kernel.Monoid
 import com.github.ppotseluev.algorate.BarInfo
+import com.github.ppotseluev.algorate.EnrichedPosition
 import com.github.ppotseluev.algorate.InstrumentId
+import com.github.ppotseluev.algorate.Stats
 import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.TradingStats
 import com.github.ppotseluev.algorate.broker.Broker
@@ -68,7 +69,13 @@ object TradingManager extends LazyLogging {
         case None         => logger.error(s"Trader for $instrumentId not found")
       }
 
-    var tradingStats = Monoid[TradingStats].empty
+    var longTrades = Set.empty[EnrichedPosition]
+    var shortTrades = Set.empty[EnrichedPosition]
+
+    def tradingStats() = TradingStats(
+      long = Stats(longTrades.toSeq.sortBy(_.entryTime)),
+      short = Stats(shortTrades.toSeq.sortBy(_.entryTime))
+    )
 
     Behaviors.receiveMessage {
       case CandleData(data) =>
@@ -79,12 +86,11 @@ object TradingManager extends LazyLogging {
         useTrader(instrumentId)(_ ! Trader.Event.StateSnapshotRequested)
         Behaviors.same
       case Event.TraderSnapshotEvent(snapshot) =>
-        //TODO it's incorrect cuz both can contain the same trades.
-        //TODO there was a hack with distinctBy(tradeTime) in Stats.monoid but it was too dirty hack
-        tradingStats = tradingStats |+| snapshot.tradingStats
+        longTrades = longTrades ++ snapshot.tradingStats.long.enrichedPositions
+        shortTrades = shortTrades ++ snapshot.tradingStats.short.enrichedPositions
         val event = com.github.ppotseluev.algorate.trader.akkabot.Event.TradingSnapshot(
           snapshot,
-          tradingStats,
+          tradingStats(),
           moneyTracker.get.orEmpty
         )
         eventsSink.push(event) //TODO check future's result?

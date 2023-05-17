@@ -38,7 +38,7 @@ object TradingAsset {
       instrumentId = instrumentId,
       ticker = instrumentId,
       `type` = Type.Share,
-      currency = "usdt",
+      currency = "usd",
       sector = "SHARES"
     )
 }

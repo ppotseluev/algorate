@@ -9,6 +9,7 @@ import cats.implicits._
 import cats.~>
 import com.github.ppotseluev.algorate._
 import com.github.ppotseluev.algorate.broker.Broker
+import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
 import com.github.ppotseluev.algorate.broker.tinkoff.TinkoffBroker
 import com.github.ppotseluev.algorate.server.Factory
@@ -31,55 +32,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
       rate: FiniteDuration = 1.second
   )
 
-  val assetsMap: Map[InstrumentId, TradingAsset] = Map.empty
-  val assets: List[TradingAsset] = assetsMap.values.toList
-//    List(
-//      TradingAsset("BBG000BNJHS8", "LUV", "usd"),
-//      TradingAsset("BBG000BRJL00", "PPL", "usd"),
-//      TradingAsset("BBG000BBJQV0", "NVDA", "usd"),
-//      TradingAsset("BBG000BBS2Y0", "AMGN", "usd"),
-//      TradingAsset("BBG006Q0HY77", "CFG", "usd"),
-//      TradingAsset("BBG00NNG2ZJ8", "XRX", "usd"),
-//      TradingAsset("BBG000BNSZP1", "MCD", "usd"),
-//      TradingAsset("BBG000K4ND22", "CVX", "usd"),
-//      TradingAsset("BBG000BGRY34", "CVS", "usd"),
-//      TradingAsset("BBG006L8G4H1", "YNDX", "rub"),
-//      TradingAsset("BBG007TJF1N7", "QRVO", "usd"),
-//      TradingAsset(
-//        "BBG004PYF2N3",
-//        "POLY",
-//        "rub"
-//      ), //TODO 2 shares fount for ticker, investigate the reason
-//      TradingAsset("BBG0025Y4RY4", "ABBV", "usd"),
-//      TradingAsset("BBG000C17X76", "BIIB", "usd"),
-//      TradingAsset("BBG000CL9VN6", "NFLX", "usd"),
-//      TradingAsset("BBG001M8HHB7", "TRIP", "usd"),
-//      TradingAsset("BBG000H8TVT2", "TGT", "usd"),
-//      TradingAsset("BBG000PSKYX7", "V", "usd"),
-//      TradingAsset("BBG000BB6KF5", "MET", "usd"),
-//      TradingAsset("BBG000C3J3C9", "CSCO", "usd"),
-//      TradingAsset("BBG000BKFZM4", "GLW", "usd"),
-//      TradingAsset("BBG000D4LWF6", "MDLZ", "usd"),
-//      TradingAsset("BBG004731354", "ROSN", "rub"),
-//      TradingAsset("BBG000GZQ728", "XOM", "usd"),
-//      TradingAsset("BBG000CGC1X8", "QCOM", "usd"),
-//      TradingAsset("BBG000R7Z112", "DAL", "usd"),
-//      TradingAsset("BBG000BQQ2S6", "OXY", "usd"),
-//      TradingAsset("BBG000WCFV84", "LYB", "usd"),
-//      TradingAsset("BBG000C5Z1S3", "MU", "usd"),
-//      TradingAsset("BBG000BCTLF6", "BAC", "usd"),
-//      TradingAsset("BBG000BJF1Z8", "FDX", "usd"),
-//      TradingAsset("BBG000Q3JN03", "RF", "usd"),
-//      TradingAsset("BBG000BNFLM9", "LRCX", "usd"),
-//      TradingAsset("BBG000BWNFZ9", "WDC", "usd"),
-//      TradingAsset("BBG000FDBX90", "CNP", "usd"),
-//      TradingAsset("BBG000BS0ZF1", "RL", "usd"),
-//      TradingAsset("BBG00475K6C3", "CHMF", "rub"),
-//      TradingAsset("BBG002583CV8", "PINS", "usd"),
-//      TradingAsset("BBG000C5HS04", "NKE", "usd"),
-//      TradingAsset("BBG000G0Z878", "HIG", "usd"),
-//      TradingAsset("BBG000BMQPL1", "KEY", "usd")
-//    ).groupMapReduce(_.instrumentId)(identity)((_, _) => ???)
+  val candleResolution: CandleResolution = CandleResolution.FiveMinute
 
   val useHistoricalData: Option[StubSettings] = None
 //    Some( //None to stream realtime market data
@@ -119,23 +72,36 @@ object AkkaTradingApp extends IOApp with LazyLogging {
       val brokerFuture = wrapBroker(λ[IO ~> Future](_.unsafeToFuture()))(broker)
       val moneyTracker = TinkoffBroker.moneyTracker(broker)
       val policy = new MoneyManagementPolicy(() => moneyTracker.get)(
-        maxPercentage = 0.025, //2.5%
+        maxPercentage = 1, //100%
         maxAbsolute = Map(
-          "usd" -> 200,
-          "rub" -> 15000
+          "usd" -> 1_000,
+          "rub" -> 80_000
         )
       )
-      val tradingManager = TradingManager(
-        assets = assetsMap,
-        broker = brokerFuture,
-        strategy = Strategies.default,
-        moneyTracker = moneyTracker,
-        policy = policy,
-        keepLastBars = 12 * 60,
-        eventsSink = eventsSinkFuture,
-        maxLag = Option.when(useHistoricalData.isEmpty)(90.seconds)
-      )
       for {
+        shares <- broker.getSharesById(Assets.sharesIds.toSet)
+        assets = shares.map { s =>
+          TradingAsset(
+            instrumentId = s.getFigi,
+            ticker = s.getTicker,
+            currency = s.getCurrency,
+            `type` = TradingAsset.Type.Share,
+            sector = s.getSector
+          )
+        }
+        assetsMap = assets.map(a => a.instrumentId -> a).toMap
+        tradingManager = TradingManager(
+          assets = assetsMap,
+          broker = brokerFuture,
+          strategy = Strategies.default,
+          moneyTracker = moneyTracker,
+          policy = policy,
+          keepLastBars = 2000,
+          eventsSink = eventsSinkFuture,
+          maxLag = Option.when(useHistoricalData.isEmpty)(
+            (candleResolution.duration * 1.5).asInstanceOf[FiniteDuration]
+          )
+        )
         actorSystem <- IO(ActorSystem(tradingManager, "Algorate"))
         requestHandler = factory.traderRequestHandler(
           actorSystem = actorSystem,
@@ -143,30 +109,26 @@ object AkkaTradingApp extends IOApp with LazyLogging {
           eventsSink = eventsSink
         )
         api = factory.traderApi(requestHandler)
+        subscription = MarketSubscriber.fromActor(actorSystem, candleResolution)
         exitCode <- useHistoricalData.fold {
           {
-            val subscriber = MarketSubscriber
-              .fromActor(actorSystem)
-              .stub[IO](
-                broker,
-                rate = 0.millis,
-                streamFrom = LocalDate.now,
-                streamTo = LocalDate.now
-              )
+            val subscriber = subscription.stub[IO](
+              broker,
+              rate = 0.millis,
+              streamFrom = LocalDate.now.minusDays(1),
+              streamTo = LocalDate.now
+            )
             assets.parTraverse(subscriber.subscribe).void
-          } *> MarketSubscriber //TODO fix gap between historical and realtime data
-            .fromActor(actorSystem)
+          } *> subscription //TODO fix gap between historical and realtime data
             .using[IO](factory.investApi)
             .subscribe(assets)
         } { case StubSettings(assets, streamFrom, streamTo, rate) =>
-          val subscriber = MarketSubscriber
-            .fromActor(actorSystem)
-            .stub[IO](
-              broker,
-              rate = rate,
-              streamFrom = streamFrom,
-              streamTo = streamTo
-            )
+          val subscriber = subscription.stub[IO](
+            broker,
+            rate = rate,
+            streamFrom = streamFrom,
+            streamTo = streamTo
+          )
           assets.parTraverse(subscriber.subscribe).void
         } &> moneyTracker.run &> api.run
       } yield exitCode

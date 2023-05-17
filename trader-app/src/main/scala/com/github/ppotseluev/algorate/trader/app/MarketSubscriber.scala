@@ -5,6 +5,9 @@ import cats.effect.kernel.Sync
 import cats.effect.kernel.Temporal
 import com.github.ppotseluev.algorate._
 import com.github.ppotseluev.algorate.broker.Broker
+import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
+import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
+import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import com.github.ppotseluev.algorate.broker.tinkoff.TinkoffConverters
 import com.github.ppotseluev.algorate.trader.HistoryStream
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager
@@ -13,6 +16,7 @@ import java.time.LocalDate
 import java.util.function.Consumer
 import ru.tinkoff.piapi.contract.v1.MarketDataResponse
 import ru.tinkoff.piapi.contract.v1.SubscriptionInterval
+import ru.tinkoff.piapi.contract.v1.SubscriptionInterval._
 import ru.tinkoff.piapi.core.InvestApi
 import ru.tinkoff.piapi.core.stream.StreamProcessor
 import scala.concurrent.duration._
@@ -27,10 +31,18 @@ object MarketSubscriber extends LazyLogging {
   /**
    * Actor-based subscriber
    */
-  def fromActor(actor: TradingManager) =
-    new FromActor(actor)
+  def fromActor(actor: TradingManager, candleResolution: CandleResolution) =
+    new FromActor(actor, candleResolution)
 
-  class FromActor private[MarketSubscriber] (actor: TradingManager) {
+  private val subscriptionInterval: CandleResolution => SubscriptionInterval = {
+    case CandleResolution.OneMinute  => SUBSCRIPTION_INTERVAL_ONE_MINUTE
+    case CandleResolution.FiveMinute => SUBSCRIPTION_INTERVAL_FIVE_MINUTES
+  }
+
+  class FromActor private[MarketSubscriber] (
+      actor: TradingManager,
+      candleResolution: CandleResolution
+  ) {
     def using[F[_]: Sync](investApi: InvestApi): MarketSubscriber[F, List] =
       (assets: List[TradingAsset]) =>
         Sync[F].delay {
@@ -53,7 +65,7 @@ object MarketSubscriber extends LazyLogging {
             )
             stream.subscribeCandles(
               instruments.asJava,
-              SubscriptionInterval.SUBSCRIPTION_INTERVAL_ONE_MINUTE // TODO pass as parameter
+              subscriptionInterval(candleResolution)
             )
           }
           def logErrorsHandler: Consumer[Throwable] = t => {
@@ -73,8 +85,10 @@ object MarketSubscriber extends LazyLogging {
         .make[F](
           asset = asset,
           broker = broker,
-          from = streamFrom,
-          to = streamTo,
+          candlesInterval = CandlesInterval(
+            interval = DaysInterval(streamFrom, streamTo),
+            resolution = candleResolution
+          ),
           rate = rate
         )
         .foreach { barInfo =>

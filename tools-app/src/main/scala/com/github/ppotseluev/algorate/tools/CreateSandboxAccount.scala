@@ -13,12 +13,12 @@ object CreateSandboxAccount extends App {
 
   val moneyUsd = MoneyValue
     .newBuilder()
-    .setUnits(4_000)
+    .setUnits(10_000)
     .setCurrency("USD")
     .build()
   val moneyRub = MoneyValue
     .newBuilder()
-    .setUnits(300_000)
+    .setUnits(800_000)
     .setCurrency("RUB")
     .build()
 
