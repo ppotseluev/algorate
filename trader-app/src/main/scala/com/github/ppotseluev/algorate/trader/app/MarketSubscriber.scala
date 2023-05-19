@@ -37,6 +37,7 @@ object MarketSubscriber extends LazyLogging {
   private val subscriptionInterval: CandleResolution => SubscriptionInterval = {
     case CandleResolution.OneMinute  => SUBSCRIPTION_INTERVAL_ONE_MINUTE
     case CandleResolution.FiveMinute => SUBSCRIPTION_INTERVAL_FIVE_MINUTES
+    case CandleResolution.Minutes(_) => ???
   }
 
   class FromActor private[MarketSubscriber] (

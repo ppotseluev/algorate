@@ -155,6 +155,7 @@ object TinkoffBroker {
       timeResolution match {
         case CandleResolution.OneMinute  => CandleInterval.CANDLE_INTERVAL_1_MIN
         case CandleResolution.FiveMinute => CandleInterval.CANDLE_INTERVAL_5_MIN
+        case CandleResolution.Minutes(_) => ???
       }
 
     override def getData(
