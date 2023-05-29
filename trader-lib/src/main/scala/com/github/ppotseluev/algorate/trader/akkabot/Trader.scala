@@ -324,6 +324,7 @@ object Trader extends LoggingSupport {
       Behaviors.receive { (ctx, event) =>
         event match {
           case Trader.Event.NewData(bar) =>
+            logger.info(s"Received tick $bar")
             handleBar(bar, ctx)
           case Trader.Event.OrderPlaced(info) =>
             ordersWatcher ! OrdersWatcher.Request.RegisterOrder(info, ctx.self)
