@@ -1290,6 +1290,6 @@ object Assets {
     "BBG000M65M61",
     "BBG000DWG505",
     "BBG000BJ41X2"
-  )
+  ).take(300)
 
 }

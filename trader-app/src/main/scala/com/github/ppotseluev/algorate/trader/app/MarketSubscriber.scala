@@ -47,6 +47,9 @@ object MarketSubscriber extends LazyLogging {
     def using[F[_]: Sync](investApi: InvestApi): MarketSubscriber[F, List] =
       (assets: List[TradingAsset]) =>
         Sync[F].delay {
+          logger.info(
+            s"Subscribing to ${assets.size} assets: ${assets.map(_.ticker).mkString("\n")}"
+          )
           val streamProcessor: StreamProcessor[MarketDataResponse] =
             (data: MarketDataResponse) => {
               if (data.hasCandle) {
