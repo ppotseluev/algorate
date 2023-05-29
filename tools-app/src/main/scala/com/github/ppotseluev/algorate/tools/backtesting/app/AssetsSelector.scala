@@ -5,7 +5,7 @@ import cats.effect.IOApp
 import cats.effect.Resource
 import cats.implicits._
 import cats.kernel.Monoid
-import com.github.ppotseluev.algorate.TradingAsset
+import com.github.ppotseluev.algorate.{TradingAsset, TradingStats}
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.math.PrettyDuration.PrettyPrintableDuration
@@ -16,6 +16,7 @@ import com.github.ppotseluev.algorate.tools.backtesting.Assets._
 import com.github.ppotseluev.algorate.tools.backtesting.Period
 import com.github.ppotseluev.algorate.tools.backtesting.SectorsResults
 import com.github.ppotseluev.algorate.tools.backtesting.Testkit
+
 import java.io.File
 import java.io.PrintWriter
 import java.nio.file.Files
@@ -25,45 +26,20 @@ import scala.concurrent.duration._
 
 object AssetsSelector extends IOApp.Simple {
   private implicit val strategy = Strategies.createDefault(
-    Params(
-//      maxBreakError = 0.006.some,
-    ) //.switchOnFeature
+    Params()
   )
 
-  //TODO consider not splitting dataset for more accurate results
   private implicit val sampler: Sampler = Sampler.All
-//    .SampleSize(200, seed = 12300L.some)
-//    .SampleSize(500, seed = 11111100L.some)
-//    .KFold(
-//      k = 10,
-//      select = 2.some,
-//      seed = 173514L.some
-//    )
-  private val mode: Mode = Mode.Train
-//  .Test
-//Mode.Periods(
-//  Period(2022, (MonthDay.of(1, 25) -> MonthDay.of(3, 5)).some)
-//    Period(2021)
-//  )
-//Mode.Periods(
-//    Period.firstHalf(2023)
-//    Period(2020),
-//    Period(2021),
-//    Period.firstHalf(2022),
-//    Period.secondHalf(2022)
-//  )
+  private val mode: Mode = Mode.Periods(
+    Period.firstHalf(2021),
+    Period.secondHalf(2021),
+    Period.firstHalf(2022),
+    Period.secondHalf(2022),
+    Period.firstHalf(2023)
+  )
 
-  private val assets = cryptocurrencies.sample
-//    (shares.sample ++ allCryptocurrencies.sample ++ cryptocurrencies.sample).sample
+  private val assets = selectedShares.sample
   private val selectionStrategy: SelectionStrategy = SelectAll
-//    ByLowProfit(0.1)
-//    ByStability(0.5)
-  //    ByProfitRatio(0.9)
-//    SelectAll
-//    ByProfit(0.8)
-//    ByWinRatio(0.5)
-//    SelectAll
-//    ByStability(0.4)
   private val candlesResolution = CandleResolution.FiveMinute
 
   private val testingToolkit = new Testkit[IO](skipNotFound = true)
@@ -147,6 +123,8 @@ object AssetsSelector extends IOApp.Simple {
         val nonProfitable = allSharesResults.takeWhile(_._2.profit(fee = true).values.sum < 0)
         val n = (selectionFactor * nonProfitable.size).toInt
         allSharesResults.drop(n)
+      case Filter(predicate) =>
+        results.flatten.toList.filter { case (_, stats) => predicate(stats) }
     }
     val selectedResults = selected.foldMap { case (share, stats) => SectorsResults(share, stats) }
     Results(
@@ -281,6 +259,8 @@ object AssetsSelector extends IOApp.Simple {
   case class ByProfitRatio(threshold: Double) extends SelectionStrategy
 
   case class ByWinRatio(threshold: Double) extends SelectionStrategy //it makes more sense
+
+  case class Filter(predicate: TradingStats => Boolean) extends SelectionStrategy
 
   case class ByStability(threshold: Double) extends SelectionStrategy
 
