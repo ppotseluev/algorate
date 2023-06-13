@@ -1,18 +1,22 @@
 package com.github.ppotseluev.algorate.tools.backtesting
 
 import cats.Parallel
-import cats.effect.Async
+import cats.effect.unsafe.implicits.global
+import cats.effect.{Async, IO}
 import cats.implicits._
 import com.github.ppotseluev.algorate.AssetData
 import com.github.ppotseluev.algorate.TradingAsset
+import com.github.ppotseluev.algorate.broker.BarDataProvider
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.math.PrettyDuration.PrettyPrintableDuration
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.StrategyBuilder
+
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.duration._
 
 class Testkit[F[_]: Async: Parallel](
+    barDataProvider: Option[BarDataProvider[F]] = None,
     maxConcurrentAssets: Int = 8,
     assetParallelism: Int = 1,
     logProgress: Boolean = true,
@@ -20,7 +24,7 @@ class Testkit[F[_]: Async: Parallel](
 )(implicit factory: Factory[F]) {
 
   private implicit val barSeriesProvider: BarSeriesProvider[F] =
-    new BarSeriesProvider(factory.archive)
+    new BarSeriesProvider(barDataProvider.getOrElse(factory.archive))
 
   def test(intervals: List[CandlesInterval], assets: List[TradingAsset])(implicit
       strategy: StrategyBuilder

@@ -9,6 +9,7 @@ import com.github.ppotseluev.algorate.{TradingAsset, TradingStats}
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.math.PrettyDuration.PrettyPrintableDuration
+import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.Strategies
 import com.github.ppotseluev.algorate.strategy.Strategies.Params
 import com.github.ppotseluev.algorate.tools.backtesting.Assets.Sampler
@@ -21,6 +22,7 @@ import java.io.File
 import java.io.PrintWriter
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.time.MonthDay
 import scala.collection.mutable
 import scala.concurrent.duration._
 
@@ -31,18 +33,25 @@ object AssetsSelector extends IOApp.Simple {
 
   private implicit val sampler: Sampler = Sampler.All
   private val mode: Mode = Mode.Periods(
-    Period.firstHalf(2021),
-    Period.secondHalf(2021),
-    Period.firstHalf(2022),
-    Period.secondHalf(2022),
-    Period.firstHalf(2023)
+    Period(
+      2023,
+      Some(
+        MonthDay.of(2, 20),
+        MonthDay.of(2, 28)
+      )
+    )
+//    Period.firstHalf(2021),
+//    Period.secondHalf(2021),
+//    Period.firstHalf(2022),
+//    Period.secondHalf(2022),
+//    Period.firstHalf(2023)
   )
 
   private val assets = selectedShares.sample
   private val selectionStrategy: SelectionStrategy = SelectAll
   private val candlesResolution = CandleResolution.FiveMinute
 
-  private val testingToolkit = new Testkit[IO](skipNotFound = true)
+//  private val testingToolkit = new Testkit[IO](skipNotFound = true)
 
   private val periods: List[Period] = mode match {
     case Mode.Periods(periods) => periods
@@ -209,7 +218,7 @@ object AssetsSelector extends IOApp.Simple {
       periods: List[Period],
       assets: List[TradingAsset],
       accResult: SectorsResults
-  ): IO[SectorsResults] = periods match {
+  )(implicit testkit: Testkit[IO]): IO[SectorsResults] = periods match {
     case period :: restPeriods =>
       for {
         start <- IO(System.currentTimeMillis)
@@ -217,7 +226,7 @@ object AssetsSelector extends IOApp.Simple {
           println(s"Start testing for $period")
         }
         candlesInterval = CandlesInterval(period.toInterval, candlesResolution)
-        currentBatchResults <- testingToolkit.test(candlesInterval, assets)
+        currentBatchResults <- testkit.test(candlesInterval, assets)
         end <- IO(System.currentTimeMillis)
         results = select(currentBatchResults)
         _ <- save(results, period, (end - start).millis)
@@ -228,10 +237,15 @@ object AssetsSelector extends IOApp.Simple {
 
   override def run: IO[Unit] = {
     val start = System.currentTimeMillis()
-    loopSelect(periods, assets, Monoid[SectorsResults].empty).map { res =>
-      val end = System.currentTimeMillis()
-      res -> (end - start).millis
-    }
+    Factory.io.tinkoffBroker
+      .map(_.some)
+      .map(new Testkit(_, skipNotFound = true))
+      .use { implicit tk =>
+        loopSelect(periods, assets, Monoid[SectorsResults].empty).map { res =>
+          val end = System.currentTimeMillis()
+          res -> (end - start).millis
+        }
+      }
   }.flatMap { case (accResult, duration) =>
     write(
       results = accResult,
