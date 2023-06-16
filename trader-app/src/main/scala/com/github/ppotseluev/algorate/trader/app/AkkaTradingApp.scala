@@ -62,7 +62,9 @@ object AkkaTradingApp extends IOApp with LazyLogging {
     logger.info("Hello from Algorate!")
     val factory = Factory.io
     val brokerResource = factory.tinkoffBroker.map(
-      if (useHistoricalData.isDefined) TinkoffBroker.testBroker else identity
+//      if (useHistoricalData.isDefined)
+      TinkoffBroker.testBroker
+//    else identity
     )
     val eventsSinkResource = factory.telegramEventsSink
     val program = for {
@@ -115,15 +117,15 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         api = factory.traderApi(requestHandler)
         subscription = MarketSubscriber.fromActor(actorSystem, candleResolution)
         exitCode <- useHistoricalData.fold {
-          {
-            val subscriber = subscription.stub[IO](
-              broker,
-              rate = 0.millis,
-              streamFrom = LocalDate.now,
-              streamTo = LocalDate.now
-            )
-            assets.parTraverse(subscriber.subscribe).void
-          } *>
+//          {
+//            val subscriber = subscription.stub[IO](
+//              broker,
+//              rate = 0.millis,
+//              streamFrom = LocalDate.now,
+//              streamTo = LocalDate.now
+//            )
+//            assets.parTraverse(subscriber.subscribe).void
+//          } *>
             subscription //TODO fix gap between historical and realtime data
               .binance[IO](binanceApi)
               .subscribe(assets)
