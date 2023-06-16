@@ -8,7 +8,7 @@ import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import cats.~>
 import com.github.ppotseluev.algorate._
-import com.github.ppotseluev.algorate.broker.Broker
+import com.github.ppotseluev.algorate.broker.{Broker, TestBroker}
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
 import com.github.ppotseluev.algorate.broker.tinkoff.TinkoffBroker
@@ -19,6 +19,7 @@ import com.github.ppotseluev.algorate.trader.akkabot.EventsSink
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager
 import com.github.ppotseluev.algorate.trader.policy.MoneyManagementPolicy
 import com.typesafe.scalalogging.LazyLogging
+
 import java.time.LocalDate
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -67,6 +68,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
     val program = for {
       broker <- brokerResource
       eventsSink <- eventsSinkResource
+      binanceApi <- factory.binanceApi
     } yield {
       val eventsSinkFuture = wrapEventsSink(λ[IO ~> Future](_.unsafeToFuture()))(eventsSink)
       val brokerFuture = wrapBroker(λ[IO ~> Future](_.unsafeToFuture()))(broker)
@@ -75,33 +77,35 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         maxPercentage = 1, //100%
         maxAbsolute = Map(
           "usd" -> 1_000,
+          "usdt" -> 1_000,
           "rub" -> 80_000
         )
       )
-      for {
-        shares <- broker.getSharesById(Assets.sharesIds.toSet)
-        assets = shares.map { s =>
-          TradingAsset(
-            instrumentId = s.getFigi,
-            ticker = s.getTicker,
-            currency = s.getCurrency,
-            `type` = TradingAsset.Type.Share,
-            sector = s.getSector
-          )
-        }
-        assetsMap = assets.map(a => a.instrumentId -> a).toMap
-        tradingManager = TradingManager(
-          assets = assetsMap,
-          broker = brokerFuture,
-          strategy = Strategies.default,
-          moneyTracker = moneyTracker,
-          policy = policy,
-          keepLastBars = 2000,
-          eventsSink = eventsSinkFuture,
-          maxLag = Option.when(useHistoricalData.isEmpty)(
-            (candleResolution.duration * 1.5).asInstanceOf[FiniteDuration]
-          )
+      val assets = Assets.allCryptocurrencies
+      val assetsMap = assets.map(a => a.instrumentId -> a).toMap
+      val tradingManager = TradingManager(
+        assets = assetsMap,
+        broker = brokerFuture,
+        strategy = Strategies.default,
+        moneyTracker = moneyTracker,
+        policy = policy,
+        keepLastBars = 2000,
+        eventsSink = eventsSinkFuture,
+        maxLag = Option.when(useHistoricalData.isEmpty)(
+          (candleResolution.duration * 1.5).asInstanceOf[FiniteDuration]
         )
+      )
+      for {
+//        shares <- broker.getSharesById(Assets.sharesIds.toSet)
+//        shares.map { s =>
+//          TradingAsset(
+//            instrumentId = s.getFigi,
+//            ticker = s.getTicker,
+//            currency = s.getCurrency,
+//            `type` = TradingAsset.Type.Share,
+//            sector = s.getSector
+//          )
+//        }
         actorSystem <- IO(ActorSystem(tradingManager, "Algorate"))
         requestHandler = factory.traderRequestHandler(
           actorSystem = actorSystem,
@@ -121,7 +125,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
             assets.parTraverse(subscriber.subscribe).void
           } *>
             subscription //TODO fix gap between historical and realtime data
-              .using[IO](factory.investApi)
+              .binance[IO](binanceApi)
               .subscribe(assets)
         } { case StubSettings(assets, streamFrom, streamTo, rate) =>
           val subscriber = subscription.stub[IO](

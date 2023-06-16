@@ -27,6 +27,10 @@ import com.github.ppotseluev.algorate.trader.telegram.TelegramWebhook
 import dev.profunktor.redis4cats.Redis
 import dev.profunktor.redis4cats.connection.RedisClient
 import dev.profunktor.redis4cats.effect.Log.Stdout.instance
+import io.github.paoloboni.binance.BinanceClient
+import io.github.paoloboni.binance.common.SpotConfig
+import io.github.paoloboni.binance.spot.SpotApi
+
 import java.io.File
 import java.time.ZoneOffset
 import pureconfig.ConfigSource
@@ -53,6 +57,8 @@ class Factory[F[_]: Async: Parallel] {
   lazy val prometheusMetrics: PrometheusMetrics[F] = PrometheusMetrics.default[F]()
 
   lazy val investApi: InvestApi = InvestApi.createSandbox(tinkoffAccessToken)
+
+  lazy val binanceApi: Resource[F, SpotApi[F]] = BinanceClient.createSpotClient(binanceConfig)
 
   val redisClient: Resource[F, RedisClient] = RedisClient[F].from("redis://localhost")
 

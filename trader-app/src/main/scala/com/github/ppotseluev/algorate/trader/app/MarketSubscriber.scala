@@ -1,6 +1,7 @@
 package com.github.ppotseluev.algorate.trader.app
 
 import cats.Id
+import cats.effect.kernel.Concurrent
 import cats.effect.kernel.Sync
 import cats.effect.kernel.Temporal
 import com.github.ppotseluev.algorate._
@@ -8,10 +9,13 @@ import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
-import com.github.ppotseluev.algorate.broker.tinkoff.TinkoffConverters
+import com.github.ppotseluev.algorate.broker.tinkoff.{BinanceConverters, TinkoffConverters}
 import com.github.ppotseluev.algorate.trader.HistoryStream
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager
 import com.typesafe.scalalogging.LazyLogging
+import io.github.paoloboni.binance.common.Interval
+import io.github.paoloboni.binance.spot.SpotApi
+
 import java.time.LocalDate
 import java.util.function.Consumer
 import ru.tinkoff.piapi.contract.v1.MarketDataResponse
@@ -19,6 +23,7 @@ import ru.tinkoff.piapi.contract.v1.SubscriptionInterval
 import ru.tinkoff.piapi.contract.v1.SubscriptionInterval._
 import ru.tinkoff.piapi.core.InvestApi
 import ru.tinkoff.piapi.core.stream.StreamProcessor
+
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 
@@ -34,18 +39,31 @@ object MarketSubscriber extends LazyLogging {
   def fromActor(actor: TradingManager, candleResolution: CandleResolution) =
     new FromActor(actor, candleResolution)
 
-  private val subscriptionInterval: CandleResolution => SubscriptionInterval = {
-    case CandleResolution.OneMinute  => SUBSCRIPTION_INTERVAL_ONE_MINUTE
-    case CandleResolution.FiveMinute => SUBSCRIPTION_INTERVAL_FIVE_MINUTES
-    case CandleResolution.Minutes(_) => ???
-  }
-
   class FromActor private[MarketSubscriber] (
       actor: TradingManager,
       candleResolution: CandleResolution
   ) {
-    def using[F[_]: Sync](investApi: InvestApi): MarketSubscriber[F, List] =
-      (assets: List[TradingAsset]) =>
+    def binance[F[_]: Sync: Concurrent](binanceApi: SpotApi[F]): MarketSubscriber[F, Seq] =
+      (assets: Seq[TradingAsset]) => {
+        val interval = BinanceConverters.subscriptionInterval(candleResolution)
+        val streams = assets.map { asset =>
+          binanceApi.kLineStreams(asset.instrumentId, interval).foreach { kline =>
+            Sync[F].delay {
+              val bar = BinanceConverters.convert(kline)
+              val barInfo = BarInfo(asset.instrumentId, bar)
+              actor ! TradingManager.Event.CandleData(barInfo)
+            }
+          }
+        }
+        fs2.Stream
+          .emits(streams)
+          .parJoinUnbounded
+          .compile
+          .drain
+      }
+
+    def tinkoff[F[_]: Sync](investApi: InvestApi): MarketSubscriber[F, Seq] =
+      (assets: Seq[TradingAsset]) =>
         Sync[F].delay {
           logger.info(
             s"Subscribing to ${assets.size} assets: ${assets.map(_.ticker).mkString("\n")}"
@@ -69,7 +87,7 @@ object MarketSubscriber extends LazyLogging {
             )
             stream.subscribeCandles(
               instruments.asJava,
-              subscriptionInterval(candleResolution)
+              TinkoffConverters.subscriptionInterval(candleResolution)
             )
           }
           def logErrorsHandler: Consumer[Throwable] = t => {

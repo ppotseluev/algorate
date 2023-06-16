@@ -1,7 +1,10 @@
 package com.github.ppotseluev.algorate.server
 
+import cats.Id
 import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.trader.Api
+import io.github.paoloboni.binance.common.SpotConfig
+
 import scala.concurrent.duration.FiniteDuration
 
 case class Config(
@@ -15,7 +18,8 @@ case class Config(
     telegramUsersWhitelist: Set[Int],
     apiConfig: Api.Config,
     enableBrokerCache: Boolean,
-    historicalDataArchive: Option[String]
+    historicalDataArchive: Option[String],
+    binanceConfig: SpotConfig.Default[Id]
 ) {
   def telegramTrackedChats: Set[String] = Set(telegramChatId)
 
