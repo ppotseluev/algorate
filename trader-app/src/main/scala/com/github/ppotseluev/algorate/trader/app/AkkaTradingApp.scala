@@ -63,7 +63,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
     val factory = Factory.io
     val brokerResource = factory.tinkoffBroker.map(
 //      if (useHistoricalData.isDefined)
-      TinkoffBroker.testBroker
+      TinkoffBroker.testBroker[IO]
 //    else identity
     )
     val eventsSinkResource = factory.telegramEventsSink
