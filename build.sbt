@@ -93,12 +93,7 @@ lazy val `trader-app` = project
   .settings(
     name := "trader-app",
     settings,
-    assembly / mainClass := Some("com.github.ppotseluev.algorate.trader.app.AkkaTradingApp"),
-    libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-http" % "10.5.2",
-      "com.typesafe.akka" %% "akka-stream" % "2.8.2",
-      "com.softwaremill.sttp.client3" %% "akka-http-backend" % "3.8.15"
-    )
+    assembly / mainClass := Some("com.github.ppotseluev.algorate.trader.app.AkkaTradingApp")
   )
   .dependsOn(
     `server`
