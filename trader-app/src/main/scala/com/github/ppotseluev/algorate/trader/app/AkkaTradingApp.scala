@@ -120,7 +120,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
             val subscriber = subscription.stub[IO](
               broker,
               rate = 0.millis,
-              streamFrom = LocalDate.now,
+              streamFrom = LocalDate.now.minusDays(6),
               streamTo = LocalDate.now
             )
             assets.parTraverse(subscriber.subscribe).void
