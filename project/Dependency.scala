@@ -7,9 +7,9 @@ object Dependency {
 
   val fs2 = "co.fs2" %% "fs2-reactive-streams" % "3.4.0"
 
-  val logback = "ch.qos.logback" % "logback-classic" % "1.2.9"
+  val logback = "ch.qos.logback" % "logback-classic" % "1.4.7"
 
-  val scalaLogging = "com.typesafe.scala-logging" %% "scala-logging" % "3.9.4"
+  val scalaLogging = "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5"
 
   val enumeratrum = "com.beachape" %% "enumeratum" % "1.7.0"
 
