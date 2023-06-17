@@ -11,8 +11,7 @@ import com.github.ppotseluev.algorate.Bar
 import com.github.ppotseluev.algorate.InstrumentId
 import com.github.ppotseluev.algorate.Ticker
 import com.github.ppotseluev.algorate.broker.Archive
-import com.github.ppotseluev.algorate.broker.tinkoff.TinkoffApi
-import com.github.ppotseluev.algorate.broker.tinkoff.TinkoffBroker
+import com.github.ppotseluev.algorate.broker.tinkoff.{BinanceBroker, TinkoffApi, TinkoffBroker}
 import com.github.ppotseluev.algorate.redis.RedisCodecs
 import com.github.ppotseluev.algorate.redis.codec._
 import com.github.ppotseluev.algorate.server.Codecs._
@@ -59,6 +58,8 @@ class Factory[F[_]: Async: Parallel] {
   lazy val investApi: InvestApi = InvestApi.createSandbox(tinkoffAccessToken)
 
   lazy val binanceApi: Resource[F, SpotApi[F]] = BinanceClient.createSpotClient(binanceConfig)
+
+  lazy val binanceBroker: Resource[F, BinanceBroker[F]] = binanceApi.map(new BinanceBroker(_))
 
   val redisClient: Resource[F, RedisClient] = RedisClient[F].from("redis://localhost")
 

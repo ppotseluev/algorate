@@ -11,7 +11,6 @@ import com.github.ppotseluev.algorate._
 import com.github.ppotseluev.algorate.broker.{Broker, TestBroker}
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
-import com.github.ppotseluev.algorate.broker.tinkoff.TinkoffBroker
 import com.github.ppotseluev.algorate.cats.Provider
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.Strategies
@@ -62,11 +61,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
   override def run(_a: List[String]): IO[ExitCode] = {
     logger.info("Hello from Algorate!")
     val factory = Factory.io
-    val brokerResource = factory.tinkoffBroker.map(
-//      if (useHistoricalData.isDefined)
-      TinkoffBroker.testBroker[IO]
-//    else identity
-    )
+    val brokerResource = factory.binanceBroker
     val eventsSinkResource = factory.telegramEventsSink
     val program = for {
       broker <- brokerResource
@@ -121,18 +116,18 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         api = factory.traderApi(requestHandler)
         subscription = MarketSubscriber.fromActor(actorSystem, candleResolution)
         exitCode <- useHistoricalData.fold {
-//          {
-//            val subscriber = subscription.stub[IO](
-//              broker,
-//              rate = 0.millis,
-//              streamFrom = LocalDate.now,
-//              streamTo = LocalDate.now
-//            )
-//            assets.parTraverse(subscriber.subscribe).void
-//          } *>
-          subscription //TODO fix gap between historical and realtime data
-            .binance[IO](binanceApi)
-            .subscribe(assets)
+          {
+            val subscriber = subscription.stub[IO](
+              broker,
+              rate = 0.millis,
+              streamFrom = LocalDate.now,
+              streamTo = LocalDate.now
+            )
+            assets.parTraverse(subscriber.subscribe).void
+          } *>
+            subscription //TODO fix gap between historical and realtime data
+              .binance[IO](binanceApi)
+              .subscribe(assets)
         } { case StubSettings(assets, streamFrom, streamTo, rate) =>
           val subscriber = subscription.stub[IO](
             broker,

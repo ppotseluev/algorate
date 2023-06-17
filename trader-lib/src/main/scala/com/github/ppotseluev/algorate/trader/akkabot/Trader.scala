@@ -131,7 +131,6 @@ object Trader extends LoggingSupport {
       snapshotSink: TraderSnapshotSink,
       maxLag: Option[FiniteDuration]
   ): Behavior[Event] = {
-    val instrumentId = asset.instrumentId
 
     val logger = getLogger(s"Trader-${asset.ticker}")
 
@@ -140,7 +139,7 @@ object Trader extends LoggingSupport {
         operationType: OperationType,
         lots: Double
     ): Order = Order(
-      instrumentId = instrumentId,
+      asset = asset,
       lots = lots,
       operationType = operationType,
       details = Order.Details.Market, //TODO
@@ -154,7 +153,7 @@ object Trader extends LoggingSupport {
       }
 
     Behaviors.setup { _ =>
-      val barSeries = new BaseBarSeries(instrumentId)
+      val barSeries = new BaseBarSeries(asset.instrumentId)
       barSeries.setMaximumBarCount(keepLastBars)
       val assetData = AssetData(asset, barSeries)
       val strategy = strategyBuilder(assetData)

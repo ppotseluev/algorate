@@ -18,7 +18,7 @@ case class ClosePositionOrder(
 
   def buildMarketOrder(currentPoint: Point): Order =
     Order(
-      instrumentId = originalOrder.instrumentId,
+      asset = originalOrder.asset,
       lots = originalOrder.lots,
       operationType = originalOrder.operationType.reverse,
       details = Order.Details.Market,

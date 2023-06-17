@@ -45,7 +45,7 @@ object MarketSubscriber extends LazyLogging {
   ) {
     def binance[F[_]: Sync: Concurrent](binanceApi: SpotApi[F]): MarketSubscriber[F, Seq] =
       (assets: Seq[TradingAsset]) => {
-        val interval = BinanceConverters.subscriptionInterval(candleResolution)
+        val interval = BinanceConverters.convert(candleResolution)
         val streams = assets.map { asset =>
           binanceApi.kLineStreams(asset.instrumentId, interval).foreach { kline =>
             Sync[F].delay {

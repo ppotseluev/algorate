@@ -1,18 +1,33 @@
 package com.github.ppotseluev.algorate.broker.tinkoff
 
-import com.github.ppotseluev.algorate.Bar
-import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
-import io.github.paoloboni.binance.common.Interval
+import com.github.ppotseluev.algorate.{Bar, OperationType}
+import com.github.ppotseluev.algorate.broker.Broker.{CandleResolution, OrderExecutionStatus}
+import io.github.paoloboni.binance.common.{Interval, KLine, OrderSide}
 import io.github.paoloboni.binance.common.response.KLineStream
+import io.github.paoloboni.binance.spot.SpotOrderStatus
+import io.github.paoloboni.binance.spot.SpotOrderStatus._
 
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import scala.concurrent.duration.FiniteDuration
 
 object BinanceConverters {
-  val subscriptionInterval: CandleResolution => Interval = {
+  val convert: CandleResolution => Interval = {
     case CandleResolution.OneMinute  => Interval.`1m`
     case CandleResolution.FiveMinute => Interval.`5m`
     case CandleResolution.Minutes(_) => ???
+  }
+
+  def convert(duration: FiniteDuration)(kline: KLine): Bar = {
+    Bar(
+      openPrice = kline.open,
+      closePrice = kline.close,
+      lowPrice = kline.low,
+      highPrice = kline.high,
+      volume = kline.volume.doubleValue,
+      trades = kline.numberOfTrades,
+      endTime = OffsetDateTime.ofInstant(Instant.ofEpochMilli(kline.closeTime), ZoneOffset.UTC),
+      duration = duration
+    )
   }
 
   def convert(kline: KLineStream): Bar = {
@@ -27,5 +42,16 @@ object BinanceConverters {
       endTime = OffsetDateTime.ofInstant(Instant.ofEpochMilli(x.T), ZoneOffset.UTC),
       duration = x.i.duration.asInstanceOf[FiniteDuration]
     )
+  }
+
+  def convert(operation: OperationType): OrderSide = operation match {
+    case OperationType.Buy  => OrderSide.BUY
+    case OperationType.Sell => OrderSide.SELL
+  }
+
+  def convert(status: SpotOrderStatus): OrderExecutionStatus = status match {
+    case NEW | PARTIALLY_FILLED | PENDING_CANCEL => OrderExecutionStatus.Pending
+    case FILLED                                  => OrderExecutionStatus.Completed
+    case CANCELED | REJECTED | EXPIRED           => OrderExecutionStatus.Failed
   }
 }

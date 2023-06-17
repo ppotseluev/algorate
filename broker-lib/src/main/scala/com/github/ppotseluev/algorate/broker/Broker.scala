@@ -40,6 +40,9 @@ object Broker {
   case class DaysInterval(start: LocalDate, end: LocalDate) {
     require(!start.isAfter(end), "start can't be after end")
 
+    def firstDay = Day(start)
+    def lastDay = Day(end)
+
     def contains(dateTime: OffsetDateTime): Boolean =
       dateTime.isAfter(start.atStartOfDay.atOffset(ZoneOffset.UTC)) &&
         dateTime.isBefore(end.plusDays(1).atStartOfDay.atOffset(ZoneOffset.UTC))

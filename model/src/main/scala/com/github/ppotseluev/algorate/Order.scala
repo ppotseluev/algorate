@@ -4,12 +4,14 @@ import com.github.ppotseluev.algorate.Order.Details
 import enumeratum._
 
 case class Order(
-    instrumentId: InstrumentId,
+    asset: TradingAsset,
     lots: Double,
     operationType: OperationType,
     details: Order.Details,
     info: Order.Info
 ) {
+  def instrumentId: InstrumentId = asset.instrumentId
+
   def key: String = {
     val ts = info.point.timestamp.toInstant.getEpochSecond
     s"$instrumentId-$ts"
