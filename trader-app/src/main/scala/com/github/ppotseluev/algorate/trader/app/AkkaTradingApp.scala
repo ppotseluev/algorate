@@ -12,6 +12,7 @@ import com.github.ppotseluev.algorate.broker.{Broker, TestBroker}
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
 import com.github.ppotseluev.algorate.broker.tinkoff.TinkoffBroker
+import com.github.ppotseluev.algorate.cats.Provider
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.Strategies
 import com.github.ppotseluev.algorate.trader.akkabot.Event
@@ -74,7 +75,10 @@ object AkkaTradingApp extends IOApp with LazyLogging {
     } yield {
       val eventsSinkFuture = wrapEventsSink(λ[IO ~> Future](_.unsafeToFuture()))(eventsSink)
       val brokerFuture = wrapBroker(λ[IO ~> Future](_.unsafeToFuture()))(broker)
-      val moneyTracker = TinkoffBroker.moneyTracker(broker)
+      val moneyTracker = new Provider[IO, Money](
+        IO.never[Money],
+        Map("usdt" -> BigDecimal(100_000)).some
+      )
       val policy = new MoneyManagementPolicy(() => moneyTracker.get)(
         maxPercentage = 1, //100%
         maxAbsolute = Map(
@@ -126,9 +130,9 @@ object AkkaTradingApp extends IOApp with LazyLogging {
 //            )
 //            assets.parTraverse(subscriber.subscribe).void
 //          } *>
-            subscription //TODO fix gap between historical and realtime data
-              .binance[IO](binanceApi)
-              .subscribe(assets)
+          subscription //TODO fix gap between historical and realtime data
+            .binance[IO](binanceApi)
+            .subscribe(assets)
         } { case StubSettings(assets, streamFrom, streamTo, rate) =>
           val subscriber = subscription.stub[IO](
             broker,
