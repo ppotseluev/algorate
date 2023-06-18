@@ -61,7 +61,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
   override def run(_a: List[String]): IO[ExitCode] = {
     logger.info("Hello from Algorate!")
     val factory = Factory.io
-    val brokerResource = factory.binanceBroker
+    val brokerResource = factory.binanceBroker.map(TestBroker.wrap) //TODO
     val eventsSinkResource = factory.telegramEventsSink
     val program = for {
       broker <- brokerResource
@@ -120,7 +120,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
             val subscriber = subscription.stub[IO](
               broker,
               rate = 0.millis,
-              streamFrom = LocalDate.now.minusDays(1),
+              streamFrom = LocalDate.now.minusDays(2),
               streamTo = LocalDate.now
             )
             assets.parTraverse(subscriber.subscribe).void
