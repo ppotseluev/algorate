@@ -124,10 +124,11 @@ object AkkaTradingApp extends IOApp with LazyLogging {
               streamTo = LocalDate.now
             )
             assets.parTraverse(subscriber.subscribe).void
-          } *>
-            subscription //TODO fix gap between historical and realtime data
-              .binance[IO](binanceApi)
-              .subscribe(assets)
+          } *> IO {
+            logger.info("Starting real-time data streaming")
+          } *> subscription //TODO fix gap between historical and realtime data
+            .binance[IO](binanceApi)
+            .subscribe(assets)
         } { case StubSettings(assets, streamFrom, streamTo, rate) =>
           val subscriber = subscription.stub[IO](
             broker,
