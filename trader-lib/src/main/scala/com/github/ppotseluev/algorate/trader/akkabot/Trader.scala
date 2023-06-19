@@ -207,14 +207,14 @@ object Trader extends LoggingSupport {
           }
         }
         state match {
-          case TraderState.Empty if maxLag.forall(_ >= lag(bar)) =>
+          case TraderState.Empty => //if maxLag.forall(_ >= lag(bar)) => TODO
             if (strategy.longStrategy.shouldEnter(lastIndex)) {
               tryEnter(OperationType.Buy)
             } else if (strategy.shortStrategy.shouldEnter(lastIndex)) {
               tryEnter(OperationType.Sell)
             }
-          case TraderState.Empty =>
-            logger.debug(s"Lag is too big, skipping bar") //TODO always ignore on too big lag?
+//          case TraderState.Empty =>
+//            logger.debug(s"Lag is too big, skipping bar") //TODO always ignore on too big lag?
           case TraderState.Entering(position) =>
             position.state match {
               case State.Initial | State.Placed(Pending) | State.Placed(Failed) => ()
