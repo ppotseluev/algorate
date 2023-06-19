@@ -14,6 +14,8 @@ import sttp.tapir._
 import sttp.tapir.generic.auto._
 import sttp.tapir.json.circe.jsonBody
 
+import java.time.format.SignStyle
+
 object TelegramWebhook {
   implicit private val circeConfig: Configuration = Configuration.default.withSnakeCaseMemberNames
 
@@ -68,10 +70,14 @@ object TelegramWebhook {
 
     private val show = "show ([0-9a-zA-Z]+)".r
 
-    def parse(input: String): Option[Command] = input match {
-      case show(ticker) => ShowState(ticker).some
-      case _            => None
+    def parse(input: String): Option[Command] = {
+      val ticker = s"${input.toUpperCase}USDT" //TODO
+      ShowState(ticker).some
     }
+    //      input match {
+//        case show(ticker) => ShowState(ticker).some
+//        case _            => None
+//      }
   }
 
   class Handler[F[_]: Monad](
