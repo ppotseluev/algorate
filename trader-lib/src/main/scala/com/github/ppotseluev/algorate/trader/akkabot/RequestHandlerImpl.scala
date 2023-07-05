@@ -8,10 +8,7 @@ import com.github.ppotseluev.algorate._
 import com.github.ppotseluev.algorate.trader.Request
 import com.github.ppotseluev.algorate.trader.RequestHandler
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State
-import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.{
-  WaitingShowTicker,
-  WaitingTradingTicker
-}
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.{WaitingExitTicker, WaitingShowTicker, WaitingTradingTicker}
 import com.github.ppotseluev.algorate.trader.telegram.TelegramClient.{Message, MessageSource}
 import com.typesafe.scalalogging.LazyLogging
 
@@ -37,7 +34,8 @@ class RequestHandlerImpl[F[_]: Sync](
     request match {
       case Request.ShowState => requestTicker(WaitingShowTicker)
       case Request.Sell      => requestTicker(WaitingTradingTicker(OperationType.Sell))
-      case Request.Buy       => requestTicker(WaitingTradingTicker(OperationType.Sell))
+      case Request.Buy       => requestTicker(WaitingTradingTicker(OperationType.Buy))
+      case Request.Exit => requestTicker(WaitingExitTicker)
       case Request.GeneralInput(input) =>
         val ticker = s"${input.toUpperCase}USDT" //TODO
         state.get.flatMap {
@@ -46,6 +44,8 @@ class RequestHandlerImpl[F[_]: Sync](
             notifyTraders(ticker, TradingManager.Event.TradeRequested(_, operation))
           case WaitingShowTicker =>
             notifyTraders(ticker, TradingManager.Event.TraderSnapshotRequested)
+          case WaitingExitTicker =>
+            notifyTraders(ticker, TradingManager.Event.ExitRequested)
         }
       case Request.ShowActiveTrades => ???
     }
@@ -57,6 +57,7 @@ object RequestHandlerImpl {
   object State {
     case object Empty extends State
     case class WaitingTradingTicker(operation: OperationType) extends State
+    case object WaitingExitTicker extends State
     case object WaitingShowTicker extends State
   }
 }

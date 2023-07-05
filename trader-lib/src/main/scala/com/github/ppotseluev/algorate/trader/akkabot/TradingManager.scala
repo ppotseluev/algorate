@@ -30,6 +30,7 @@ object TradingManager extends LazyLogging {
   object Event {
     case class CandleData(barInfo: BarInfo) extends Event
     case class TraderSnapshotRequested(instrumentId: InstrumentId) extends Event
+    case class ExitRequested(instrumentId: InstrumentId) extends Event
     case class TraderSnapshotEvent(snapshot: Trader.StateSnapshot) extends Event
     case class TradeRequested(instrumentId: InstrumentId, operationType: OperationType)
         extends Event
@@ -103,6 +104,9 @@ object TradingManager extends LazyLogging {
         Behaviors.same
       case Event.TradeRequested(instrumentId, operationType) =>
         useTrader(instrumentId)(_ ! Trader.Event.TradeRequested(operationType))
+        Behaviors.same
+      case Event.ExitRequested(instrumentId) =>
+        useTrader(instrumentId)(_ ! Trader.Event.ExitRequested)
         Behaviors.same
     }
   }

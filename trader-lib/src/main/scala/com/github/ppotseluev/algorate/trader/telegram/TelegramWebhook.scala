@@ -64,6 +64,7 @@ object TelegramWebhook extends LazyLogging {
     case "/show" => Request.ShowState
     case "/sell" => Request.Sell
     case "/buy"  => Request.Buy
+    case "/exit" => Request.Exit
     case other   => Request.GeneralInput(other)
   }
 

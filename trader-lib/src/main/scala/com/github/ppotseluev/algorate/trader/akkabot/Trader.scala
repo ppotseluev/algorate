@@ -87,6 +87,7 @@ object Trader extends LoggingSupport {
     case class NewData(bar: Bar) extends Event
     case object StateSnapshotRequested extends Event
     case class TradeRequested(operationType: OperationType) extends Event
+    case object ExitRequested extends Event
     case class OrderUpdated(info: OrderPlacementInfo) extends OrderPlacementUpdate
   }
 
@@ -196,11 +197,28 @@ object Trader extends LoggingSupport {
         }
       }
 
-      def shouldExit(position: Order): (Boolean, TradingRecord) = position.operationType match {
+      def exit(
+          bar: Bar,
+          position: Position
+      )(implicit ctx: ActorContext[Event]): Unit = {
+        val history = historyRecord(position.payload.operationType)
+        val point = Point(
+          timestamp = bar.endTime,
+          value = bar.closePrice
+        )
+        val lastIndex = barSeries.getEndIndex
+        val lastPrice = barSeries.getBar(lastIndex).getClosePrice
+        val order = position.payload.buildClosingOrder(point)
+        state = TraderState.exit(order, position)
+        history.exit(lastIndex, lastPrice, barSeries.numOf(order.lots))
+        placeOrder(order)
+      }
+
+      def shouldExit(position: Order): Boolean = position.operationType match {
         case OperationType.Buy =>
-          strategy.longStrategy.shouldExit(barSeries.getEndIndex, longHistory) -> longHistory
+          strategy.longStrategy.shouldExit(barSeries.getEndIndex, longHistory)
         case OperationType.Sell =>
-          strategy.shortStrategy.shouldExit(barSeries.getEndIndex, shortHistory) -> shortHistory
+          strategy.shortStrategy.shouldExit(barSeries.getEndIndex, shortHistory)
       }
 
       def lag(bar: Bar): FiniteDuration =
@@ -228,16 +246,8 @@ object Trader extends LoggingSupport {
             position.state match {
               case State.Initial | State.Placed(Pending) | State.Placed(Failed) => ()
               case State.Placed(Completed) =>
-                val (exit, historyRecord) = shouldExit(position.payload)
-                if (exit) {
-                  val point = Point(
-                    timestamp = bar.endTime,
-                    value = bar.closePrice
-                  )
-                  val order = position.payload.buildClosingOrder(point)
-                  state = TraderState.exit(order, position)
-                  historyRecord.exit(lastIndex, lastPrice, barSeries.numOf(order.lots))
-                  placeOrder(order)
+                if (shouldExit(position.payload)) {
+                  exit(bar, position)
                 } else {
                   () //keep holding current position
                 }
@@ -350,6 +360,12 @@ object Trader extends LoggingSupport {
           case Trader.Event.TradeRequested(operationType) =>
             currentBar.foreach { bar =>
               tryEnter(bar, operationType)
+            }
+          case Trader.Event.ExitRequested =>
+            (currentBar, state) match {
+              case (Some(bar), TraderState.Entering(position)) =>
+                exit(bar, position)
+              case _ => logger.warn("Can't perform requested exit operation")
             }
         }
         Behaviors.same
