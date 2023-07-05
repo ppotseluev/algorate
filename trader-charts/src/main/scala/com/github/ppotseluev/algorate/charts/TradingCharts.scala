@@ -70,7 +70,7 @@ object TradingCharts {
     // Adding markers to plot
     for ((position, idx) <- positions.zipWithIndex) {
       // Buy signal
-      val buySignalBarTime: Double = new Minute(
+      val enterSignalBarTime: Double = new Minute(
         Date.from(
           series
             .getBar(position.getEntry.getIndex)
@@ -78,32 +78,34 @@ object TradingCharts {
             .toInstant
         )
       ).getFirstMillisecond.toDouble
-      val buyMarker: Marker = new ValueMarker(buySignalBarTime)
-      buyMarker.setPaint(Color.GREEN)
+      val enterMarker: Marker = new ValueMarker(enterSignalBarTime)
+      enterMarker.setPaint(Color.GREEN)
       val entryLabel = position.getEntry.getType match {
         case TradeType.BUY  => s"LONG_$idx"
         case TradeType.SELL => s"SHORT_$idx"
       }
-      buyMarker.setLabel(entryLabel)
+      enterMarker.setLabel(entryLabel)
       // Sell signal
-      val sellSignalBarTime: Double = new Minute(
-        Date.from(
-          series
-            .getBar(position.getExit.getIndex)
-            .getEndTime
-            .toInstant
-        )
-      ).getFirstMillisecond.toDouble
-      val sellMarker: Marker = new ValueMarker(sellSignalBarTime)
-      sellMarker.setPaint(Color.RED)
+      val exitSignalBarTime = (index: Int) =>
+        new Minute(
+          Date.from(
+            series
+              .getBar(index)
+              .getEndTime
+              .toInstant
+          )
+        ).getFirstMillisecond.toDouble
+      val exitMarker: Option[Marker] =
+        Option(position.getExit).map(_.getIndex).map(i => new ValueMarker(exitSignalBarTime(i)))
       val closeLabel = position.getEntry.getType match {
         case TradeType.BUY  => s"EXIT_LONG_$idx"
         case TradeType.SELL => s"EXIT_SHORT_$idx"
       }
-      sellMarker.setLabel(closeLabel)
+      exitMarker.foreach(_.setPaint(Color.RED))
+      exitMarker.foreach(_.setLabel(closeLabel))
       plots.foreach { plot =>
-        plot.addDomainMarker(buyMarker)
-        plot.addDomainMarker(sellMarker)
+        plot.addDomainMarker(enterMarker)
+        exitMarker.foreach(plot.addDomainMarker)
       }
     }
   }

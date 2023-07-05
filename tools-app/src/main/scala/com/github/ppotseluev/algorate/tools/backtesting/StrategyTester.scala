@@ -103,8 +103,8 @@ private[backtesting] object StrategyTester {
           seriesManager.run(strategy.shortStrategy, TradeType.SELL, lots)
         )
       } yield TradingStats(
-        long = Stats.fromRecord(longRecord, series, asset),
-        short = Stats.fromRecord(shortRecord, series, asset)
+        long = Stats.fromRecord(longRecord, series, asset, includeCurrent = false),
+        short = Stats.fromRecord(shortRecord, series, asset, includeCurrent = false)
       )
     }
   }

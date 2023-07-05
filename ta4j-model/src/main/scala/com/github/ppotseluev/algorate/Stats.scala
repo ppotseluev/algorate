@@ -71,9 +71,14 @@ object Stats {
   def fromRecord(
       record: TradingRecord,
       series: BarSeries,
-      asset: TradingAsset
+      asset: TradingAsset,
+      includeCurrent: Boolean
   ): Stats = {
-    val positions = record.getPositions.asScala.toSeq.map { pos =>
+    val currentPosition = Option(record.getCurrentPosition)
+      .filter(_.getEntry != null)
+      .filter(_ => includeCurrent)
+    val recordPositions = record.getPositions.asScala.toList ++ currentPosition
+    val positions = recordPositions.map { pos =>
       val entryTime = series.getBar(pos.getEntry.getIndex).getBeginTime
       EnrichedPosition(pos, entryTime, asset)
     }
