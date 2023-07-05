@@ -82,7 +82,7 @@ object TradingStats {
     val diff = (totalNoFee - totalReal) / totalNoFee * 100
     val avgProfit = noFeeProfit.view.mapValues(_ / totalWinningPositions()).toMap
     val avgLoss = noFeeLoss.view.mapValues(_ / totalNonWinningPositions()).toMap
-    val positions = long.positions ++ short.positions
+    val positions = long.closedPositions ++ short.closedPositions
     val durations = positions
       .map { p =>
         p.getExit.getIndex - p.getEntry.getIndex

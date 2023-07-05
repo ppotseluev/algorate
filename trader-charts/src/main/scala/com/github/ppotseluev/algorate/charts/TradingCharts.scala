@@ -223,13 +223,13 @@ object TradingCharts {
     tradingStats.foreach { stats =>
       TradingCharts.addBuySellSignals(
         series,
-        stats.long.positions.filter(displayPosition),
+        stats.long.allPositions.filter(displayPosition),
         pricePlot,
         indicatorPlot
       )
       TradingCharts.addBuySellSignals(
         series,
-        stats.short.positions.filter(displayPosition),
+        stats.short.allPositions.filter(displayPosition),
         pricePlot,
         indicatorPlot
       )

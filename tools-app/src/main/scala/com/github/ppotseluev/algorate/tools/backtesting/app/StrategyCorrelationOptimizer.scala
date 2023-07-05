@@ -53,7 +53,7 @@ object StrategyCorrelationOptimizer extends IOApp.Simple {
   }
 
   def extractTradeOutcomes(series: BarSeries, stats: Stats): List[Double] =
-    stats.positions.map { trade =>
+    stats.closedPositions.map { trade =>
       if (trade.hasProfit) 1.0 else 0.0
     }.toList
 
@@ -62,7 +62,7 @@ object StrategyCorrelationOptimizer extends IOApp.Simple {
       stats: Stats,
       indicator: Indicator[_ <: Num]
   ): List[Double] =
-    stats.positions.map { trade =>
+    stats.closedPositions.map { trade =>
       val entryIndex = trade.getEntry.getIndex
       indicator.getValue(entryIndex).doubleValue()
     }.toList
