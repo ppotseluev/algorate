@@ -8,7 +8,11 @@ import com.github.ppotseluev.algorate._
 import com.github.ppotseluev.algorate.trader.Request
 import com.github.ppotseluev.algorate.trader.RequestHandler
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State
-import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.{WaitingExitTicker, WaitingShowTicker, WaitingTradingTicker}
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.{
+  WaitingExitTicker,
+  WaitingShowTicker,
+  WaitingTradingTicker
+}
 import com.github.ppotseluev.algorate.trader.telegram.TelegramClient.{Message, MessageSource}
 import com.typesafe.scalalogging.LazyLogging
 
@@ -35,9 +39,9 @@ class RequestHandlerImpl[F[_]: Sync](
       case Request.ShowState => requestTicker(WaitingShowTicker)
       case Request.Sell      => requestTicker(WaitingTradingTicker(OperationType.Sell))
       case Request.Buy       => requestTicker(WaitingTradingTicker(OperationType.Buy))
-      case Request.Exit => requestTicker(WaitingExitTicker)
+      case Request.Exit      => requestTicker(WaitingExitTicker)
       case Request.GeneralInput(input) =>
-        val ticker = s"${input.toUpperCase}USDT" //TODO
+        val ticker = s"${input.toUpperCase.stripSuffix("USDT")}USDT" //TODO can be non-crypto asset
         state.get.flatMap {
           case State.Empty => Sync[F].raiseError(new IllegalArgumentException("Unexpected input"))
           case WaitingTradingTicker(operation) =>

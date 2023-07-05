@@ -60,13 +60,14 @@ object TelegramWebhook extends LazyLogging {
       .errorOut(stringBody)
       .securityIn(auth.apiKey(header[WebhookSecret]("X-Telegram-Bot-Api-Secret-Token")))
 
-  private def parseRequest(input: String): Request = input match {
-    case "/show" => Request.ShowState
-    case "/sell" => Request.Sell
-    case "/buy"  => Request.Buy
-    case "/exit" => Request.Exit
-    case other   => Request.GeneralInput(other)
-  }
+  private def parseRequest(input: String): Request =
+    input.stripSuffix("@algorate_bot") match {
+      case "/show" => Request.ShowState
+      case "/sell" => Request.Sell
+      case "/buy"  => Request.Buy
+      case "/exit" => Request.Exit
+      case other   => Request.GeneralInput(other)
+    }
 
   class Handler[F[_]: Monad](
       allowedUsers: Set[UserId],
