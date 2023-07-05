@@ -6,6 +6,7 @@ import cats.implicits._
 import com.github.ppotseluev.algorate.Ticker
 import com.github.ppotseluev.algorate.trader.Request
 import com.github.ppotseluev.algorate.trader.RequestHandler
+import com.typesafe.scalalogging.LazyLogging
 import io.circe.Codec
 import io.circe.generic.extras.Configuration
 import io.circe.generic.extras.ConfiguredJsonCodec
@@ -16,7 +17,7 @@ import sttp.tapir.json.circe.jsonBody
 
 import java.time.format.SignStyle
 
-object TelegramWebhook {
+object TelegramWebhook extends LazyLogging {
   implicit private val circeConfig: Configuration = Configuration.default.withSnakeCaseMemberNames
 
   @ConfiguredJsonCodec
@@ -63,7 +64,9 @@ object TelegramWebhook {
     case "/show" => Request.ShowState.some
     case "/sell" => Request.Sell.some
     case "/buy"  => Request.Buy.some
-    case _       => none
+    case other =>
+      logger.warn(s"Wrong input: $other")
+      none
   }
 
   class Handler[F[_]: Monad](
