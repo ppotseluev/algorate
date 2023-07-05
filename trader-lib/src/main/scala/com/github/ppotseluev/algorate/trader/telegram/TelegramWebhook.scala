@@ -59,30 +59,18 @@ object TelegramWebhook {
       .errorOut(stringBody)
       .securityIn(auth.apiKey(header[WebhookSecret]("X-Telegram-Bot-Api-Secret-Token")))
 
-  sealed trait Command {
-    def toRequest: Request
-  }
-
-  object Command {
-    case class ShowState(ticker: Ticker) extends Command {
-      override def toRequest: Request = Request.ShowState(ticker)
-    }
-
-    private val show = "show ([0-9a-zA-Z]+)".r
-
-    def parse(input: String): Option[Command] = {
-      val ticker = s"${input.toUpperCase}USDT" //TODO
-      ShowState(ticker).some
-    }
-    //      input match {
-//        case show(ticker) => ShowState(ticker).some
-//        case _            => None
-//      }
+  private def parseRequest(input: String): Option[Request] = input match {
+    case "/show" => Request.ShowState.some
+    case "/sell" => Request.Sell.some
+    case "/buy"  => Request.Buy.some
+    case _       => none
   }
 
   class Handler[F[_]: Monad](
       allowedUsers: Set[UserId],
       trackedChats: Set[String],
+      botToken: BotToken,
+      telegramClient: TelegramClient[F],
       requestHandler: RequestHandler[F]
   ) {
     private val success = ().asRight[Error].pure[F]
@@ -93,12 +81,19 @@ object TelegramWebhook {
     ): F[Either[Error, Unit]] =
       update.message match {
         case Some(Message(_, Some(user), chat, Some(text))) =>
+          val chatId = chat.id.toString
           val shouldReact =
             allowedUsers.contains(user.id) &&
-              trackedChats.contains(chat.id.toString)
+              trackedChats.contains(chatId)
           if (shouldReact) {
-            Command.parse(text).fold(skip) { cmd =>
-              requestHandler.handle(cmd.toRequest).map(_.asRight)
+            parseRequest(text).fold(skip) { request =>
+              val send = telegramClient.send(botToken) _
+              requestHandler
+                .handle(
+                  request,
+                  m => send(m.toMessage(chatId))
+                )
+                .map(_.asRight)
             }
           } else {
             skip

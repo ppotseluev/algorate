@@ -3,12 +3,15 @@ package com.github.ppotseluev.algorate.trader.akkabot
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import cats.implicits._
-import com.github.ppotseluev.algorate.BarInfo
-import com.github.ppotseluev.algorate.EnrichedPosition
-import com.github.ppotseluev.algorate.InstrumentId
-import com.github.ppotseluev.algorate.Stats
-import com.github.ppotseluev.algorate.TradingAsset
-import com.github.ppotseluev.algorate.TradingStats
+import com.github.ppotseluev.algorate.{
+  BarInfo,
+  EnrichedPosition,
+  InstrumentId,
+  OperationType,
+  Stats,
+  TradingAsset,
+  TradingStats
+}
 import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.broker.MoneyTracker
 import com.github.ppotseluev.algorate.strategy.StrategyBuilder
@@ -16,6 +19,7 @@ import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.Candle
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.TraderSnapshotRequested
 import com.github.ppotseluev.algorate.trader.policy.Policy
 import com.typesafe.scalalogging.LazyLogging
+
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration._
@@ -27,6 +31,8 @@ object TradingManager extends LazyLogging {
     case class CandleData(barInfo: BarInfo) extends Event
     case class TraderSnapshotRequested(instrumentId: InstrumentId) extends Event
     case class TraderSnapshotEvent(snapshot: Trader.StateSnapshot) extends Event
+    case class TradeRequested(instrumentId: InstrumentId, operationType: OperationType)
+        extends Event
   }
 
   def apply[F[_]](
@@ -94,6 +100,9 @@ object TradingManager extends LazyLogging {
           moneyTracker.get.orEmpty
         )
         eventsSink.push(event) //TODO check future's result?
+        Behaviors.same
+      case Event.TradeRequested(instrumentId, operationType) =>
+        useTrader(instrumentId)(_ ! Trader.Event.TradeRequested(operationType))
         Behaviors.same
     }
   }

@@ -1,8 +1,7 @@
 package com.github.ppotseluev.algorate.trader.akkabot
 
 import akka.actor.typed.Behavior
-import akka.actor.typed.scaladsl.ActorContext
-import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import cats.implicits._
 import com.github.ppotseluev.algorate._
 import com.github.ppotseluev.algorate.broker.Broker
@@ -20,6 +19,7 @@ import com.github.ppotseluev.algorate.trader.policy.Policy
 import com.github.ppotseluev.algorate.trader.policy.Policy.Decision
 import com.github.ppotseluev.algorate.trader.policy.Policy.TradeRequest
 import io.prometheus.client.Gauge
+
 import java.time.OffsetDateTime
 import java.time.ZonedDateTime
 import org.ta4j.core.BarSeries
@@ -28,6 +28,8 @@ import org.ta4j.core.BaseTradingRecord
 import org.ta4j.core.Trade.TradeType
 import org.ta4j.core.TradingRecord
 import org.ta4j.core.cost.ZeroCostModel
+import org.ta4j.core.num.Num
+
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Failure
@@ -84,6 +86,7 @@ object Trader extends LoggingSupport {
 
     case class NewData(bar: Bar) extends Event
     case object StateSnapshotRequested extends Event
+    case class TradeRequested(operationType: OperationType) extends Event
     case class OrderUpdated(info: OrderPlacementInfo) extends OrderPlacementUpdate
   }
 
@@ -167,6 +170,32 @@ object Trader extends LoggingSupport {
         case OperationType.Sell => shortHistory
       }
 
+      def placeOrder(order: Order)(implicit ctx: ActorContext[Event]): Unit =
+        ctx.pipeToSelf(broker.placeOrder(order))(orderPlacedEvent(order))
+
+      def tryEnter(bar: Bar, operationType: OperationType)(implicit
+          ctx: ActorContext[Event]
+      ): Unit = {
+        val point = Point(
+          timestamp = bar.endTime,
+          value = bar.closePrice
+        )
+        val trade = TradeRequest(
+          asset = asset,
+          price = point.value
+        )
+        val lastIndex = barSeries.getEndIndex
+        val lastPrice = barSeries.getBar(lastIndex).getClosePrice
+        policy.apply(trade) match {
+          case Decision.Allowed(lots) =>
+            val order = buildOrder(point, operationType, lots)
+            state = TraderState.enter(order)
+            historyRecord(operationType).enter(lastIndex, lastPrice, barSeries.numOf(order.lots))
+            placeOrder(order)
+          case Decision.Denied(message) => logger.warn(message)
+        }
+      }
+
       def shouldExit(position: Order): (Boolean, TradingRecord) = position.operationType match {
         case OperationType.Buy =>
           strategy.longStrategy.shouldExit(barSeries.getEndIndex, longHistory) -> longHistory
@@ -177,41 +206,21 @@ object Trader extends LoggingSupport {
       def lag(bar: Bar): FiniteDuration =
         (OffsetDateTime.now.toEpochSecond - bar.endTime.toEpochSecond).seconds
 
-      def handleClosedBar(bar: Bar, ctx: ActorContext[Event]): Unit = {
+      def handleClosedBar(bar: Bar)(implicit ctx: ActorContext[Event]): Unit = {
         traderGauge.labels(asset.ticker, "price").set(bar.closePrice.doubleValue)
         traderGauge.labels(asset.ticker, "time").set(bar.endTime.toEpochSecond.toDouble)
 
         val ta4jBar = BarsConverter.convertBar(bar)
         barSeries.addBar(ta4jBar)
-        val point = Point(
-          timestamp = bar.endTime,
-          value = bar.closePrice
-        )
         val lastIndex = barSeries.getEndIndex
         val lastPrice = barSeries.getBar(lastIndex).getClosePrice
-        assert(lastPrice.doubleValue == point.value, "wrong last price") //TODO
-        def placeOrder(order: Order): Unit =
-          ctx.pipeToSelf(broker.placeOrder(order))(orderPlacedEvent(order))
-        def tryEnter(operationType: OperationType): Unit = {
-          val trade = TradeRequest(
-            asset = asset,
-            price = point.value
-          )
-          policy.apply(trade) match {
-            case Decision.Allowed(lots) =>
-              val order = buildOrder(point, operationType, lots)
-              state = TraderState.enter(order)
-              historyRecord(operationType).enter(lastIndex, lastPrice, barSeries.numOf(order.lots))
-              placeOrder(order)
-            case Decision.Denied(message) => logger.warn(message)
-          }
-        }
+        assert(lastPrice.doubleValue == bar.closePrice, "wrong last price") //TODO
         state match {
           case TraderState.Empty => //if maxLag.forall(_ >= lag(bar)) => TODO
             if (strategy.longStrategy.shouldEnter(lastIndex)) {
-              tryEnter(OperationType.Buy)
+              tryEnter(bar, OperationType.Buy)
             } else if (strategy.shortStrategy.shouldEnter(lastIndex)) {
-              tryEnter(OperationType.Sell)
+              tryEnter(bar, OperationType.Sell)
             }
 //          case TraderState.Empty =>
 //            logger.debug(s"Lag is too big, skipping bar") //TODO always ignore on too big lag?
@@ -221,6 +230,10 @@ object Trader extends LoggingSupport {
               case State.Placed(Completed) =>
                 val (exit, historyRecord) = shouldExit(position.payload)
                 if (exit) {
+                  val point = Point(
+                    timestamp = bar.endTime,
+                    value = bar.closePrice
+                  )
                   val order = position.payload.buildClosingOrder(point)
                   state = TraderState.exit(order, position)
                   historyRecord.exit(lastIndex, lastPrice, barSeries.numOf(order.lots))
@@ -234,7 +247,7 @@ object Trader extends LoggingSupport {
         }
       }
 
-      def handleBar(bar: Bar, ctx: ActorContext[Event]): Unit =
+      def handleBar(bar: Bar)(implicit ctx: ActorContext[Event]): Unit =
         currentBar match {
           case None =>
             currentBar = Some(bar)
@@ -244,7 +257,7 @@ object Trader extends LoggingSupport {
               currentBar = Some(bar)
             } else if (bar.endTime.isAfter(cur.endTime)) {
               // received data for the new bar, consider current bar as closed
-              handleClosedBar(cur, ctx)
+              handleClosedBar(cur)
               currentBar = Some(bar)
             } else { // bar.time < curBar.time
               // received an update for some old bar. Let's ignore it for now
@@ -321,10 +334,11 @@ object Trader extends LoggingSupport {
       }
 
       Behaviors.receive { (ctx, event) =>
+        implicit val context: ActorContext[Event] = ctx
         event match {
           case Trader.Event.NewData(bar) =>
             logger.debug(s"Received tick $bar")
-            handleBar(bar, ctx)
+            handleBar(bar)
           case Trader.Event.OrderPlaced(info) =>
             ordersWatcher ! OrdersWatcher.Request.RegisterOrder(info, ctx.self)
           case event: Trader.Event.OrderUpdated =>
@@ -333,6 +347,10 @@ object Trader extends LoggingSupport {
             logger.error(s"Failed to place order $order", t)
           case Trader.Event.StateSnapshotRequested =>
             sinkSnapshot(event)
+          case Trader.Event.TradeRequested(operationType) =>
+            currentBar.foreach { bar =>
+              tryEnter(bar, operationType)
+            }
         }
         Behaviors.same
       }

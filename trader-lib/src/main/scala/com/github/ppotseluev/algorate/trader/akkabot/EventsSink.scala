@@ -50,12 +50,10 @@ object EventsSink extends LoggingSupport {
             )
             (msg, img)
         }
-        TelegramClient.MessageSource(
+        TelegramClient.Message(
           chatId = chatId,
           text = text,
-          photo = image,
-          replyMarkup = None,
-          parseMode = None
+          photo = image.some
         )
       }
       .flatMap { messageSource => client.send(botToken)(messageSource) }

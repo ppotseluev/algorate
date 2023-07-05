@@ -3,8 +3,7 @@ package com.github.ppotseluev.algorate.server
 import akka.actor.typed.ActorSystem
 import boopickle.Default.iterablePickler
 import cats.Parallel
-import cats.effect.IO
-import cats.effect.Resource
+import cats.effect.{IO, Ref, Resource}
 import cats.effect.kernel.Async
 import cats.implicits._
 import com.github.ppotseluev.algorate.Bar
@@ -19,6 +18,7 @@ import com.github.ppotseluev.algorate.trader.Api
 import com.github.ppotseluev.algorate.trader.RequestHandler
 import com.github.ppotseluev.algorate.trader.akkabot.EventsSink
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager
 import com.github.ppotseluev.algorate.trader.telegram.HttpTelegramClient
 import com.github.ppotseluev.algorate.trader.telegram.TelegramClient
@@ -106,27 +106,40 @@ class Factory[F[_]: Async: Parallel] {
       new HttpTelegramClient[F](telegramUrl, sttpBackend)
     }
 
-  val telegramEventsSink: Resource[F, EventsSink[F]] =
-    telegramClient.map(EventsSink.telegram(telegramBotToken, telegramChatId, _))
+  def telegramEventsSink(telegramClient: TelegramClient[F]): EventsSink[F] =
+    EventsSink.telegram(telegramBotToken, telegramChatId, telegramClient)
 
   def traderRequestHandler(
       actorSystem: ActorSystem[TradingManager.Event],
       assets: Map[Ticker, InstrumentId],
       eventsSink: EventsSink[F]
-  ): RequestHandler[F] =
-    new RequestHandlerImpl[F](actorSystem, assets, eventsSink)
+  ): F[RequestHandler[F]] =
+    Ref.of[F, State](State.Empty).map { state =>
+      new RequestHandlerImpl[F](
+        actorSystem = actorSystem,
+        assets = assets,
+        eventsSink = eventsSink,
+        state = state
+      )
+    }
 
   def telegramWebhookHandler(
-      requestHandler: RequestHandler[F]
+      requestHandler: RequestHandler[F],
+      telegramClient: TelegramClient[F]
   ): TelegramWebhook.Handler[F] =
     new TelegramWebhook.Handler[F](
       allowedUsers = telegramUsersWhitelist,
       trackedChats = telegramTrackedChats,
+      botToken = telegramBotToken,
+      telegramClient = telegramClient,
       requestHandler = requestHandler
     )
 
-  def traderApi(requestHandler: RequestHandler[F]): Api[F] = new Api(
-    telegramHandler = telegramWebhookHandler(requestHandler),
+  def traderApi(
+      requestHandler: RequestHandler[F],
+      telegramClient: TelegramClient[F]
+  ): Api[F] = new Api(
+    telegramHandler = telegramWebhookHandler(requestHandler, telegramClient),
     telegramWebhookSecret = telegramWebhookSecret,
     prometheusMetrics = prometheusMetrics,
     config = apiConfig

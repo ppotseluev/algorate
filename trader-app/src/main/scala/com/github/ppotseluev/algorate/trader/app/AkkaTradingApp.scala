@@ -62,12 +62,12 @@ object AkkaTradingApp extends IOApp with LazyLogging {
     logger.info("Hello from Algorate!")
     val factory = Factory.io
     val brokerResource = factory.binanceBroker.map(TestBroker.wrap[IO]) //TODO
-    val eventsSinkResource = factory.telegramEventsSink
     val program = for {
       broker <- brokerResource
-      eventsSink <- eventsSinkResource
+      telegramClient <- factory.telegramClient
       binanceApi <- factory.binanceApi
     } yield {
+      val eventsSink = factory.telegramEventsSink(telegramClient)
       val eventsSinkFuture = wrapEventsSink(λ[IO ~> Future](_.unsafeToFuture()))(eventsSink)
       val brokerFuture = wrapBroker(λ[IO ~> Future](_.unsafeToFuture()))(broker)
       val moneyTracker = new Provider[IO, Money](
@@ -108,12 +108,12 @@ object AkkaTradingApp extends IOApp with LazyLogging {
 //          )
 //        }
         actorSystem <- IO(ActorSystem(tradingManager, "Algorate"))
-        requestHandler = factory.traderRequestHandler(
+        requestHandler <- factory.traderRequestHandler(
           actorSystem = actorSystem,
           assets = assetsMap.map { case (id, asset) => asset.ticker -> id },
           eventsSink = eventsSink
         )
-        api = factory.traderApi(requestHandler)
+        api = factory.traderApi(requestHandler, telegramClient)
         subscription = MarketSubscriber.fromActor(actorSystem, candleResolution)
         exitCode <- useHistoricalData.fold {
           {
