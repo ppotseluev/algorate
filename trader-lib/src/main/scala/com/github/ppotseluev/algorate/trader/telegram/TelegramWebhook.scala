@@ -60,13 +60,11 @@ object TelegramWebhook extends LazyLogging {
       .errorOut(stringBody)
       .securityIn(auth.apiKey(header[WebhookSecret]("X-Telegram-Bot-Api-Secret-Token")))
 
-  private def parseRequest(input: String): Option[Request] = input match {
-    case "/show" => Request.ShowState.some
-    case "/sell" => Request.Sell.some
-    case "/buy"  => Request.Buy.some
-    case other =>
-      logger.warn(s"Wrong input: $other")
-      none
+  private def parseRequest(input: String): Request = input match {
+    case "/show" => Request.ShowState
+    case "/sell" => Request.Sell
+    case "/buy"  => Request.Buy
+    case other   => Request.GeneralInput(other)
   }
 
   class Handler[F[_]: Monad](
@@ -89,15 +87,14 @@ object TelegramWebhook extends LazyLogging {
             allowedUsers.contains(user.id) &&
               trackedChats.contains(chatId)
           if (shouldReact) {
-            parseRequest(text).fold(skip) { request =>
-              val send = telegramClient.send(botToken) _
-              requestHandler
-                .handle(
-                  request,
-                  m => send(m.toMessage(chatId))
-                )
-                .map(_.asRight)
-            }
+            val request = parseRequest(text)
+            val send = telegramClient.send(botToken) _
+            requestHandler
+              .handle(
+                request,
+                m => send(m.toMessage(chatId))
+              )
+              .map(_.asRight)
           } else {
             skip
           }
