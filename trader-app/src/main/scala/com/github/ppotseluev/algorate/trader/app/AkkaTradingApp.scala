@@ -19,7 +19,7 @@ import com.github.ppotseluev.algorate.trader.akkabot.EventsSink
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager
 import com.github.ppotseluev.algorate.trader.policy.MoneyManagementPolicy
 import com.typesafe.scalalogging.LazyLogging
-import io.github.paoloboni.binance.spot.response.{ExchangeInformation, LOT_SIZE}
+import io.github.paoloboni.binance.spot.response.{ExchangeInformation, MARKET_LOT_SIZE}
 
 import java.time.LocalDate
 import scala.concurrent.Future
@@ -61,16 +61,21 @@ object AkkaTradingApp extends IOApp with LazyLogging {
 
   private def enrichAssets(
       exchangeInfo: ExchangeInformation
-  )(assets: List[TradingAsset]): List[TradingAsset] = {
-    assets.map { asset =>
+  )(assets: List[TradingAsset]): List[TradingAsset] =
+    assets.flatMap { asset =>
       val scale = exchangeInfo.symbols.find(_.symbol == asset.instrumentId).flatMap { info =>
-        info.filters.collectFirst { case LOT_SIZE(_, _, stepSize) =>
-          stepSize.bigDecimal.stripTrailingZeros().toString.dropWhile(_ != '.').tail.length //TODO
-        }
+        info.filters
+          .collectFirst { case MARKET_LOT_SIZE(_, _, stepSize) => stepSize }
+          .filter { s =>
+            if (s == 0) {
+              logger.warn(s"Zero MARKET_LOT_SIZE step for ${asset.ticker}, filtered out")
+            }
+            s != 0
+          }
+          .map(_.bigDecimal.stripTrailingZeros().toString.dropWhile(_ != '.').tail.length) //TODO
       }
-      scale.fold(asset)(s => asset.copy(quantityScale = s))
+      scale.map(s => asset.copy(quantityScale = s))
     }
-  }
 
   override def run(_a: List[String]): IO[ExitCode] = {
     logger.info("Hello from Algorate!")
