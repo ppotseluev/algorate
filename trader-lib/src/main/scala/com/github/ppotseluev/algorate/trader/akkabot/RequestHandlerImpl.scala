@@ -43,7 +43,7 @@ class RequestHandlerImpl[F[_]: Sync](
       case Request.GeneralInput(input) =>
         val ticker = s"${input.toUpperCase.stripSuffix("USDT")}USDT" //TODO can be non-crypto asset
         state.get.flatMap {
-          case State.Empty => Sync[F].raiseError(new IllegalArgumentException(s"Unexpected input $input"))
+          case State.Empty => reply(MessageSource(s"Unexpected input `$input`"))
           case WaitingTradingTicker(operation) =>
             notifyTraders(ticker, TradingManager.Event.TradeRequested(_, operation))
           case WaitingShowTicker =>
