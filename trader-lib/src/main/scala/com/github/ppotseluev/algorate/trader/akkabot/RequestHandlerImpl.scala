@@ -5,6 +5,7 @@ import akka.actor.typed.ActorSystem
 import cats.effect.kernel.Sync
 import cats.effect.Ref
 import com.github.ppotseluev.algorate._
+import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.trader.Request
 import com.github.ppotseluev.algorate.trader.RequestHandler
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State
@@ -20,7 +21,8 @@ class RequestHandlerImpl[F[_]: Sync](
     actorSystem: ActorSystem[TradingManager.Event],
     assets: Map[Ticker, InstrumentId],
     eventsSink: EventsSink[F],
-    state: Ref[F, State]
+    state: Ref[F, State],
+    broker: Broker[F]
 ) extends RequestHandler[F]
     with LazyLogging {
 
@@ -36,6 +38,10 @@ class RequestHandlerImpl[F[_]: Sync](
       state.set(newState)
     }
     request match {
+      case Request.GetBalance =>
+        broker.getBalance.flatMap { balance =>
+          reply(MessageSource(balance.toString))
+        }
       case Request.ShowState => requestTicker(WaitingShowTicker)
       case Request.Sell      => requestTicker(WaitingTradingTicker(OperationType.Sell))
       case Request.Buy       => requestTicker(WaitingTradingTicker(OperationType.Buy))

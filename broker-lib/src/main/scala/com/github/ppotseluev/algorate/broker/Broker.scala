@@ -13,6 +13,8 @@ import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 
 trait Broker[F[_]] extends BarDataProvider[F] {
+  def getBalance: F[Any] = ??? //TODO
+
   def getOrderInfo(orderId: OrderId): F[OrderPlacementInfo]
 
   def placeOrder(order: Order): F[OrderPlacementInfo]

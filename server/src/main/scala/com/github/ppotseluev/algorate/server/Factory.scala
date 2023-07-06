@@ -9,7 +9,7 @@ import cats.implicits._
 import com.github.ppotseluev.algorate.Bar
 import com.github.ppotseluev.algorate.InstrumentId
 import com.github.ppotseluev.algorate.Ticker
-import com.github.ppotseluev.algorate.broker.Archive
+import com.github.ppotseluev.algorate.broker.{Archive, Broker}
 import com.github.ppotseluev.algorate.broker.tinkoff.{BinanceBroker, TinkoffApi, TinkoffBroker}
 import com.github.ppotseluev.algorate.redis.RedisCodecs
 import com.github.ppotseluev.algorate.redis.codec._
@@ -112,14 +112,16 @@ class Factory[F[_]: Async: Parallel] {
   def traderRequestHandler(
       actorSystem: ActorSystem[TradingManager.Event],
       assets: Map[Ticker, InstrumentId],
-      eventsSink: EventsSink[F]
+      eventsSink: EventsSink[F],
+      broker: Broker[F]
   ): F[RequestHandler[F]] =
     Ref.of[F, State](State.Empty).map { state =>
       new RequestHandlerImpl[F](
         actorSystem = actorSystem,
         assets = assets,
         eventsSink = eventsSink,
-        state = state
+        state = state,
+        broker = broker
       )
     }
 

@@ -119,7 +119,8 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         requestHandler <- factory.traderRequestHandler(
           actorSystem = actorSystem,
           assets = assetsMap.map { case (id, asset) => asset.ticker -> id },
-          eventsSink = eventsSink
+          eventsSink = eventsSink,
+          broker = broker
         )
         api = factory.traderApi(requestHandler, telegramClient)
         subscription = MarketSubscriber.fromActor(actorSystem, candleResolution)

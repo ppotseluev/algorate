@@ -11,11 +11,16 @@ import cats.implicits._
 import io.github.paoloboni.binance.common.Interval
 import io.github.paoloboni.binance.spot.parameters.v3.KLines
 import io.github.paoloboni.binance.spot.parameters.{SpotOrderCreateParams, SpotOrderQueryParams}
+import io.github.paoloboni.binance.spot.response.SpotAccountInfoResponse
 
 import java.math.MathContext
 import scala.math.BigDecimal.RoundingMode
 
 class BinanceBroker[F[_]: Concurrent](binanceClient: SpotApi[F]) extends Broker[F] {
+  override def getBalance: F[Any] = {
+    binanceClient.V3.getBalance().widen
+  }
+
   override def getOrderInfo(orderId: OrderId): F[OrderPlacementInfo] =
     binanceClient.V3
       .queryOrder(
