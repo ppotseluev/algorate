@@ -48,15 +48,17 @@ class RequestHandlerImpl[F[_]: Sync](
       case Request.Exit      => requestTicker(WaitingExitTicker)
       case Request.GeneralInput(input) =>
         val ticker = s"${input.toUpperCase.stripSuffix("USDT")}USDT" //TODO can be non-crypto asset
-        state.get.flatMap {
-          case State.Empty => reply(MessageSource(s"Unexpected input `$input`"))
-          case WaitingTradingTicker(operation) =>
-            notifyTraders(ticker, TradingManager.Event.TradeRequested(_, operation))
-          case WaitingShowTicker =>
-            notifyTraders(ticker, TradingManager.Event.TraderSnapshotRequested)
-          case WaitingExitTicker =>
-            notifyTraders(ticker, TradingManager.Event.ExitRequested)
-        }
+        state.get
+          .flatMap {
+            case State.Empty => reply(MessageSource(s"Unexpected input `$input`"))
+            case WaitingTradingTicker(operation) =>
+              notifyTraders(ticker, TradingManager.Event.TradeRequested(_, operation))
+            case WaitingShowTicker =>
+              notifyTraders(ticker, TradingManager.Event.TraderSnapshotRequested)
+            case WaitingExitTicker =>
+              notifyTraders(ticker, TradingManager.Event.ExitRequested)
+          }
+          .flatMap(_ => state.set(State.Empty))
       case Request.ShowActiveTrades => ???
     }
   }
