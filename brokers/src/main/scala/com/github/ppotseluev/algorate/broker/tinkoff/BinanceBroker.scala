@@ -12,6 +12,9 @@ import io.github.paoloboni.binance.common.Interval
 import io.github.paoloboni.binance.spot.parameters.v3.KLines
 import io.github.paoloboni.binance.spot.parameters.{SpotOrderCreateParams, SpotOrderQueryParams}
 
+import java.math.MathContext
+import scala.math.BigDecimal.RoundingMode
+
 class BinanceBroker[F[_]: Concurrent](binanceClient: SpotApi[F]) extends Broker[F] {
   override def getOrderInfo(orderId: OrderId): F[OrderPlacementInfo] =
     binanceClient.V3
@@ -32,7 +35,7 @@ class BinanceBroker[F[_]: Concurrent](binanceClient: SpotApi[F]) extends Broker[
     val params = SpotOrderCreateParams.MARKET(
       symbol = order.instrumentId,
       side = BinanceConverters.convert(order.operationType),
-      quantity = BigDecimal(order.lots).some,
+      quantity = BigDecimal(order.lots).setScale(6, RoundingMode.HALF_DOWN).some,
       newClientOrderId = order.key.some
     )
     binanceClient.V3.createOrder(params).map { resp =>
