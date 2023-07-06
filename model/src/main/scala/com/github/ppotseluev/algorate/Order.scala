@@ -5,7 +5,7 @@ import enumeratum._
 
 case class Order(
     asset: TradingAsset,
-    lots: Double,
+    lots: BigDecimal,
     operationType: OperationType,
     details: Order.Details,
     info: Order.Info

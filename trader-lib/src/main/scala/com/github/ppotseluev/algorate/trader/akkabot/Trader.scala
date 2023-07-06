@@ -32,6 +32,7 @@ import org.ta4j.core.num.Num
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.math.BigDecimal.RoundingMode
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
@@ -144,7 +145,7 @@ object Trader extends LoggingSupport {
         lots: Double
     ): Order = Order(
       asset = asset,
-      lots = lots,
+      lots = BigDecimal(lots).setScale(asset.quantityScale, RoundingMode.HALF_DOWN),
       operationType = operationType,
       details = Order.Details.Market, //TODO
       info = Order.Info(point, closingOrderType = None)

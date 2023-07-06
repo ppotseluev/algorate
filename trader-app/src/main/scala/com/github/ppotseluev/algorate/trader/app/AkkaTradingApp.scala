@@ -19,6 +19,7 @@ import com.github.ppotseluev.algorate.trader.akkabot.EventsSink
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager
 import com.github.ppotseluev.algorate.trader.policy.MoneyManagementPolicy
 import com.typesafe.scalalogging.LazyLogging
+import io.github.paoloboni.binance.spot.response.{ExchangeInformation, LOT_SIZE}
 
 import java.time.LocalDate
 import scala.concurrent.Future
@@ -58,6 +59,19 @@ object AkkaTradingApp extends IOApp with LazyLogging {
   private def wrapEventsSink[F[_]](toF: IO ~> F)(eventsSink: EventsSink[IO]): EventsSink[F] =
     (event: Event) => toF(eventsSink.push(event))
 
+  private def enrichAssets(
+      exchangeInfo: ExchangeInformation
+  )(assets: List[TradingAsset]): List[TradingAsset] = {
+    assets.map { asset =>
+      val scale = exchangeInfo.symbols.find(_.symbol == asset.instrumentId).flatMap { info =>
+        info.filters.collectFirst { case LOT_SIZE(_, _, stepSize) =>
+          stepSize.bigDecimal.stripTrailingZeros().toString.dropWhile(_ != '.').tail.length //TODO
+        }
+      }
+      scale.fold(asset)(s => asset.copy(quantityScale = s))
+    }
+  }
+
   override def run(_a: List[String]): IO[ExitCode] = {
     logger.info("Hello from Algorate!")
     val factory = Factory.io
@@ -82,7 +96,8 @@ object AkkaTradingApp extends IOApp with LazyLogging {
           "rub" -> 80_000
         )
       )
-      val assets = //Assets.allCryptocurrencies TODO revert
+      val assets = enrichAssets(broker.getExchangeInfo) {
+        //Assets.allCryptocurrencies TODO revert
         List( //testnet list
           "LTC",
           "XRP",
@@ -91,6 +106,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
           "BTC",
           "BNB"
         ).map(TradingAsset.crypto)
+      }
       val assetsMap = assets.map(a => a.instrumentId -> a).toMap
       val tradingManager = TradingManager(
         assets = assetsMap,

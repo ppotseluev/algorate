@@ -7,7 +7,8 @@ case class TradingAsset(
     ticker: Ticker,
     currency: Currency,
     `type`: TradingAsset.Type,
-    sector: String
+    sector: String,
+    quantityScale: Int = 5
 ) {
   def isCrypto: Boolean = `type` match {
     case Type.Crypto => true
