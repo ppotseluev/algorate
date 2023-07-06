@@ -234,27 +234,29 @@ object Trader extends LoggingSupport {
         val lastIndex = barSeries.getEndIndex
         val lastPrice = barSeries.getBar(lastIndex).getClosePrice
         assert(lastPrice.doubleValue == bar.closePrice, "wrong last price") //TODO
-        state match {
-          case TraderState.Empty => //if maxLag.forall(_ >= lag(bar)) => TODO
-            if (strategy.longStrategy.shouldEnter(lastIndex)) {
-              tryEnter(bar, OperationType.Buy)
-            } else if (strategy.shortStrategy.shouldEnter(lastIndex)) {
-              tryEnter(bar, OperationType.Sell)
-            }
-//          case TraderState.Empty =>
-//            logger.debug(s"Lag is too big, skipping bar") //TODO always ignore on too big lag?
-          case TraderState.Entering(position) =>
-            position.state match {
-              case State.Initial | State.Placed(Pending) | State.Placed(Failed) => ()
-              case State.Placed(Completed) =>
-                if (shouldExit(position.payload)) {
-                  exit(bar, position)
-                } else {
-                  () //keep holding current position
-                }
-            }
-          case _: TraderState.Exiting =>
-            logger.info("Exiting position in progress")
+        if (maxLag.forall(_ >= lag(bar))) {
+          state match {
+            case TraderState.Empty =>
+              if (strategy.longStrategy.shouldEnter(lastIndex)) {
+                tryEnter(bar, OperationType.Buy)
+              } else if (strategy.shortStrategy.shouldEnter(lastIndex)) {
+                tryEnter(bar, OperationType.Sell)
+              }
+            case TraderState.Entering(position) =>
+              position.state match {
+                case State.Initial | State.Placed(Pending) | State.Placed(Failed) => ()
+                case State.Placed(Completed) =>
+                  if (shouldExit(position.payload)) {
+                    exit(bar, position)
+                  } else {
+                    () //keep holding current position
+                  }
+              }
+            case _: TraderState.Exiting =>
+              logger.info("Exiting position in progress")
+          }
+        } else {
+          logger.debug(s"Lag is too big, not operating")
         }
       }
 
