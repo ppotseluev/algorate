@@ -12,4 +12,5 @@ object Request {
   case object ShowActiveTrades extends Request
   case object GetBalance extends Request
   case class GeneralInput(input: String) extends Request
+  case object Features extends Request
 }

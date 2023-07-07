@@ -20,6 +20,7 @@ import com.github.ppotseluev.algorate.trader.akkabot.EventsSink
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager
+import com.github.ppotseluev.algorate.trader.feature.FeatureToggles
 import com.github.ppotseluev.algorate.trader.telegram.HttpTelegramClient
 import com.github.ppotseluev.algorate.trader.telegram.TelegramClient
 import com.github.ppotseluev.algorate.trader.telegram.TelegramWebhook
@@ -52,6 +53,8 @@ class Factory[F[_]: Async: Parallel] {
       identity
     )
   import config._
+
+  lazy implicit val featureToggles: FeatureToggles = FeatureToggles.inMemory
 
   lazy val prometheusMetrics: PrometheusMetrics[F] = PrometheusMetrics.default[F]()
 

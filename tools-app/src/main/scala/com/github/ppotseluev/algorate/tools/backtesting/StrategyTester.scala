@@ -57,9 +57,9 @@ private[backtesting] object StrategyTester {
     new MoneyManagementPolicy(() => Some(money))(
       maxPercentage = 1,
       maxAbsolute = Map(
-        "usd" -> usdTrade,
-        "usdt" -> usdTrade,
-        "rub" -> rubTrade
+        "usd" -> (() => usdTrade),
+        "usdt" -> (() => usdTrade),
+        "rub" -> (() => rubTrade)
       )
     )
   }

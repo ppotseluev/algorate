@@ -74,6 +74,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
   override def run(_a: List[String]): IO[ExitCode] = {
     logger.info("Hello from Algorate!")
     val factory = Factory.io
+    import factory._
     val brokerResource = factory.binanceBroker //.map(TestBroker.wrap[IO]) //TODO
     val program = for {
       broker <- brokerResource
@@ -87,12 +88,12 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         IO.never[Money],
         Map("usdt" -> BigDecimal(100_000)).some
       )
+      val tradeAmount = featureToggles.register("trade-amount", 1_000d)
       val policy = new MoneyManagementPolicy(() => moneyTracker.get)(
         maxPercentage = 1, //100%
         maxAbsolute = Map(
-          "usd" -> 1_000,
-          "usdt" -> 1_000,
-          "rub" -> 80_000
+          "usd" -> tradeAmount,
+          "usdt" -> tradeAmount
         )
       )
       val assets = enrichAssets(broker.getExchangeInfo) {
