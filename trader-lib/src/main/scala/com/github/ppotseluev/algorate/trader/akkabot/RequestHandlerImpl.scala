@@ -121,13 +121,11 @@ class RequestHandlerImpl[F[_]: Sync](
       case Request.Features =>
         val features = featureToggles.list
         val buttons = features
-          .map { f =>
-            s"${f.name}: ${f.apply()}"
-          }
+          .map(_.name)
           .map(KeyboardButton.apply)
           .map(Seq(_))
         val msg = MessageSource(
-          text = "Click to update",
+          text = "Select feature",
           replyMarkup = ReplyMarkup(buttons.some).some
         )
         reply(msg) --> State.WaitingFeatureName
