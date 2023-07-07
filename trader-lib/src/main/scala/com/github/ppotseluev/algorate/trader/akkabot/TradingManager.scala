@@ -3,20 +3,13 @@ package com.github.ppotseluev.algorate.trader.akkabot
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import cats.implicits._
-import com.github.ppotseluev.algorate.{
-  BarInfo,
-  EnrichedPosition,
-  InstrumentId,
-  OperationType,
-  Stats,
-  TradingAsset,
-  TradingStats
-}
+import com.github.ppotseluev.algorate.{BarInfo, EnrichedPosition, InstrumentId, OperationType, Stats, TradingAsset, TradingStats}
 import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.broker.MoneyTracker
 import com.github.ppotseluev.algorate.strategy.StrategyBuilder
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.CandleData
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.TraderSnapshotRequested
+import com.github.ppotseluev.algorate.trader.feature.FeatureToggles
 import com.github.ppotseluev.algorate.trader.policy.Policy
 import com.typesafe.scalalogging.LazyLogging
 
@@ -46,7 +39,7 @@ object TradingManager extends LazyLogging {
       eventsSink: EventsSink[Future],
       checkOrdersStatusEvery: FiniteDuration = 3.seconds,
       maxLag: Option[FiniteDuration]
-  ): Behavior[Event] = Behaviors.setup { ctx =>
+  )(implicit featureToggles: FeatureToggles): Behavior[Event] = Behaviors.setup { ctx =>
     val ordersWatcher = ctx.spawn(
       OrdersWatcher(checkOrdersStatusEvery, broker),
       "orders-watcher"

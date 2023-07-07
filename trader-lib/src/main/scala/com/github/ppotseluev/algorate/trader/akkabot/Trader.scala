@@ -15,6 +15,7 @@ import com.github.ppotseluev.algorate.trader.LoggingSupport
 import com.github.ppotseluev.algorate.trader.akkabot.Trader.Event.OrderUpdated
 import com.github.ppotseluev.algorate.trader.akkabot.Trader.Position.State
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.TraderSnapshotEvent
+import com.github.ppotseluev.algorate.trader.feature.FeatureToggles
 import com.github.ppotseluev.algorate.trader.policy.Policy
 import com.github.ppotseluev.algorate.trader.policy.Policy.Decision
 import com.github.ppotseluev.algorate.trader.policy.Policy.TradeRequest
@@ -135,9 +136,11 @@ object Trader extends LoggingSupport {
       ordersWatcher: OrdersWatcher,
       snapshotSink: TraderSnapshotSink,
       maxLag: Option[FiniteDuration]
-  ): Behavior[Event] = {
+  )(implicit featureToggles: FeatureToggles): Behavior[Event] = {
 
     val logger = getLogger(s"Trader-${asset.ticker}")
+
+    val tradingEnabled = featureToggles.register("trading-enabled", true)
 
     def buildOrder(
         point: Point,
@@ -237,7 +240,9 @@ object Trader extends LoggingSupport {
         if (maxLag.forall(_ >= lag(bar))) {
           state match {
             case TraderState.Empty =>
-              if (strategy.longStrategy.shouldEnter(lastIndex)) {
+              if (!tradingEnabled()) {
+                logger.warn("Trading disabled")
+              } else if (strategy.longStrategy.shouldEnter(lastIndex)) {
                 tryEnter(bar, OperationType.Buy)
               } else if (strategy.shortStrategy.shouldEnter(lastIndex)) {
                 tryEnter(bar, OperationType.Sell)

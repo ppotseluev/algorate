@@ -9,9 +9,21 @@ import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.trader.Request
 import com.github.ppotseluev.algorate.trader.RequestHandler
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State
-import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.{WaitingExitTicker, WaitingFeatureAction, WaitingFeatureName, WaitingFeatureValue, WaitingShowTicker, WaitingTradingTicker}
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.{
+  WaitingExitTicker,
+  WaitingFeatureAction,
+  WaitingFeatureName,
+  WaitingFeatureValue,
+  WaitingShowTicker,
+  WaitingTradingTicker
+}
 import com.github.ppotseluev.algorate.trader.feature.FeatureToggles
-import com.github.ppotseluev.algorate.trader.telegram.TelegramClient.{KeyboardButton, Message, MessageSource, ReplyMarkup}
+import com.github.ppotseluev.algorate.trader.telegram.TelegramClient.{
+  KeyboardButton,
+  Message,
+  MessageSource,
+  ReplyMarkup
+}
 import com.typesafe.scalalogging.LazyLogging
 
 class RequestHandlerImpl[F[_]: Sync](
@@ -36,7 +48,12 @@ class RequestHandlerImpl[F[_]: Sync](
     } --> State.Empty
 
   override def handle(request: Request, reply: MessageSource => F[Unit]): F[Unit] = Sync[F].defer {
-    def replyT(txt: String) = reply(MessageSource(txt))
+    def replyT(txt: String) = reply(
+      MessageSource(
+        txt,
+        replyMarkup = ReplyMarkup(removeKeyboard = true.some).some
+      )
+    )
 
     def requestTicker(newState: State) =
       replyT("Enter ticker") --> newState
@@ -80,17 +97,17 @@ class RequestHandlerImpl[F[_]: Sync](
               }
             case WaitingFeatureAction(featureName) =>
               input match {
-                case "Ok" => state.set(State.Empty)
+                case "Ok"     => state.set(State.Empty)
                 case "Update" => replyT("Enter new value") --> WaitingFeatureValue(featureName)
-                case _ => unexpectedInputReply
+                case _        => unexpectedInputReply
               }
             case WaitingFeatureValue(featureName) =>
               val feature = featureToggles.find(featureName).get
-              feature.set(featureName) match {
+              feature.set(input) match {
                 case Left(error) =>
-                  reply(MessageSource(s"Can't update: $error"))
+                  replyT(s"Can't update: $error")
                 case Right(()) =>
-                  reply(MessageSource("Updated successfully")) --> State.Empty
+                  replyT("Updated successfully") --> State.Empty
               }
           }
       case Request.ShowActiveTrades => ???

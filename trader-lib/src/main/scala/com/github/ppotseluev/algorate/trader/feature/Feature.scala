@@ -22,6 +22,10 @@ object Feature {
   object Parse {
     def apply[T: Parse]: Parse[T] = implicitly[Parse[T]]
 
-    implicit val double: Parse[Double] = str => Try(str.toDouble).toEither.left.map(_.getMessage)
+    private def parse[T](f: String => T): Parse[T] = str =>
+      Try(f(str)).toEither.left.map(_.toString)
+
+    implicit val double: Parse[Double] = parse(_.toDouble)
+    implicit val boolean: Parse[Boolean] = parse(_.toBoolean)
   }
 }
