@@ -30,6 +30,8 @@ import com.github.ppotseluev.algorate.trader.telegram.TelegramClient.{
 }
 import com.typesafe.scalalogging.LazyLogging
 
+import scala.util.control.NonFatal
+
 class RequestHandlerImpl[F[_]: Sync](
     actorSystem: ActorSystem[TradingManager.Event],
     assets: Map[Ticker, InstrumentId],
@@ -51,107 +53,110 @@ class RequestHandlerImpl[F[_]: Sync](
       }
     } --> State.Empty
 
-  override def handle(request: Request, reply: MessageSource => F[Unit]): F[Unit] = Sync[F].defer {
-    def replyT(txt: String, removeKeyboard: Option[Boolean] = true.some) = reply(
-      MessageSource(
-        txt,
-        replyMarkup = ReplyMarkup(removeKeyboard = removeKeyboard).some
-      )
-    )
-
-    val hideKeyboard = reply(
-      MessageSource(
-        "Enter command",
-        replyMarkup = ReplyMarkup(removeKeyboard = true.some).some
-      )
-    )
-
-    def requestTicker(newState: State) =
-      replyT("Enter ticker") --> newState
-
-    request match {
-      case Request.GetBalance =>
-        broker.getBalance.flatMap { balance =>
-          replyT(balance.toString)
-        }
-      case Request.ShowState => requestTicker(WaitingShowTicker)
-      case Request.Sell      => requestTicker(WaitingTradingTicker(OperationType.Sell))
-      case Request.Buy       => requestTicker(WaitingTradingTicker(OperationType.Buy))
-      case Request.Exit      => requestTicker(WaitingExitTicker)
-      case Request.GeneralInput(input) =>
-        val ticker = s"${input.toUpperCase.stripSuffix("USDT")}USDT" //TODO can be non-crypto asset
-        val unexpectedInputReply = replyT(s"Unexpected input `$input`")
-        def parse[T](f: String => T): F[T] =
-          Sync[F].catchNonFatal(f(input)).onError { case _ => unexpectedInputReply }
-        state.get
-          .flatMap {
-            case State.Empty => unexpectedInputReply
-            case WaitingTradingTicker(operation) =>
-              replyT("Enter stop-loss") --> WaitingStopLoss(operation, ticker)
-            case WaitingStopLoss(op, ticker) =>
-              parse(_.toDouble).flatMap { stopLoss =>
-                replyT("Enter take-profit") --> WaitingTakeProfit(op, ticker, stopLoss)
-              }
-            case WaitingTakeProfit(operationType, ticker, stopLoss) =>
-              parse(_.toDouble).flatMap { takeProfit =>
-                val trade = TradeIdea(
-                  operationType,
-                  ExitBounds(
-                    stopLoss = stopLoss,
-                    takeProfit = takeProfit
-                  )
-                )
-                notifyTraders(ticker, TradingManager.Event.TradeRequested(_, trade))
-              }
-            case WaitingShowTicker =>
-              notifyTraders(ticker, TradingManager.Event.TraderSnapshotRequested)
-            case WaitingExitTicker =>
-              notifyTraders(ticker, TradingManager.Event.ExitRequested)
-            case WaitingFeatureName =>
-              val name = input
-              featureToggles.find(name) match {
-                case Some(feature) =>
-                  val msg = MessageSource(
-                    text = s"Current value: ${feature.apply()}",
-                    replyMarkup = ReplyMarkup(
-                      Seq(
-                        Seq(KeyboardButton("Ok"), KeyboardButton("Update"))
-                      ).some
-                    ).some
-                  )
-                  reply(msg) --> WaitingFeatureAction(name)
-                case None =>
-                  replyT("No such feature", removeKeyboard = none)
-              }
-            case WaitingFeatureAction(featureName) =>
-              input match {
-                case "Ok"     => hideKeyboard --> State.Empty
-                case "Update" => replyT("Enter new value") --> WaitingFeatureValue(featureName)
-                case _        => unexpectedInputReply
-              }
-            case WaitingFeatureValue(featureName) =>
-              val feature = featureToggles.find(featureName).get
-              feature.set(input) match {
-                case Left(error) =>
-                  replyT(s"Can't update: $error")
-                case Right(()) =>
-                  replyT("Updated successfully") --> State.Empty
-              }
-          }
-      case Request.ShowActiveTrades => ???
-      case Request.Features =>
-        val features = featureToggles.list
-        val buttons = features
-          .map(_.name)
-          .map(KeyboardButton.apply)
-          .map(Seq(_))
-        val msg = MessageSource(
-          text = "Select feature",
-          replyMarkup = ReplyMarkup(buttons.some).some
+  override def handle(request: Request, reply: MessageSource => F[Unit]): F[Unit] = Sync[F]
+    .defer {
+      def replyT(txt: String, removeKeyboard: Option[Boolean] = true.some) = reply(
+        MessageSource(
+          txt,
+          replyMarkup = ReplyMarkup(removeKeyboard = removeKeyboard).some
         )
-        reply(msg) --> State.WaitingFeatureName
+      )
+
+      val hideKeyboard = reply(
+        MessageSource(
+          "Enter command",
+          replyMarkup = ReplyMarkup(removeKeyboard = true.some).some
+        )
+      )
+
+      def requestTicker(newState: State) =
+        replyT("Enter ticker") --> newState
+
+      request match {
+        case Request.GetBalance =>
+          broker.getBalance.flatMap { balance =>
+            replyT(balance.toString)
+          }
+        case Request.ShowState => requestTicker(WaitingShowTicker)
+        case Request.Sell      => requestTicker(WaitingTradingTicker(OperationType.Sell))
+        case Request.Buy       => requestTicker(WaitingTradingTicker(OperationType.Buy))
+        case Request.Exit      => requestTicker(WaitingExitTicker)
+        case Request.GeneralInput(input) =>
+          val ticker =
+            s"${input.toUpperCase.stripSuffix("USDT")}USDT" //TODO can be non-crypto asset
+          val unexpectedInputReply = replyT(s"Unexpected input `$input`")
+          def parse[T](f: String => T): F[T] =
+            Sync[F].catchNonFatal(f(input)).onError { case _ => unexpectedInputReply }
+          state.get
+            .flatMap {
+              case State.Empty => unexpectedInputReply
+              case WaitingTradingTicker(operation) =>
+                replyT("Enter stop-loss") --> WaitingStopLoss(operation, ticker)
+              case WaitingStopLoss(op, ticker) =>
+                parse(_.toDouble).flatMap { stopLoss =>
+                  replyT("Enter take-profit") --> WaitingTakeProfit(op, ticker, stopLoss)
+                }
+              case WaitingTakeProfit(operationType, ticker, stopLoss) =>
+                parse(_.toDouble).flatMap { takeProfit =>
+                  val trade = TradeIdea(
+                    operationType,
+                    ExitBounds(
+                      stopLoss = stopLoss,
+                      takeProfit = takeProfit
+                    )
+                  )
+                  notifyTraders(ticker, TradingManager.Event.TradeRequested(_, trade))
+                }
+              case WaitingShowTicker =>
+                notifyTraders(ticker, TradingManager.Event.TraderSnapshotRequested)
+              case WaitingExitTicker =>
+                notifyTraders(ticker, TradingManager.Event.ExitRequested)
+              case WaitingFeatureName =>
+                val name = input
+                featureToggles.find(name) match {
+                  case Some(feature) =>
+                    val msg = MessageSource(
+                      text = s"Current value: ${feature.apply()}",
+                      replyMarkup = ReplyMarkup(
+                        Seq(
+                          Seq(KeyboardButton("Ok"), KeyboardButton("Update"))
+                        ).some
+                      ).some
+                    )
+                    reply(msg) --> WaitingFeatureAction(name)
+                  case None =>
+                    replyT("No such feature", removeKeyboard = none)
+                }
+              case WaitingFeatureAction(featureName) =>
+                input match {
+                  case "Ok"     => hideKeyboard --> State.Empty
+                  case "Update" => replyT("Enter new value") --> WaitingFeatureValue(featureName)
+                  case _        => unexpectedInputReply
+                }
+              case WaitingFeatureValue(featureName) =>
+                val feature = featureToggles.find(featureName).get
+                feature.set(input) match {
+                  case Left(error) =>
+                    replyT(s"Can't update: $error")
+                  case Right(()) =>
+                    replyT("Updated successfully") --> State.Empty
+                }
+            }
+        case Request.ShowActiveTrades => ???
+        case Request.Features =>
+          val features = featureToggles.list
+          val buttons = features
+            .map(_.name)
+            .map(KeyboardButton.apply)
+            .map(Seq(_))
+          val msg = MessageSource(
+            text = "Select feature",
+            replyMarkup = ReplyMarkup(buttons.some).some
+          )
+          reply(msg) --> State.WaitingFeatureName
+      }
     }
-  }
+    .recover { case NonFatal(_) => () }
 }
 
 object RequestHandlerImpl {
