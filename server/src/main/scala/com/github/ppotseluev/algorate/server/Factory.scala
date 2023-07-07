@@ -6,6 +6,8 @@ import cats.Parallel
 import cats.effect.{IO, Ref, Resource}
 import cats.effect.kernel.Async
 import cats.implicits._
+import com.binance.api.client.BinanceApiAsyncRestClient
+import com.binance.api.client.impl.BinanceApiAsyncRestClientImpl
 import com.github.ppotseluev.algorate.Bar
 import com.github.ppotseluev.algorate.InstrumentId
 import com.github.ppotseluev.algorate.Ticker
@@ -62,7 +64,10 @@ class Factory[F[_]: Async: Parallel] {
 
   lazy val binanceApi: Resource[F, SpotApi[F]] = BinanceClient.createSpotClient(binanceConfig)
 
-  lazy val binanceBroker: Resource[F, BinanceBroker[F]] = binanceApi.map(new BinanceBroker(_))
+  lazy val binanceClient: BinanceApiAsyncRestClient =
+    new BinanceApiAsyncRestClientImpl(binanceConfig.apiKey, binanceConfig.apiSecret)
+
+  lazy val binanceBroker: Resource[F, BinanceBroker[F]] = binanceApi.map(new BinanceBroker(_, binanceClient))
 
   val redisClient: Resource[F, RedisClient] = RedisClient[F].from("redis://localhost")
 
@@ -116,7 +121,7 @@ class Factory[F[_]: Async: Parallel] {
       actorSystem: ActorSystem[TradingManager.Event],
       assets: Map[Ticker, InstrumentId],
       eventsSink: EventsSink[F],
-      broker: Broker[F]
+      broker: BinanceBroker[F]
   ): F[RequestHandler[F]] =
     Ref.of[F, State](State.Empty).map { state =>
       new RequestHandlerImpl[F](

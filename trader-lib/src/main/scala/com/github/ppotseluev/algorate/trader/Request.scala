@@ -14,6 +14,7 @@ object Request {
   case object Exit extends Request("exit".some)
   case object ShowActiveTrades extends Request(none) //TODO
   case object GetBalance extends Request("balance".some)
+  case object GetOpenOrders extends Request("orders".some)
   case object Features extends Request("features".some)
   def values: List[Request] = List(
     ShowState,

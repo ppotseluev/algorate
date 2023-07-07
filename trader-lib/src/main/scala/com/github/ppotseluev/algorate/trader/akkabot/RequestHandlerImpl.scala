@@ -7,6 +7,7 @@ import cats.effect.Ref
 import com.github.ppotseluev.algorate._
 import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.ExitBounds
+import com.github.ppotseluev.algorate.broker.tinkoff.BinanceBroker
 import com.github.ppotseluev.algorate.strategy.FullStrategy.TradeIdea
 import com.github.ppotseluev.algorate.trader.Request
 import com.github.ppotseluev.algorate.trader.RequestHandler
@@ -16,6 +17,7 @@ import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.{
   WaitingFeatureAction,
   WaitingFeatureName,
   WaitingFeatureValue,
+  WaitingOpenOrdersTicker,
   WaitingShowTicker,
   WaitingStopLoss,
   WaitingTakeProfit,
@@ -37,7 +39,7 @@ class RequestHandlerImpl[F[_]: Sync](
     assets: Map[Ticker, InstrumentId],
     eventsSink: EventsSink[F],
     state: Ref[F, State],
-    broker: Broker[F]
+    broker: BinanceBroker[F]
 )(implicit featureToggles: FeatureToggles)
     extends RequestHandler[F]
     with LazyLogging {
@@ -73,14 +75,12 @@ class RequestHandlerImpl[F[_]: Sync](
         replyT("Enter ticker") --> newState
 
       request match {
-        case Request.GetBalance =>
-          broker.getBalance.flatMap { balance =>
-            replyT(balance.toString)
-          }
-        case Request.ShowState => requestTicker(WaitingShowTicker)
-        case Request.Sell      => requestTicker(WaitingTradingTicker(OperationType.Sell))
-        case Request.Buy       => requestTicker(WaitingTradingTicker(OperationType.Buy))
-        case Request.Exit      => requestTicker(WaitingExitTicker)
+        case Request.GetBalance    => broker.getBalance.map(_.toString).flatMap(replyT(_))
+        case Request.GetOpenOrders => requestTicker(WaitingOpenOrdersTicker)
+        case Request.ShowState     => requestTicker(WaitingShowTicker)
+        case Request.Sell          => requestTicker(WaitingTradingTicker(OperationType.Sell))
+        case Request.Buy           => requestTicker(WaitingTradingTicker(OperationType.Buy))
+        case Request.Exit          => requestTicker(WaitingExitTicker)
         case Request.GeneralInput(input) =>
           val ticker =
             s"${input.toUpperCase.stripSuffix("USDT")}USDT" //TODO can be non-crypto asset
@@ -111,6 +111,8 @@ class RequestHandlerImpl[F[_]: Sync](
                 notifyTraders(ticker, TradingManager.Event.TraderSnapshotRequested)
               case WaitingExitTicker =>
                 notifyTraders(ticker, TradingManager.Event.ExitRequested)
+              case WaitingOpenOrdersTicker =>
+                broker.getOrders(ticker).map(_.toString).flatMap(replyT(_))
               case WaitingFeatureName =>
                 val name = input
                 featureToggles.find(name) match {
@@ -166,6 +168,7 @@ object RequestHandlerImpl {
     case class WaitingTradingTicker(operation: OperationType) extends State
     case object WaitingExitTicker extends State
     case object WaitingShowTicker extends State
+    case object WaitingOpenOrdersTicker extends State
     case object WaitingFeatureName extends State
     case class WaitingFeatureAction(featureName: String) extends State
     case class WaitingFeatureValue(featureName: String) extends State

@@ -209,7 +209,8 @@ object Trader extends LoggingSupport {
 
       def exit(
           bar: Bar,
-          position: Position
+          position: Position,
+          postOrder: Boolean
       )(implicit ctx: ActorContext[Event]): Unit = {
         val history = historyRecord(position.payload.operationType)
         val point = Point(
@@ -219,18 +220,22 @@ object Trader extends LoggingSupport {
         val lastIndex = barSeries.getEndIndex
         val lastPrice = barSeries.getBar(lastIndex).getClosePrice
         val order = position.payload.buildClosingOrder(point)
-        state = TraderState.exit(order, position)
         history.exit(lastIndex, lastPrice, barSeries.numOf(order.lots))
-        placeOrder(order)
+        if (postOrder) {
+          state = TraderState.exit(order, position)
+          placeOrder(order)
+        } else {
+          state = TraderState.Empty
+        }
       }
 
-      def shouldExit(position: Order): Boolean = ??? //tOdo
-//        position.operationType match {
-//        case OperationType.Buy =>
-//          strategy.longStrategy.shouldExit(barSeries.getEndIndex, longHistory)
-//        case OperationType.Sell =>
-//          strategy.shortStrategy.shouldExit(barSeries.getEndIndex, shortHistory)
-//      }
+      def shouldExit(position: Order): Boolean =
+        position.operationType match {
+          case OperationType.Buy =>
+            strategy.getLongStrategy.shouldExit(barSeries.getEndIndex, longHistory)
+          case OperationType.Sell =>
+            strategy.getShortStrategy.shouldExit(barSeries.getEndIndex, shortHistory)
+        }
 
       def lag(bar: Bar): FiniteDuration =
         (OffsetDateTime.now.toEpochSecond - bar.endTime.toEpochSecond).seconds
@@ -257,7 +262,7 @@ object Trader extends LoggingSupport {
                 case State.Initial | State.Placed(Pending) | State.Placed(Failed) => ()
                 case State.Placed(Completed) =>
                   if (shouldExit(position.payload)) {
-                    exit(bar, position)
+                    exit(bar, position, postOrder = false) //exit by stop-signal
                   } else {
                     () //keep holding current position
                   }
@@ -377,7 +382,7 @@ object Trader extends LoggingSupport {
           case Trader.Event.ExitRequested =>
             (currentBar, state) match {
               case (Some(bar), TraderState.Entering(position)) =>
-                exit(bar, position)
+                exit(bar, position, postOrder = true)
               case _ => logger.warn("Can't perform requested exit operation")
             }
         }

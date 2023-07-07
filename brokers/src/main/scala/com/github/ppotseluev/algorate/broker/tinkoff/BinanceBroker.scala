@@ -1,31 +1,59 @@
 package com.github.ppotseluev.algorate.broker.tinkoff
 
 import cats.Functor
-import cats.effect.Sync
+import cats.effect.{Async, Sync}
 import cats.effect.kernel.Concurrent
-import com.github.ppotseluev.algorate.{Bar, Order, OrderId, TradingAsset}
+import com.github.ppotseluev.algorate.{Bar, Order, OrderId, Ticker, TradingAsset}
 import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.broker.Broker.{CandlesInterval, OrderPlacementInfo}
 import io.github.paoloboni.binance.spot.{SpotApi, SpotTimeInForce}
 import cats.implicits._
+import com.binance.api.client.domain.account.request.OrderRequest
+import com.binance.api.client.domain.account.{Order => BinanceOrder}
+import com.binance.api.client.{BinanceApiAsyncRestClient, BinanceApiCallback}
 import io.github.paoloboni.binance.common.Interval
 import io.github.paoloboni.binance.spot.parameters.v3.KLines
 import io.github.paoloboni.binance.spot.parameters.{SpotOrderCreateParams, SpotOrderQueryParams}
 import io.github.paoloboni.binance.spot.response.{ExchangeInformation, SpotAccountInfoResponse}
-
+import scala.jdk.CollectionConverters._
 import java.math.MathContext
+import java.util.{List => JList}
+import scala.concurrent.Promise
+import scala.concurrent.Promise
 import scala.math.BigDecimal.RoundingMode
+import scala.util.{Failure, Success}
 
-class BinanceBroker[F[_]: Concurrent](binanceClient: SpotApi[F]) extends Broker[F] {
-  override def getBalance: F[Any] = {
-    binanceClient.V3.getBalance().widen
-  }
+class BinanceBroker[F[_]: Concurrent: Async](
+    spotApi: SpotApi[F],
+    binanceClient: BinanceApiAsyncRestClient
+) extends Broker[F] {
+  def getBalance: F[SpotAccountInfoResponse] =
+    spotApi.V3.getBalance()
 
   def getExchangeInfo: ExchangeInformation =
-    binanceClient.exchangeInfo
+    spotApi.exchangeInfo
+
+  def getOrders(ticker: Ticker): F[List[BinanceOrder]] = Async[F]
+    .fromFuture {
+      Sync[F].delay {
+        val promise = Promise[JList[BinanceOrder]]()
+        val callback = new BinanceApiCallback[JList[BinanceOrder]] {
+          override def onResponse(response: JList[BinanceOrder]): Unit =
+            promise.complete(Success(response))
+
+          override def onFailure(cause: Throwable): Unit = promise.complete(Failure(cause))
+        }
+        val request = new OrderRequest(ticker)
+        binanceClient.getOpenOrders(request, callback)
+        promise.future
+      }
+    }
+    .map(_.asScala.toList)
+
+//    binanceClient.getOpenOrders()
 
   override def getOrderInfo(orderId: OrderId): F[OrderPlacementInfo] =
-    binanceClient.V3
+    spotApi.V3
       .queryOrder(
         SpotOrderQueryParams(
           symbol = "STUB", //TODO
@@ -64,17 +92,17 @@ class BinanceBroker[F[_]: Concurrent](binanceClient: SpotApi[F]) extends Broker[
       quantity = order.lots.some,
       newClientOrderId = order.key.some
     )
-    binanceClient.V3.createOrder(params).map {
+    spotApi.V3.createOrder(params).map {
       resp => //TODO return real executed quantity to exit position correctly?
         OrderPlacementInfo(
           orderId = resp.orderId.toString,
           status = BinanceConverters.convert(resp.status)
         )
-    } <* List(stop, take).traverse(binanceClient.V3.createOrder)
+    } <* List(stop, take).traverse(spotApi.V3.createOrder)
   }
 
   override def getData(asset: TradingAsset, interval: CandlesInterval): F[List[Bar]] =
-    binanceClient.V3
+    spotApi.V3
       .getKLines(
         KLines(
           symbol = asset.instrumentId,

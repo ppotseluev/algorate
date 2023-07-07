@@ -5,6 +5,7 @@ val ciScalacOptions = Seq(
 )
 
 lazy val settings = Seq(
+  resolvers += "jitpack" at "https://jitpack.io",
   organization := "com.github.ppotseluev",
   version := "1.0-SNAPSHOT",
   scalaVersion := "2.13.8",
@@ -185,7 +186,8 @@ lazy val `brokers` = project
     settings,
     libraryDependencies ++= Seq(
       Dependency.tinkoffInvestApi,
-      Dependency.binanceClient
+      Dependency.binanceClient,
+      "com.github.binance-exchange" % "binance-java-api" % "master-SNAPSHOT"
     )
   )
   .dependsOn(`broker-lib`)
@@ -201,5 +203,5 @@ lazy val `trader-lib` = project
   )
   .dependsOn(
     `trader-charts`,
-    `broker-lib`
+    `brokers` //TODO should depend only on broker-lib, not impl
   )
