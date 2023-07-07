@@ -6,6 +6,8 @@ import cats.effect.kernel.Sync
 import cats.effect.Ref
 import com.github.ppotseluev.algorate._
 import com.github.ppotseluev.algorate.broker.Broker
+import com.github.ppotseluev.algorate.ExitBounds
+import com.github.ppotseluev.algorate.strategy.FullStrategy.TradeIdea
 import com.github.ppotseluev.algorate.trader.Request
 import com.github.ppotseluev.algorate.trader.RequestHandler
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State
@@ -15,6 +17,8 @@ import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.{
   WaitingFeatureName,
   WaitingFeatureValue,
   WaitingShowTicker,
+  WaitingStopLoss,
+  WaitingTakeProfit,
   WaitingTradingTicker
 }
 import com.github.ppotseluev.algorate.trader.feature.FeatureToggles
@@ -77,11 +81,28 @@ class RequestHandlerImpl[F[_]: Sync](
       case Request.GeneralInput(input) =>
         val ticker = s"${input.toUpperCase.stripSuffix("USDT")}USDT" //TODO can be non-crypto asset
         val unexpectedInputReply = replyT(s"Unexpected input `$input`")
+        def parse[T](f: String => T): F[T] =
+          Sync[F].catchNonFatal(f(input)).onError { case _ => unexpectedInputReply }
         state.get
           .flatMap {
             case State.Empty => unexpectedInputReply
             case WaitingTradingTicker(operation) =>
-              notifyTraders(ticker, TradingManager.Event.TradeRequested(_, operation))
+              replyT("Enter stop-loss") --> WaitingStopLoss(operation, ticker)
+            case WaitingStopLoss(op, ticker) =>
+              parse(_.toDouble).flatMap { stopLoss =>
+                replyT("Enter take-profit") --> WaitingTakeProfit(op, ticker, stopLoss)
+              }
+            case WaitingTakeProfit(operationType, ticker, stopLoss) =>
+              parse(_.toDouble).flatMap { takeProfit =>
+                val trade = TradeIdea(
+                  operationType,
+                  ExitBounds(
+                    stopLoss = stopLoss,
+                    takeProfit = takeProfit
+                  )
+                )
+                notifyTraders(ticker, TradingManager.Event.TradeRequested(_, trade))
+              }
             case WaitingShowTicker =>
               notifyTraders(ticker, TradingManager.Event.TraderSnapshotRequested)
             case WaitingExitTicker =>
@@ -143,5 +164,8 @@ object RequestHandlerImpl {
     case object WaitingFeatureName extends State
     case class WaitingFeatureAction(featureName: String) extends State
     case class WaitingFeatureValue(featureName: String) extends State
+    case class WaitingStopLoss(operationType: OperationType, ticker: Ticker) extends State
+    case class WaitingTakeProfit(operationType: OperationType, ticker: Ticker, stopLoss: Price)
+        extends State
   }
 }

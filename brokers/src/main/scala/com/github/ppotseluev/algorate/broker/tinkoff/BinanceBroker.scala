@@ -40,6 +40,18 @@ class BinanceBroker[F[_]: Concurrent](binanceClient: SpotApi[F]) extends Broker[
       }
 
   override def placeOrder(order: Order): F[OrderPlacementInfo] = {
+    val stop = SpotOrderCreateParams.STOP_LOSS(
+      symbol = order.instrumentId,
+      side = BinanceConverters.convert(order.operationType.reverse),
+      quantity = order.lots,
+      stopPrice = order.exitBounds.stopLoss
+    )
+    val take = SpotOrderCreateParams.TAKE_PROFIT(
+      symbol = stop.symbol,
+      side = stop.side,
+      quantity = stop.quantity,
+      stopPrice = order.exitBounds.takeProfit
+    )
     val params = SpotOrderCreateParams.MARKET(
       symbol = order.instrumentId,
       side = BinanceConverters.convert(order.operationType),
@@ -52,7 +64,7 @@ class BinanceBroker[F[_]: Concurrent](binanceClient: SpotApi[F]) extends Broker[
           orderId = resp.orderId.toString,
           status = BinanceConverters.convert(resp.status)
         )
-    }
+    } <* List(stop, take).traverse(binanceClient.V3.createOrder)
   }
 
   override def getData(asset: TradingAsset, interval: CandlesInterval): F[List[Bar]] =

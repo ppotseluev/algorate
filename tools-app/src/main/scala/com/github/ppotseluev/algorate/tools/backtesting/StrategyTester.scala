@@ -97,10 +97,10 @@ private[backtesting] object StrategyTester {
       val seriesManager = new BarSeriesManager(series, transactionCostModel, holdingCostModel)
       for {
         longRecord <- Sync[F].blocking(
-          seriesManager.run(strategy.longStrategy, TradeType.BUY, lots)
+          seriesManager.run(strategy.getLongStrategy, TradeType.BUY, lots)
         )
         shortRecord <- Sync[F].blocking(
-          seriesManager.run(strategy.shortStrategy, TradeType.SELL, lots)
+          seriesManager.run(strategy.getShortStrategy, TradeType.SELL, lots)
         )
       } yield TradingStats(
         long = Stats.fromRecord(longRecord, series, asset, includeCurrent = false),

@@ -1,6 +1,6 @@
 package com.github.ppotseluev.algorate
 
-import com.github.ppotseluev.algorate.Order.Details
+import com.github.ppotseluev.algorate.Order.{Details}
 import enumeratum._
 
 case class Order(
@@ -8,7 +8,8 @@ case class Order(
     lots: BigDecimal,
     operationType: OperationType,
     details: Order.Details,
-    info: Order.Info
+    info: Order.Info,
+    exitBounds: ExitBounds
 ) {
   def instrumentId: InstrumentId = asset.instrumentId
 

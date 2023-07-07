@@ -3,9 +3,18 @@ package com.github.ppotseluev.algorate.trader.akkabot
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import cats.implicits._
-import com.github.ppotseluev.algorate.{BarInfo, EnrichedPosition, InstrumentId, OperationType, Stats, TradingAsset, TradingStats}
+import com.github.ppotseluev.algorate.{
+  BarInfo,
+  EnrichedPosition,
+  InstrumentId,
+  OperationType,
+  Stats,
+  TradingAsset,
+  TradingStats
+}
 import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.broker.MoneyTracker
+import com.github.ppotseluev.algorate.strategy.FullStrategy.TradeIdea
 import com.github.ppotseluev.algorate.strategy.StrategyBuilder
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.CandleData
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.TraderSnapshotRequested
@@ -25,8 +34,10 @@ object TradingManager extends LazyLogging {
     case class TraderSnapshotRequested(instrumentId: InstrumentId) extends Event
     case class ExitRequested(instrumentId: InstrumentId) extends Event
     case class TraderSnapshotEvent(snapshot: Trader.StateSnapshot) extends Event
-    case class TradeRequested(instrumentId: InstrumentId, operationType: OperationType)
-        extends Event
+    case class TradeRequested(
+        instrumentId: InstrumentId,
+        operationType: TradeIdea
+    ) extends Event
   }
 
   def apply[F[_]](

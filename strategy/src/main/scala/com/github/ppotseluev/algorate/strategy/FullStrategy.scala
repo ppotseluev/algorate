@@ -1,21 +1,53 @@
 package com.github.ppotseluev.algorate.strategy
 
-import org.ta4j.core.Indicator
-import org.ta4j.core.Strategy
+import org.ta4j.core.{BarSeries, Indicator, Strategy}
 import org.ta4j.core.num.Num
+import cats.implicits._
+import FullStrategy.{IndicatorInfo, TradeIdea}
+import com.github.ppotseluev.algorate.{ExitBounds, OperationType, Order}
 
-import FullStrategy.IndicatorInfo
-
-case class FullStrategy(
+class FullStrategy(
     longStrategy: Strategy,
     shortStrategy: Strategy,
     getPriceIndicators: () => Map[String, IndicatorInfo],
-    oscillators: Map[String, IndicatorInfo]
+    val oscillators: Map[String, IndicatorInfo],
+    stopIndicator: Indicator[(Num, Num)]
 ) {
   lazy val priceIndicators: Map[String, IndicatorInfo] = getPriceIndicators()
+
+  def getLongStrategy = longStrategy
+  def getShortStrategy = shortStrategy
+
+  def recommendedTrade(index: Int): Option[TradeIdea] = {
+    lazy val stops = stopIndicator.getValue(index).toList.map(_.doubleValue)
+    if (longStrategy.shouldEnter(index)) {
+      TradeIdea(
+        operationType = OperationType.Buy,
+        exitBounds = ExitBounds(
+          takeProfit = stops.max,
+          stopLoss = stops.min
+        )
+      ).some
+    } else if (shortStrategy.shouldEnter(index)) {
+      TradeIdea(
+        operationType = OperationType.Sell,
+        exitBounds = ExitBounds(
+          takeProfit = stops.min,
+          stopLoss = stops.max
+        )
+      ).some
+    } else {
+      none
+    }
+  }
 }
 
 object FullStrategy {
+  case class TradeIdea(
+      operationType: OperationType,
+      exitBounds: ExitBounds
+  )
+
   sealed trait Representation
 
   object Representation {
