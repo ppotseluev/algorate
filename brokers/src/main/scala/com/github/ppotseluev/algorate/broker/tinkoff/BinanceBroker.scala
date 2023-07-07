@@ -6,7 +6,7 @@ import cats.effect.kernel.Concurrent
 import com.github.ppotseluev.algorate.{Bar, Order, OrderId, TradingAsset}
 import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.broker.Broker.{CandlesInterval, OrderPlacementInfo}
-import io.github.paoloboni.binance.spot.SpotApi
+import io.github.paoloboni.binance.spot.{SpotApi, SpotTimeInForce}
 import cats.implicits._
 import io.github.paoloboni.binance.common.Interval
 import io.github.paoloboni.binance.spot.parameters.v3.KLines
@@ -40,17 +40,23 @@ class BinanceBroker[F[_]: Concurrent](binanceClient: SpotApi[F]) extends Broker[
       }
 
   override def placeOrder(order: Order): F[OrderPlacementInfo] = {
-    val stop = SpotOrderCreateParams.STOP_LOSS(
+    val stop = SpotOrderCreateParams.STOP_LOSS_LIMIT(
       symbol = order.instrumentId,
       side = BinanceConverters.convert(order.operationType.reverse),
+      timeInForce = SpotTimeInForce.FOK, //TODO
       quantity = order.lots,
-      stopPrice = order.exitBounds.stopLoss
+      price = order.exitBounds.stopLoss, //TODO
+      stopPrice = order.exitBounds.stopLoss,
+      icebergQty = None
     )
-    val take = SpotOrderCreateParams.TAKE_PROFIT(
-      symbol = stop.symbol,
-      side = stop.side,
-      quantity = stop.quantity,
-      stopPrice = order.exitBounds.takeProfit
+    val take = SpotOrderCreateParams.TAKE_PROFIT_LIMIT(
+      symbol = order.instrumentId,
+      side = BinanceConverters.convert(order.operationType.reverse),
+      timeInForce = SpotTimeInForce.FOK, //TODO
+      quantity = order.lots,
+      price = order.exitBounds.stopLoss, //TODO
+      stopPrice = order.exitBounds.stopLoss,
+      icebergQty = None
     )
     val params = SpotOrderCreateParams.MARKET(
       symbol = order.instrumentId,
