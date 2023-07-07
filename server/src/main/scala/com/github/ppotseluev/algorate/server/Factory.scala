@@ -5,9 +5,14 @@ import boopickle.Default.iterablePickler
 import cats.Parallel
 import cats.effect.{IO, Ref, Resource}
 import cats.effect.kernel.Async
+import cats.effect.std.Console
 import cats.implicits._
-import com.binance.api.client.BinanceApiAsyncRestClient
-import com.binance.api.client.impl.BinanceApiAsyncRestClientImpl
+import com.binance.api.client.{
+  BinanceApiAsyncRestClient,
+  BinanceApiClientFactory,
+  BinanceApiRestClient
+}
+import com.binance.api.client.impl.{BinanceApiAsyncRestClientImpl, BinanceApiRestClientImpl}
 import com.github.ppotseluev.algorate.Bar
 import com.github.ppotseluev.algorate.InstrumentId
 import com.github.ppotseluev.algorate.Ticker
@@ -22,6 +27,7 @@ import com.github.ppotseluev.algorate.trader.akkabot.EventsSink
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager
+import com.github.ppotseluev.algorate.trader.cli.AlgorateCli
 import com.github.ppotseluev.algorate.trader.feature.FeatureToggles
 import com.github.ppotseluev.algorate.trader.telegram.HttpTelegramClient
 import com.github.ppotseluev.algorate.trader.telegram.TelegramClient
@@ -64,10 +70,12 @@ class Factory[F[_]: Async: Parallel] {
 
   lazy val binanceApi: Resource[F, SpotApi[F]] = BinanceClient.createSpotClient(binanceConfig)
 
-  lazy val binanceClient: BinanceApiAsyncRestClient =
-    new BinanceApiAsyncRestClientImpl(binanceConfig.apiKey, binanceConfig.apiSecret)
+  lazy val binanceClient = BinanceApiClientFactory
+    .newInstance(binanceConfig.apiKey, binanceConfig.apiSecret, true, true)
+    .newAsyncRestClient()
 
-  lazy val binanceBroker: Resource[F, BinanceBroker[F]] = binanceApi.map(new BinanceBroker(_, binanceClient))
+  lazy val binanceBroker: Resource[F, BinanceBroker[F]] =
+    binanceApi.map(new BinanceBroker(_, binanceClient))
 
   val redisClient: Resource[F, RedisClient] = RedisClient[F].from("redis://localhost")
 
@@ -153,6 +161,16 @@ class Factory[F[_]: Async: Parallel] {
     telegramWebhookSecret = telegramWebhookSecret,
     prometheusMetrics = prometheusMetrics,
     config = apiConfig
+  )
+
+  def algorateCli(
+      requestHandler: RequestHandler[F],
+      telegramClient: TelegramClient[F]
+  )(implicit console: Console[F]) = new AlgorateCli[F](
+    requestHandler = requestHandler,
+    telegramClient = telegramClient,
+    chatId = telegramChatId,
+    botToken = telegramBotToken
   )
 }
 

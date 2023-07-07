@@ -17,7 +17,7 @@ import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.{
   WaitingFeatureAction,
   WaitingFeatureName,
   WaitingFeatureValue,
-  WaitingOpenOrdersTicker,
+  WaitingOrdersTicker,
   WaitingShowTicker,
   WaitingStopLoss,
   WaitingTakeProfit,
@@ -76,7 +76,8 @@ class RequestHandlerImpl[F[_]: Sync](
 
       request match {
         case Request.GetBalance    => broker.getBalance.map(_.toString).flatMap(replyT(_))
-        case Request.GetOpenOrders => requestTicker(WaitingOpenOrdersTicker)
+        case Request.GetOpenOrders => requestTicker(WaitingOrdersTicker(onlyOpen = true))
+        case Request.GetAllOrders  => requestTicker(WaitingOrdersTicker(onlyOpen = false))
         case Request.ShowState     => requestTicker(WaitingShowTicker)
         case Request.Sell          => requestTicker(WaitingTradingTicker(OperationType.Sell))
         case Request.Buy           => requestTicker(WaitingTradingTicker(OperationType.Buy))
@@ -111,8 +112,14 @@ class RequestHandlerImpl[F[_]: Sync](
                 notifyTraders(ticker, TradingManager.Event.TraderSnapshotRequested)
               case WaitingExitTicker =>
                 notifyTraders(ticker, TradingManager.Event.ExitRequested)
-              case WaitingOpenOrdersTicker =>
-                broker.getOrders(ticker).map(_.toString).flatMap(replyT(_))
+              case WaitingOrdersTicker(onlyOpen) =>
+                broker
+                  .getOrders(ticker, onlyOpen)
+                  .map { orders =>
+                    if (orders.isEmpty) "No orders"
+                    else orders.mkString("\n\n").replaceAll(",", "\n")
+                  }
+                  .flatMap(replyT(_))
               case WaitingFeatureName =>
                 val name = input
                 featureToggles.find(name) match {
@@ -168,7 +175,7 @@ object RequestHandlerImpl {
     case class WaitingTradingTicker(operation: OperationType) extends State
     case object WaitingExitTicker extends State
     case object WaitingShowTicker extends State
-    case object WaitingOpenOrdersTicker extends State
+    case class WaitingOrdersTicker(onlyOpen: Boolean) extends State
     case object WaitingFeatureName extends State
     case class WaitingFeatureAction(featureName: String) extends State
     case class WaitingFeatureValue(featureName: String) extends State

@@ -8,13 +8,14 @@ import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.broker.Broker.{CandlesInterval, OrderPlacementInfo}
 import io.github.paoloboni.binance.spot.{SpotApi, SpotTimeInForce}
 import cats.implicits._
-import com.binance.api.client.domain.account.request.OrderRequest
+import com.binance.api.client.domain.account.request.{AllOrdersRequest, OrderRequest}
 import com.binance.api.client.domain.account.{Order => BinanceOrder}
-import com.binance.api.client.{BinanceApiAsyncRestClient, BinanceApiCallback}
+import com.binance.api.client.{BinanceApiAsyncRestClient, BinanceApiCallback, BinanceApiRestClient}
 import io.github.paoloboni.binance.common.Interval
 import io.github.paoloboni.binance.spot.parameters.v3.KLines
 import io.github.paoloboni.binance.spot.parameters.{SpotOrderCreateParams, SpotOrderQueryParams}
 import io.github.paoloboni.binance.spot.response.{ExchangeInformation, SpotAccountInfoResponse}
+
 import scala.jdk.CollectionConverters._
 import java.math.MathContext
 import java.util.{List => JList}
@@ -33,7 +34,7 @@ class BinanceBroker[F[_]: Concurrent: Async](
   def getExchangeInfo: ExchangeInformation =
     spotApi.exchangeInfo
 
-  def getOrders(ticker: Ticker): F[List[BinanceOrder]] = Async[F]
+  private def queryOrders(f: BinanceApiCallback[JList[BinanceOrder]] => Unit) = Async[F]
     .fromFuture {
       Sync[F].delay {
         val promise = Promise[JList[BinanceOrder]]()
@@ -41,16 +42,23 @@ class BinanceBroker[F[_]: Concurrent: Async](
           override def onResponse(response: JList[BinanceOrder]): Unit =
             promise.complete(Success(response))
 
-          override def onFailure(cause: Throwable): Unit = promise.complete(Failure(cause))
+          override def onFailure(cause: Throwable): Unit =
+            promise.complete(Failure(cause))
         }
-        val request = new OrderRequest(ticker)
-        binanceClient.getOpenOrders(request, callback)
+        f(callback)
         promise.future
       }
     }
     .map(_.asScala.toList)
 
-//    binanceClient.getOpenOrders()
+  def getOrders(ticker: Ticker, onlyOpen: Boolean): F[List[BinanceOrder]] =
+    if (onlyOpen) {
+      val request = new OrderRequest(ticker)
+      queryOrders(binanceClient.getOpenOrders(request, _))
+    } else {
+      val request = new AllOrdersRequest(ticker)
+      queryOrders(binanceClient.getAllOrders(request, _))
+    }
 
   override def getOrderInfo(orderId: OrderId): F[OrderPlacementInfo] =
     spotApi.V3

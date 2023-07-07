@@ -140,6 +140,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         )
         api = factory.traderApi(requestHandler, telegramClient)
         subscription = MarketSubscriber.fromActor(actorSystem, candleResolution)
+        runCli = factory.algorateCli(requestHandler, telegramClient).run.foreverM
         exitCode <- useHistoricalData.fold {
           {
             val subscriber = subscription.stub[IO](
@@ -162,7 +163,10 @@ object AkkaTradingApp extends IOApp with LazyLogging {
             streamTo = streamTo
           )
           assets.parTraverse(subscriber.subscribe).void
-        } &> moneyTracker.run &> api.run
+        } &>
+          moneyTracker.run &>
+          IO.whenA(config.localEnv)(runCli) &>
+          api.run
       } yield exitCode
     }
     program.useEval

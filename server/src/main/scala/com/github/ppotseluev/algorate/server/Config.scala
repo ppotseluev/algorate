@@ -19,7 +19,8 @@ case class Config(
     apiConfig: Api.Config,
     enableBrokerCache: Boolean,
     historicalDataArchive: Option[String],
-    binanceConfig: SpotConfig.Default[Id]
+    binanceConfig: SpotConfig.Default[Id],
+    localEnv: Boolean = false
 ) {
   def telegramTrackedChats: Set[String] = Set(telegramChatId)
 
