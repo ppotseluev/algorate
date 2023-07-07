@@ -57,7 +57,7 @@ class RequestHandlerImpl[F[_]: Sync](
 
     val hideKeyboard = reply(
       MessageSource(
-        "",
+        "Enter command",
         replyMarkup = ReplyMarkup(removeKeyboard = true.some).some
       )
     )
@@ -127,7 +127,7 @@ class RequestHandlerImpl[F[_]: Sync](
           .map(KeyboardButton.apply)
           .map(Seq(_))
         val msg = MessageSource(
-          text = "",
+          text = "Click to update",
           replyMarkup = ReplyMarkup(buttons.some).some
         )
         reply(msg) --> State.WaitingFeatureName
