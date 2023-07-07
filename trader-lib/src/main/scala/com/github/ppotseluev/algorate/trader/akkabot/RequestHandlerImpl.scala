@@ -36,12 +36,15 @@ class RequestHandlerImpl[F[_]: Sync](
     } --> State.Empty
 
   override def handle(request: Request, reply: MessageSource => F[Unit]): F[Unit] = Sync[F].defer {
+    def replyT(txt: String) = reply(MessageSource(txt))
+
     def requestTicker(newState: State) =
-      reply(MessageSource("Enter the ticker")) --> newState
+      replyT("Enter ticker") --> newState
+
     request match {
       case Request.GetBalance =>
         broker.getBalance.flatMap { balance =>
-          reply(MessageSource(balance.toString))
+          replyT(balance.toString)
         }
       case Request.ShowState => requestTicker(WaitingShowTicker)
       case Request.Sell      => requestTicker(WaitingTradingTicker(OperationType.Sell))
@@ -49,7 +52,7 @@ class RequestHandlerImpl[F[_]: Sync](
       case Request.Exit      => requestTicker(WaitingExitTicker)
       case Request.GeneralInput(input) =>
         val ticker = s"${input.toUpperCase.stripSuffix("USDT")}USDT" //TODO can be non-crypto asset
-        val unexpectedInputReply = reply(MessageSource(s"Unexpected input `$input`"))
+        val unexpectedInputReply = replyT(s"Unexpected input `$input`")
         state.get
           .flatMap {
             case State.Empty => unexpectedInputReply
@@ -73,12 +76,12 @@ class RequestHandlerImpl[F[_]: Sync](
                   )
                   reply(msg) --> WaitingFeatureAction(name)
                 case None =>
-                  reply(MessageSource("No such feature"))
+                  replyT("No such feature")
               }
             case WaitingFeatureAction(featureName) =>
               input match {
                 case "Ok" => state.set(State.Empty)
-                case "Update" => reply(MessageSource("Enter new value")) --> WaitingFeatureValue(featureName)
+                case "Update" => replyT("Enter new value") --> WaitingFeatureValue(featureName)
                 case _ => unexpectedInputReply
               }
             case WaitingFeatureValue(featureName) =>

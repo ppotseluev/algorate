@@ -1,16 +1,29 @@
 package com.github.ppotseluev.algorate.trader
 
-import com.github.ppotseluev.algorate.Ticker
+import cats.implicits._
 
-sealed trait Request
+sealed abstract class Request(val command: Option[String])
 
 object Request {
-  case object ShowState extends Request
-  case object Sell extends Request
-  case object Buy extends Request
-  case object Exit extends Request
-  case object ShowActiveTrades extends Request
-  case object GetBalance extends Request
-  case class GeneralInput(input: String) extends Request
-  case object Features extends Request
+  def fromString(string: String): Request =
+    values.find(_.command.contains(string)).getOrElse(GeneralInput(string))
+
+  case object ShowState extends Request("show".some)
+  case object Sell extends Request("sell".some)
+  case object Buy extends Request("buy".some)
+  case object Exit extends Request("exit".some)
+  case object ShowActiveTrades extends Request(none) //TODO
+  case object GetBalance extends Request("balance".some)
+  case object Features extends Request("features".some)
+  def values: List[Request] = List(
+    ShowState,
+    Sell,
+    Buy,
+    Exit,
+    ShowActiveTrades,
+    GetBalance,
+    Features
+  )
+
+  case class GeneralInput(input: String) extends Request(none)
 }
