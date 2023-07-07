@@ -54,8 +54,8 @@ class BinanceBroker[F[_]: Concurrent](binanceClient: SpotApi[F]) extends Broker[
       side = BinanceConverters.convert(order.operationType.reverse),
       timeInForce = SpotTimeInForce.FOK, //TODO
       quantity = order.lots,
-      price = order.exitBounds.stopLoss, //TODO
-      stopPrice = order.exitBounds.stopLoss,
+      price = order.exitBounds.takeProfit, //TODO
+      stopPrice = order.exitBounds.takeProfit,
       icebergQty = None
     )
     val params = SpotOrderCreateParams.MARKET(
