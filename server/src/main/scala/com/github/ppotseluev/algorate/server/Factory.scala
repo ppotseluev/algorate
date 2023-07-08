@@ -3,7 +3,7 @@ package com.github.ppotseluev.algorate.server
 import akka.actor.typed.ActorSystem
 import boopickle.Default.iterablePickler
 import cats.Parallel
-import cats.effect.{IO, Ref, Resource}
+import cats.effect.{IO, Ref, Resource, Sync}
 import cats.effect.kernel.Async
 import cats.effect.std.Console
 import cats.implicits._
@@ -16,7 +16,7 @@ import com.binance.api.client.impl.{BinanceApiAsyncRestClientImpl, BinanceApiRes
 import com.github.ppotseluev.algorate.Bar
 import com.github.ppotseluev.algorate.InstrumentId
 import com.github.ppotseluev.algorate.Ticker
-import com.github.ppotseluev.algorate.broker.{Archive, Broker}
+import com.github.ppotseluev.algorate.broker.{Archive, Broker, LoggingBroker}
 import com.github.ppotseluev.algorate.broker.tinkoff.{BinanceBroker, TinkoffApi, TinkoffBroker}
 import com.github.ppotseluev.algorate.redis.RedisCodecs
 import com.github.ppotseluev.algorate.redis.codec._
@@ -74,8 +74,11 @@ class Factory[F[_]: Async: Parallel] {
     .newInstance(binanceConfig.apiKey, binanceConfig.apiSecret, true, true)
     .newAsyncRestClient()
 
-  lazy val binanceBroker: Resource[F, BinanceBroker[F]] =
-    binanceApi.map(new BinanceBroker(_, binanceClient))
+  lazy val binanceBroker: Resource[F, BinanceBroker[F]] = binanceApi.map {
+    new BinanceBroker(_, binanceClient) with LoggingBroker[F] {
+      override def F: Sync[F] = implicitly
+    }
+  }
 
   val redisClient: Resource[F, RedisClient] = RedisClient[F].from("redis://localhost")
 
