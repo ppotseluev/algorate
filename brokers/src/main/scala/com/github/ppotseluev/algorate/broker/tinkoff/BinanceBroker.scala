@@ -104,6 +104,7 @@ class BinanceBroker[F[_]: Concurrent: Async](
             if (toRepay == 0) {
               logger.warn(s"Repay amount is zero, requested order $order")
             }
+            //TODO use BNB balance to pay fee & interest rate?
             val toBuy = (toRepay / (1 - fee)).setScale(order.asset.quantityScale, RoundingMode.UP)
             toBuy -> toRepay.some
           }
