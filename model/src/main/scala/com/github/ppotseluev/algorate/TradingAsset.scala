@@ -8,6 +8,7 @@ case class TradingAsset(
     currency: Currency,
     `type`: TradingAsset.Type,
     sector: String,
+    symbol: String = "UNDEFINED",
     quantityScale: Int = 5
 ) {
   def isCrypto: Boolean = `type` match {
@@ -28,11 +29,18 @@ object TradingAsset {
     case object Share extends Type
   }
 
-  def crypto(ticker: Ticker, currency: Currency): TradingAsset =
-    TradingAsset(ticker, ticker, currency, `type` = Type.Crypto, sector = "CRYPTO") //TODO
+  def crypto(ticker: Ticker, currency: Currency, symbol: String): TradingAsset =
+    TradingAsset(
+      ticker,
+      ticker,
+      currency,
+      `type` = Type.Crypto,
+      sector = "CRYPTO",
+      symbol = symbol
+    )
 
   def crypto(name: String): TradingAsset =
-    crypto(ticker = s"${name}USDT", currency = "usdt")
+    crypto(ticker = s"${name}USDT", currency = "usdt", symbol = name)
 
   def share(instrumentId: InstrumentId): TradingAsset =
     TradingAsset(

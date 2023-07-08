@@ -102,31 +102,60 @@ class BinanceBroker[F[_]: Concurrent: Async](
       (order.operationType == OperationType.Sell && !order.isClosing) || //enter short
       (order.operationType == OperationType.Buy && order.isClosing) //exit short
     ) {
+      val quantityF =
+        if (order.isClosing) { //closing short position
+          getMarginAccount.map { acc =>
+            val balance = acc.getAssetBalance(order.asset.symbol)
+            BigDecimal(balance.getBorrowed) + BigDecimal(balance.getInterest)
+          }
+        } else {
+          order.lots.pure[F]
+        }
       val makeOrder = order.operationType match {
         case OperationType.Buy  => MarginNewOrder.marketBuy _
         case OperationType.Sell => MarginNewOrder.marketSell _
       }
-      val marginOrder = makeOrder(order.instrumentId, order.lots.toString)
-      invoke(marginClient.newOrder(marginOrder, _)).map { resp =>
-        OrderPlacementInfo(
-          orderId = resp.getOrderId.toString,
-          status = BinanceConverters.convert(resp.getStatus)
-        )
-      }
-    } else {
-      val params = SpotOrderCreateParams.MARKET(
-        symbol = order.instrumentId,
-        side = BinanceConverters.convert(order.operationType),
-        quantity = order.lots.some,
-        newClientOrderId = order.key.some
-      )
-      spotApi.V3.createOrder(params).map {
-        resp => //TODO return real executed quantity to exit position correctly?
+      for {
+        quantity <- quantityF
+        marginOrder = makeOrder(order.instrumentId, quantity.toString)
+        resp <- invoke(marginClient.newOrder(marginOrder, _)).map { resp =>
           OrderPlacementInfo(
-            orderId = resp.orderId.toString,
-            status = BinanceConverters.convert(resp.status)
+            orderId = resp.getOrderId.toString,
+            status = BinanceConverters.convert(resp.getStatus)
           )
-      } // <* List(stop, take).traverse(spotApi.V3.createOrder)
+        }
+      } yield resp
+    } else {
+      val quantityF =
+        if (order.isClosing) { //closing long position
+          getBalance(nonZero = false).map { b =>
+            val availableBalance = b.balances
+              .find(_.asset == order.asset.symbol)
+              .map(_.free)
+              .getOrElse(
+                throw new NoSuchElementException(s"Not found balance for ${order.asset.symbol}")
+              )
+            availableBalance.min(order.lots)
+          }
+        } else { //enter long position
+          order.lots.pure[F]
+        }
+      for {
+        quantity <- quantityF
+        params = SpotOrderCreateParams.MARKET(
+          symbol = order.instrumentId,
+          side = BinanceConverters.convert(order.operationType),
+          quantity = quantity.some,
+          newClientOrderId = order.key.some
+        )
+        resp <- spotApi.V3.createOrder(params).map {
+          resp =>
+            OrderPlacementInfo(
+              orderId = resp.orderId.toString,
+              status = BinanceConverters.convert(resp.status)
+            )
+        } // <* List(stop, take).traverse(spotApi.V3.createOrder)
+      } yield resp
     }
 
   override def getData(asset: TradingAsset, interval: CandlesInterval): F[List[Bar]] =
