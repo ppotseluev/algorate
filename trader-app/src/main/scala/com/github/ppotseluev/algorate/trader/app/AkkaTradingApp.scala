@@ -97,15 +97,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         )
       )
       val assets = enrichAssets(broker.getExchangeInfo) {
-        //Assets.allCryptocurrencies TODO revert
-        List( //testnet list
-          "LTC",
-          "XRP",
-          "TRX",
-          "ETH",
-          "BTC",
-          "BNB"
-        ).map(TradingAsset.crypto)
+        Assets.allCryptocurrencies
       }
       val assetsMap = assets.map(a => a.instrumentId -> a).toMap
       val tradingManager = TradingManager(

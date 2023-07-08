@@ -680,5 +680,13 @@ object Assets {
   ).map(TradingAsset.crypto).filterNot(cryptocurrencies.contains)
 
   val allCryptocurrencies: List[TradingAsset] = cryptocurrencies ++ restCryptocurrencies
+  val testnetAssets: List[TradingAsset] = List(
+    "LTC",
+    "XRP",
+    "TRX",
+    "ETH",
+    "BTC",
+    "BNB"
+  ).map(TradingAsset.crypto)
 
 }
