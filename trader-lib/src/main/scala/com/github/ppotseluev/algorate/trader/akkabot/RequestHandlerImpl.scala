@@ -169,7 +169,9 @@ class RequestHandlerImpl[F[_]: Sync](
           reply(msg) --> State.WaitingFeatureName
       }
     }
-    .recover { case NonFatal(_) => () }
+    .recover { case NonFatal(t) =>
+      logger.error("Can't handle request", t)
+    }
 }
 
 object RequestHandlerImpl {
