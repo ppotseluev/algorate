@@ -85,8 +85,13 @@ object Trader extends LoggingSupport {
     private[Trader] sealed trait OrderPlacementUpdate extends Event {
       def info: OrderPlacementInfo
     }
-    private[Trader] case class OrderPlaced(info: OrderPlacementInfo) extends OrderPlacementUpdate
-    private[Trader] case class FailedToPlaceOrder(order: Order, error: Throwable) extends Event
+    private[Trader] case class OrderPlaced(info: OrderPlacementInfo, callback: () => Unit)
+        extends OrderPlacementUpdate
+    private[Trader] case class FailedToPlaceOrder(
+        order: Order,
+        error: Throwable,
+        callback: () => Unit
+    ) extends Event
 
     case class NewData(bar: Bar) extends Event
     case object StateSnapshotRequested extends Event
@@ -157,10 +162,14 @@ object Trader extends LoggingSupport {
       exitBounds = trade.exitBounds
     )
 
-    def orderPlacedEvent(order: Order)(result: Try[OrderPlacementInfo]): Event =
+    def orderPlacedEvent(
+        order: Order,
+        onSuccess: () => Unit,
+        onFailure: () => Unit
+    )(result: Try[OrderPlacementInfo]): Event =
       result match {
-        case Failure(exception) => Trader.Event.FailedToPlaceOrder(order, exception)
-        case Success(info)      => Trader.Event.OrderPlaced(info)
+        case Failure(exception) => Trader.Event.FailedToPlaceOrder(order, exception, onFailure)
+        case Success(info)      => Trader.Event.OrderPlaced(info, onSuccess)
       }
 
     Behaviors.setup { _ =>
@@ -178,8 +187,12 @@ object Trader extends LoggingSupport {
         case OperationType.Sell => shortHistory
       }
 
-      def placeOrder(order: Order)(implicit ctx: ActorContext[Event]): Unit =
-        ctx.pipeToSelf(broker.placeOrder(order))(orderPlacedEvent(order))
+      def placeOrder(
+          order: Order,
+          onSuccess: () => Unit,
+          onFailure: () => Unit
+      )(implicit ctx: ActorContext[Event]): Unit =
+        ctx.pipeToSelf(broker.placeOrder(order))(orderPlacedEvent(order, onSuccess, onFailure))
 
       def tryEnter(bar: Bar, trade: TradeIdea)(implicit
           ctx: ActorContext[Event]
@@ -197,13 +210,18 @@ object Trader extends LoggingSupport {
         policy.apply(tradeRequest) match {
           case Decision.Allowed(lots) =>
             val order = buildOrder(point, trade, lots)
+            val prevState = state
             state = TraderState.enter(order)
-            historyRecord(trade.operationType).enter(
-              lastIndex,
-              lastPrice,
-              barSeries.numOf(order.lots)
+            placeOrder(
+              order,
+              onSuccess = () => {
+                historyRecord(trade.operationType)
+                  .enter(lastIndex, lastPrice, barSeries.numOf(order.lots))
+              },
+              onFailure = () => {
+                state = prevState
+              }
             )
-            placeOrder(order)
           case Decision.Denied(message) => logger.warn(message)
         }
       }
@@ -211,9 +229,7 @@ object Trader extends LoggingSupport {
       def exit(
           bar: Bar,
           position: Position
-//          postOrder: Boolean
       )(implicit ctx: ActorContext[Event]): Unit = {
-        val postOrder = true //TODO
         val history = historyRecord(position.payload.operationType)
         val point = Point(
           timestamp = bar.endTime,
@@ -222,13 +238,17 @@ object Trader extends LoggingSupport {
         val lastIndex = barSeries.getEndIndex
         val lastPrice = barSeries.getBar(lastIndex).getClosePrice
         val order = position.payload.buildClosingOrder(point)
-        history.exit(lastIndex, lastPrice, barSeries.numOf(order.lots))
-        if (postOrder) {
-          state = TraderState.exit(order, position)
-          placeOrder(order)
-        } else {
-          state = TraderState.Empty
-        }
+        val prevState = state
+        state = TraderState.exit(order, position)
+        placeOrder(
+          order,
+          onSuccess = () => {
+            history.exit(lastIndex, lastPrice, barSeries.numOf(order.lots))
+          },
+          onFailure = () => {
+            state = prevState
+          }
+        )
       }
 
       def shouldExit(bar: Bar, position: Order): Boolean =
@@ -371,12 +391,14 @@ object Trader extends LoggingSupport {
           case Trader.Event.NewData(bar) =>
             logger.debug(s"Received tick $bar")
             handleBar(bar)
-          case Trader.Event.OrderPlaced(info) =>
+          case Trader.Event.OrderPlaced(info, callback) =>
             ordersWatcher ! OrdersWatcher.Request.RegisterOrder(info, ctx.self)
+            callback()
           case event: Trader.Event.OrderUpdated =>
             handleOrderInfo(event)
-          case Trader.Event.FailedToPlaceOrder(order, t) =>
+          case Trader.Event.FailedToPlaceOrder(order, t, callback) =>
             logger.error(s"Failed to place order $order", t)
+            callback()
           case Trader.Event.StateSnapshotRequested =>
             sinkSnapshot(event)
           case Trader.Event.TradeRequested(trade) =>
