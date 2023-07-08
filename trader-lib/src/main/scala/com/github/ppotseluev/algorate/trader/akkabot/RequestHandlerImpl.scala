@@ -12,6 +12,7 @@ import com.github.ppotseluev.algorate.strategy.FullStrategy.TradeIdea
 import com.github.ppotseluev.algorate.trader.Request
 import com.github.ppotseluev.algorate.trader.RequestHandler
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State
+import scala.jdk.CollectionConverters._
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.{
   WaitingCancelOrdersTicker,
   WaitingExitTicker,
@@ -79,6 +80,11 @@ class RequestHandlerImpl[F[_]: Sync](
         case Request.GetBalance =>
           broker
             .getBalance(nonZero = true)
+            .map(_.toString)
+            .flatMap(replyT(_))
+        case Request.MarginBalance =>
+          broker.getMarginAccount
+            .map(_.getUserAssets.asScala.filter(_.getNetAsset != "0"))
             .map(_.toString)
             .flatMap(replyT(_))
         case Request.CancelOrders  => requestTicker(WaitingCancelOrdersTicker)

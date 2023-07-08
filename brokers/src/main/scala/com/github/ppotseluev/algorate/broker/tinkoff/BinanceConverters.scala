@@ -1,5 +1,6 @@
 package com.github.ppotseluev.algorate.broker.tinkoff
 
+import com.binance.api.client.domain.OrderStatus
 import com.github.ppotseluev.algorate.{Bar, OperationType}
 import com.github.ppotseluev.algorate.broker.Broker.{CandleResolution, OrderExecutionStatus}
 import io.github.paoloboni.binance.common.{Interval, KLine, OrderSide}
@@ -53,5 +54,14 @@ object BinanceConverters {
     case NEW | PARTIALLY_FILLED | PENDING_CANCEL => OrderExecutionStatus.Pending
     case FILLED                                  => OrderExecutionStatus.Completed
     case CANCELED | REJECTED | EXPIRED           => OrderExecutionStatus.Failed
+  }
+
+  def convert(status: OrderStatus): OrderExecutionStatus = status match {
+    case OrderStatus.NEW | OrderStatus.PARTIALLY_FILLED | OrderStatus.PENDING_CANCEL =>
+      OrderExecutionStatus.Pending
+    case OrderStatus.FILLED =>
+      OrderExecutionStatus.Completed
+    case OrderStatus.CANCELED | OrderStatus.REJECTED | OrderStatus.EXPIRED =>
+      OrderExecutionStatus.Failed
   }
 }

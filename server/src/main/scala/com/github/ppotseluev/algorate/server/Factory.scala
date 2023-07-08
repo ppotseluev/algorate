@@ -70,17 +70,20 @@ class Factory[F[_]: Async: Parallel] {
 
   lazy val binanceApi: Resource[F, SpotApi[F]] = BinanceClient.createSpotClient(binanceConfig)
 
-  lazy val binanceClient = BinanceApiClientFactory
-    .newInstance(
-      binanceConfig.apiKey,
-      binanceConfig.apiSecret,
-      binanceConfig.testnet,
-      binanceConfig.testnet
-    )
-    .newAsyncRestClient()
+  lazy val binanceClientFactory = BinanceApiClientFactory
+      .newInstance(
+        binanceConfig.apiKey,
+        binanceConfig.apiSecret,
+        binanceConfig.testnet,
+        binanceConfig.testnet
+      )
+
+  lazy val binanceSpotClient = binanceClientFactory.newAsyncRestClient()
+
+  lazy val binanceMarginClient = binanceClientFactory.newAsyncMarginRestClient()
 
   lazy val binanceBroker: Resource[F, BinanceBroker[F]] = binanceApi.map {
-    new BinanceBroker(_, binanceClient) with LoggingBroker[F] {
+    new BinanceBroker(_, binanceSpotClient, binanceMarginClient) with LoggingBroker[F] {
       override def F: Sync[F] = implicitly
     }
   }
