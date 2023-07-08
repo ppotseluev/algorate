@@ -36,7 +36,8 @@ import scala.util.{Failure, Success}
 class BinanceBroker[F[_]: Concurrent: Async](
     spotApi: SpotApi[F],
     spotClient: BinanceApiAsyncRestClient,
-    marginClient: BinanceApiAsyncMarginRestClient
+    marginClient: BinanceApiAsyncMarginRestClient,
+    fee: BigDecimal = 0.001 //0.1%
 ) extends Broker[F] {
   def getBalance(nonZero: Boolean): F[SpotAccountInfoResponse] = {
     spotApi.V3.getBalance().map { resp =>
@@ -107,7 +108,7 @@ class BinanceBroker[F[_]: Concurrent: Async](
           getMarginAccount.map { acc =>
             val balance = acc.getAssetBalance(order.asset.symbol)
             val toRepay = BigDecimal(balance.getBorrowed) + BigDecimal(balance.getInterest)
-            toRepay.setScale(order.asset.quantityScale, RoundingMode.HALF_UP)
+            (toRepay / (1 - fee)).setScale(order.asset.quantityScale, RoundingMode.UP)
           }
         } else {
           order.lots.pure[F]
@@ -140,7 +141,7 @@ class BinanceBroker[F[_]: Concurrent: Async](
               )
             availableBalance
               .min(order.lots)
-              .setScale(order.asset.quantityScale, RoundingMode.HALF_DOWN)
+              .setScale(order.asset.quantityScale, RoundingMode.DOWN)
           }
         } else { //enter long position
           order.lots.pure[F]
