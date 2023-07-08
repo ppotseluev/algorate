@@ -10,19 +10,11 @@ import io.github.paoloboni.binance.spot.{SpotApi, SpotTimeInForce}
 import cats.implicits._
 import com.binance.api.client.domain.account.request.{AllOrdersRequest, OrderRequest}
 import com.binance.api.client.domain.account.{MarginAccount, MarginNewOrder, Order => BinanceOrder}
-import com.binance.api.client.{
-  BinanceApiAsyncMarginRestClient,
-  BinanceApiAsyncRestClient,
-  BinanceApiCallback,
-  BinanceApiRestClient
-}
+import com.binance.api.client.{BinanceApiAsyncMarginRestClient, BinanceApiAsyncRestClient, BinanceApiCallback, BinanceApiRestClient}
+import com.typesafe.scalalogging.LazyLogging
 import io.github.paoloboni.binance.common.Interval
 import io.github.paoloboni.binance.spot.parameters.v3.KLines
-import io.github.paoloboni.binance.spot.parameters.{
-  SpotOrderCancelAllParams,
-  SpotOrderCreateParams,
-  SpotOrderQueryParams
-}
+import io.github.paoloboni.binance.spot.parameters.{SpotOrderCancelAllParams, SpotOrderCreateParams, SpotOrderQueryParams}
 import io.github.paoloboni.binance.spot.response.{ExchangeInformation, SpotAccountInfoResponse}
 
 import scala.jdk.CollectionConverters._
@@ -38,7 +30,7 @@ class BinanceBroker[F[_]: Concurrent: Async](
     spotClient: BinanceApiAsyncRestClient,
     marginClient: BinanceApiAsyncMarginRestClient,
     fee: BigDecimal = 0.001 //0.1%
-) extends Broker[F] {
+) extends Broker[F] with LazyLogging {
   def getBalance(nonZero: Boolean): F[SpotAccountInfoResponse] = {
     spotApi.V3.getBalance().map { resp =>
       val balances =
@@ -107,27 +99,34 @@ class BinanceBroker[F[_]: Concurrent: Async](
         if (order.isClosing) { //closing short position
           getMarginAccount.map { acc =>
             val balance = acc.getAssetBalance(order.asset.symbol)
-            val toRepay = BigDecimal(balance.getBorrowed) + BigDecimal(balance.getInterest)
-            (toRepay / (1 - fee)).setScale(order.asset.quantityScale, RoundingMode.UP)
+            val netAsset = BigDecimal(balance.getNetAsset)
+            val toRepay = if (netAsset < 0) netAsset.abs else BigDecimal(0)
+            if (toRepay == 0) {
+              logger.warn(s"Repay amount is zero, requested order $order")
+            }
+            val toBuy = (toRepay / (1 - fee)).setScale(order.asset.quantityScale, RoundingMode.UP)
+            toBuy -> toRepay.some
           }
         } else {
-          order.lots.pure[F]
+          (order.lots -> none).pure[F]
         }
       val makeOrder = order.operationType match {
         case OperationType.Buy  => MarginNewOrder.marketBuy _
         case OperationType.Sell => MarginNewOrder.marketSell _
       }
-      def borrow = invoke(marginClient.borrow(order.asset.symbol, order.lots.toString, _))
+      val borrow = invoke(marginClient.borrow(order.asset.symbol, order.lots.toString, _))
+      def repay(amount: BigDecimal) = invoke(marginClient.repay(order.asset.symbol, amount.toString, _))
       for {
         quantity <- quantityF
         _ <- borrow.unlessA(order.isClosing)
-        marginOrder = makeOrder(order.instrumentId, quantity.toString)
+        marginOrder = makeOrder(order.instrumentId, quantity._1.toString)
         resp <- invoke(marginClient.newOrder(marginOrder, _)).map { resp =>
           OrderPlacementInfo(
             orderId = resp.getOrderId.toString,
             status = BinanceConverters.convert(resp.getStatus)
           )
         }
+        _ <- quantity._2.fold(().pure[F])(repay(_).void)
       } yield resp
     } else {
       val quantityF =
