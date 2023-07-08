@@ -282,10 +282,12 @@ object Trader extends LoggingSupport {
         if (maxLag.forall(_ >= lag(bar))) {
           state match {
             case TraderState.Empty =>
-              if (!tradingEnabled()) {
-                logger.warn("Trading disabled")
-              } else {
-                strategy.recommendedTrade(lastIndex).foreach(tryEnter(bar, _))
+              strategy.recommendedTrade(lastIndex).foreach { trade =>
+                if (tradingEnabled()) {
+                  tryEnter(bar, trade)
+                } else {
+                  logger.warn("Trading disabled")
+                }
               }
             case TraderState.Entering(position) =>
               position.state match {
