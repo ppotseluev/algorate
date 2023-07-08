@@ -106,7 +106,8 @@ class BinanceBroker[F[_]: Concurrent: Async](
         if (order.isClosing) { //closing short position
           getMarginAccount.map { acc =>
             val balance = acc.getAssetBalance(order.asset.symbol)
-            BigDecimal(balance.getBorrowed) + BigDecimal(balance.getInterest)
+            val toRepay = BigDecimal(balance.getBorrowed) + BigDecimal(balance.getInterest)
+            toRepay.setScale(order.asset.quantityScale, RoundingMode.HALF_UP)
           }
         } else {
           order.lots.pure[F]
@@ -137,7 +138,9 @@ class BinanceBroker[F[_]: Concurrent: Async](
               .getOrElse(
                 throw new NoSuchElementException(s"Not found balance for ${order.asset.symbol}")
               )
-            availableBalance.min(order.lots)
+            availableBalance
+              .min(order.lots)
+              .setScale(order.asset.quantityScale, RoundingMode.HALF_DOWN)
           }
         } else { //enter long position
           order.lots.pure[F]
