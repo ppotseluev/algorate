@@ -13,7 +13,11 @@ import com.binance.api.client.domain.account.{Order => BinanceOrder}
 import com.binance.api.client.{BinanceApiAsyncRestClient, BinanceApiCallback, BinanceApiRestClient}
 import io.github.paoloboni.binance.common.Interval
 import io.github.paoloboni.binance.spot.parameters.v3.KLines
-import io.github.paoloboni.binance.spot.parameters.{SpotOrderCancelAllParams, SpotOrderCreateParams, SpotOrderQueryParams}
+import io.github.paoloboni.binance.spot.parameters.{
+  SpotOrderCancelAllParams,
+  SpotOrderCreateParams,
+  SpotOrderQueryParams
+}
 import io.github.paoloboni.binance.spot.response.{ExchangeInformation, SpotAccountInfoResponse}
 
 import scala.jdk.CollectionConverters._
@@ -28,8 +32,13 @@ class BinanceBroker[F[_]: Concurrent: Async](
     spotApi: SpotApi[F],
     binanceClient: BinanceApiAsyncRestClient
 ) extends Broker[F] {
-  def getBalance: F[SpotAccountInfoResponse] =
-    spotApi.V3.getBalance()
+  def getBalance(nonZero: Boolean): F[SpotAccountInfoResponse] =
+    spotApi.V3.getBalance().map { resp =>
+      val balances =
+        if (nonZero) resp.balances.filter(b => b.free != 0 || b.locked != 0)
+        else resp.balances
+      resp.copy(balances = balances)
+    }
 
   def getExchangeInfo: ExchangeInformation =
     spotApi.exchangeInfo
@@ -109,7 +118,7 @@ class BinanceBroker[F[_]: Concurrent: Async](
           orderId = resp.orderId.toString,
           status = BinanceConverters.convert(resp.status)
         )
-    }// <* List(stop, take).traverse(spotApi.V3.createOrder)
+    } // <* List(stop, take).traverse(spotApi.V3.createOrder)
   }
 
   override def getData(asset: TradingAsset, interval: CandlesInterval): F[List[Bar]] =

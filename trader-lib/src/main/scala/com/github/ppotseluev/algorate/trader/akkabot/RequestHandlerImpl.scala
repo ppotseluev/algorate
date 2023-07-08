@@ -76,7 +76,11 @@ class RequestHandlerImpl[F[_]: Sync](
         replyT("Enter ticker") --> newState
 
       request match {
-        case Request.GetBalance    => broker.getBalance.map(_.toString).flatMap(replyT(_))
+        case Request.GetBalance =>
+          broker
+            .getBalance(nonZero = true)
+            .map(_.toString)
+            .flatMap(replyT(_))
         case Request.CancelOrders  => requestTicker(WaitingCancelOrdersTicker)
         case Request.GetOpenOrders => requestTicker(WaitingOrdersTicker(onlyOpen = true))
         case Request.GetAllOrders  => requestTicker(WaitingOrdersTicker(onlyOpen = false))
