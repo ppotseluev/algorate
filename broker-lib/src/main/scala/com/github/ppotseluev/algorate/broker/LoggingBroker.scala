@@ -9,19 +9,25 @@ import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
 import com.typesafe.scalalogging.LazyLogging
 
-class LoggingBroker[F[_]: Sync](broker: Broker[F]) extends Broker[F] with LazyLogging {
-  override def placeOrder(order: Order): F[OrderPlacementInfo] =
-    broker.placeOrder(order)
+trait LoggingBroker[F[_]] extends Broker[F] with LazyLogging {
+  implicit def F: Sync[F]
 
-  override def getData(
+  abstract override def placeOrder(order: Order): F[OrderPlacementInfo] =
+    super
+      .placeOrder(order)
+      .flatMap { res =>
+        Sync[F].delay { logger.info(s"Order placed $order, result $res") }.as(res)
+      }
+      .onError { case e =>
+        Sync[F].delay { logger.error(s"Fail to place order $order", e) }
+      }
+
+  abstract override def getData(
       asset: TradingAsset,
       interval: Broker.CandlesInterval
   ): F[List[Bar]] = {
-    broker.getData(asset, interval).onError { case e =>
+    super.getData(asset, interval).onError { case e =>
       Sync[F].delay(logger.error(s"Failed getData ${asset.instrumentId} for $interval", e))
     }
   }
-
-  override def getOrderInfo(orderId: OrderId): F[OrderPlacementInfo] =
-    broker.getOrderInfo(orderId)
 }

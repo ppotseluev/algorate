@@ -206,27 +206,27 @@ object TinkoffBroker {
     }
   }
 
-  def withLogging[F[_]: Sync](_broker: TinkoffBroker[F]): TinkoffBroker[F] =
-    new Broker[F] with Ops[F] {
-      private val broker = new LoggingBroker(_broker)
-
-      override def getAllShares: F[List[Share]] =
-        _broker.getAllShares
-
-      override def getOrderInfo(orderId: OrderId): F[OrderPlacementInfo] =
-        broker.getOrderInfo(orderId)
-
-      override def placeOrder(order: Order): F[OrderPlacementInfo] =
-        broker.placeOrder(order)
-
-      override def getData(
-          asset: TradingAsset,
-          candlesInterval: CandlesInterval
-      ): F[List[Bar]] =
-        broker.getData(asset, candlesInterval)
-
-      override def getPositions: F[Positions] = _broker.getPositions
-    }
+//  def withLogging[F[_]: Sync](_broker: TinkoffBroker[F]): TinkoffBroker[F] =
+//    new Broker[F] with Ops[F] {
+//      private val broker = new LoggingBroker(_broker)
+//
+//      override def getAllShares: F[List[Share]] =
+//        _broker.getAllShares
+//
+//      override def getOrderInfo(orderId: OrderId): F[OrderPlacementInfo] =
+//        broker.getOrderInfo(orderId)
+//
+//      override def placeOrder(order: Order): F[OrderPlacementInfo] =
+//        broker.placeOrder(order)
+//
+//      override def getData(
+//          asset: TradingAsset,
+//          candlesInterval: CandlesInterval
+//      ): F[List[Bar]] =
+//        broker.getData(asset, candlesInterval)
+//
+//      override def getPositions: F[Positions] = _broker.getPositions
+//    }
 
   def withCaching[F[_]: Sync: Parallel](
       token: String,

@@ -76,24 +76,24 @@ class BinanceBroker[F[_]: Concurrent: Async](
       }
 
   override def placeOrder(order: Order): F[OrderPlacementInfo] = {
-    val stop = SpotOrderCreateParams.STOP_LOSS_LIMIT(
-      symbol = order.instrumentId,
-      side = BinanceConverters.convert(order.operationType.reverse),
-      timeInForce = SpotTimeInForce.FOK, //TODO
-      quantity = order.lots,
-      price = order.exitBounds.stopLoss, //TODO
-      stopPrice = order.exitBounds.stopLoss,
-      icebergQty = None
-    )
-    val take = SpotOrderCreateParams.TAKE_PROFIT_LIMIT(
-      symbol = order.instrumentId,
-      side = BinanceConverters.convert(order.operationType.reverse),
-      timeInForce = SpotTimeInForce.FOK, //TODO
-      quantity = order.lots,
-      price = order.exitBounds.takeProfit, //TODO
-      stopPrice = order.exitBounds.takeProfit,
-      icebergQty = None
-    )
+//    val stop = SpotOrderCreateParams.STOP_LOSS_LIMIT(
+//      symbol = order.instrumentId,
+//      side = BinanceConverters.convert(order.operationType.reverse),
+//      timeInForce = SpotTimeInForce.FOK, //TODO
+//      quantity = order.lots,
+//      price = order.exitBounds.stopLoss, //TODO
+//      stopPrice = order.exitBounds.stopLoss,
+//      icebergQty = None
+//    )
+//    val take = SpotOrderCreateParams.TAKE_PROFIT_LIMIT(
+//      symbol = order.instrumentId,
+//      side = BinanceConverters.convert(order.operationType.reverse),
+//      timeInForce = SpotTimeInForce.FOK, //TODO
+//      quantity = order.lots,
+//      price = order.exitBounds.takeProfit, //TODO
+//      stopPrice = order.exitBounds.takeProfit,
+//      icebergQty = None
+//    )
     val params = SpotOrderCreateParams.MARKET(
       symbol = order.instrumentId,
       side = BinanceConverters.convert(order.operationType),
@@ -106,7 +106,7 @@ class BinanceBroker[F[_]: Concurrent: Async](
           orderId = resp.orderId.toString,
           status = BinanceConverters.convert(resp.status)
         )
-    } <* List(stop, take).traverse(spotApi.V3.createOrder)
+    }// <* List(stop, take).traverse(spotApi.V3.createOrder)
   }
 
   override def getData(asset: TradingAsset, interval: CandlesInterval): F[List[Bar]] =

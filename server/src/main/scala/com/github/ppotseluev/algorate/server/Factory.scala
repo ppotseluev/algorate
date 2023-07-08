@@ -91,9 +91,9 @@ class Factory[F[_]: Async: Parallel] {
         .wrap[F](investApi)
         .withCandlesLimit(candlesLimiter)
         .withLogging
-      TinkoffBroker.withLogging(
-        TinkoffBroker[F](tinkoffApi, accountId, ZoneOffset.UTC)
-      )
+//      TinkoffBroker.withLogging(
+      TinkoffBroker[F](tinkoffApi, accountId, ZoneOffset.UTC)
+//      )
     }
     resultBroker <-
       if (enableBrokerCache) {

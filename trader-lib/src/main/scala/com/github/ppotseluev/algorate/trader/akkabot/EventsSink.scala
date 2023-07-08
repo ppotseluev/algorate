@@ -34,6 +34,7 @@ object EventsSink extends LoggingSupport {
               profit.calculate(snapshot.unsafe.barSeries, snapshot.unsafe.shortHistory)
             val msg = s"""
              |asset: ${snapshot.asset}
+             |price: ${snapshot.currentPrice}
              |state: ${snapshot.state}
              |stats: ${snapshot.tradingStats}
              |long profit: $longProfit%, short profit: $shortProfit%
