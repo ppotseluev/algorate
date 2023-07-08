@@ -115,8 +115,10 @@ class BinanceBroker[F[_]: Concurrent: Async](
         case OperationType.Buy  => MarginNewOrder.marketBuy _
         case OperationType.Sell => MarginNewOrder.marketSell _
       }
+      def borrow = invoke(marginClient.borrow(order.asset.symbol, order.lots.toString, _))
       for {
         quantity <- quantityF
+        _ <- borrow.unlessA(order.isClosing)
         marginOrder = makeOrder(order.instrumentId, quantity.toString)
         resp <- invoke(marginClient.newOrder(marginOrder, _)).map { resp =>
           OrderPlacementInfo(
@@ -148,12 +150,11 @@ class BinanceBroker[F[_]: Concurrent: Async](
           quantity = quantity.some,
           newClientOrderId = order.key.some
         )
-        resp <- spotApi.V3.createOrder(params).map {
-          resp =>
-            OrderPlacementInfo(
-              orderId = resp.orderId.toString,
-              status = BinanceConverters.convert(resp.status)
-            )
+        resp <- spotApi.V3.createOrder(params).map { resp =>
+          OrderPlacementInfo(
+            orderId = resp.orderId.toString,
+            status = BinanceConverters.convert(resp.status)
+          )
         } // <* List(stop, take).traverse(spotApi.V3.createOrder)
       } yield resp
     }
