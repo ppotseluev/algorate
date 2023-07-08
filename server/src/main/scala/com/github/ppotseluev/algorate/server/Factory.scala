@@ -71,7 +71,12 @@ class Factory[F[_]: Async: Parallel] {
   lazy val binanceApi: Resource[F, SpotApi[F]] = BinanceClient.createSpotClient(binanceConfig)
 
   lazy val binanceClient = BinanceApiClientFactory
-    .newInstance(binanceConfig.apiKey, binanceConfig.apiSecret, true, true)
+    .newInstance(
+      binanceConfig.apiKey,
+      binanceConfig.apiSecret,
+      binanceConfig.testnet,
+      binanceConfig.testnet
+    )
     .newAsyncRestClient()
 
   lazy val binanceBroker: Resource[F, BinanceBroker[F]] = binanceApi.map {
