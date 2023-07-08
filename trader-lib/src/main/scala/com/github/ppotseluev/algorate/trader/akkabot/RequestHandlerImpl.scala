@@ -13,6 +13,7 @@ import com.github.ppotseluev.algorate.trader.Request
 import com.github.ppotseluev.algorate.trader.RequestHandler
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.{
+  WaitingCancelOrdersTicker,
   WaitingExitTicker,
   WaitingFeatureAction,
   WaitingFeatureName,
@@ -76,6 +77,7 @@ class RequestHandlerImpl[F[_]: Sync](
 
       request match {
         case Request.GetBalance    => broker.getBalance.map(_.toString).flatMap(replyT(_))
+        case Request.CancelOrders  => requestTicker(WaitingCancelOrdersTicker)
         case Request.GetOpenOrders => requestTicker(WaitingOrdersTicker(onlyOpen = true))
         case Request.GetAllOrders  => requestTicker(WaitingOrdersTicker(onlyOpen = false))
         case Request.ShowState     => requestTicker(WaitingShowTicker)
@@ -91,6 +93,8 @@ class RequestHandlerImpl[F[_]: Sync](
           state.get
             .flatMap {
               case State.Empty => unexpectedInputReply
+              case WaitingCancelOrdersTicker =>
+                broker.cancelAllOrders(ticker) >> replyT("Done") --> State.Empty
               case WaitingTradingTicker(operation) =>
                 replyT("Enter stop-loss") --> WaitingStopLoss(operation, ticker)
               case WaitingStopLoss(op, ticker) =>
@@ -119,7 +123,7 @@ class RequestHandlerImpl[F[_]: Sync](
                     if (orders.isEmpty) "No orders"
                     else orders.mkString("\n\n").replaceAll(",", "\n")
                   }
-                  .flatMap(replyT(_))
+                  .flatMap(replyT(_)) --> State.Empty
               case WaitingFeatureName =>
                 val name = input
                 featureToggles.find(name) match {
@@ -175,6 +179,7 @@ object RequestHandlerImpl {
     case class WaitingTradingTicker(operation: OperationType) extends State
     case object WaitingExitTicker extends State
     case object WaitingShowTicker extends State
+    case object WaitingCancelOrdersTicker extends State
     case class WaitingOrdersTicker(onlyOpen: Boolean) extends State
     case object WaitingFeatureName extends State
     case class WaitingFeatureAction(featureName: String) extends State

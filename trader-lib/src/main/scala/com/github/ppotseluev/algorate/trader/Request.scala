@@ -17,6 +17,7 @@ object Request {
   case object GetOpenOrders extends Request("open_orders".some)
   case object GetAllOrders extends Request("all_orders".some)
   case object Features extends Request("features".some)
+  case object CancelOrders extends Request("cancel_orders".some)
   def values: List[Request] = List( //TODO enum
     ShowState,
     Sell,
@@ -26,7 +27,8 @@ object Request {
     GetBalance,
     Features,
     GetOpenOrders,
-    GetAllOrders
+    GetAllOrders,
+    CancelOrders
   )
 
   case class GeneralInput(input: String) extends Request(none)

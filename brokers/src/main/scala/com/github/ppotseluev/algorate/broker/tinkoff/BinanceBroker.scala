@@ -13,7 +13,7 @@ import com.binance.api.client.domain.account.{Order => BinanceOrder}
 import com.binance.api.client.{BinanceApiAsyncRestClient, BinanceApiCallback, BinanceApiRestClient}
 import io.github.paoloboni.binance.common.Interval
 import io.github.paoloboni.binance.spot.parameters.v3.KLines
-import io.github.paoloboni.binance.spot.parameters.{SpotOrderCreateParams, SpotOrderQueryParams}
+import io.github.paoloboni.binance.spot.parameters.{SpotOrderCancelAllParams, SpotOrderCreateParams, SpotOrderQueryParams}
 import io.github.paoloboni.binance.spot.response.{ExchangeInformation, SpotAccountInfoResponse}
 
 import scala.jdk.CollectionConverters._
@@ -33,6 +33,9 @@ class BinanceBroker[F[_]: Concurrent: Async](
 
   def getExchangeInfo: ExchangeInformation =
     spotApi.exchangeInfo
+
+  def cancelAllOrders(ticker: Ticker): F[Unit] =
+    spotApi.V3.cancelAllOrders(SpotOrderCancelAllParams(ticker))
 
   private def queryOrders(f: BinanceApiCallback[JList[BinanceOrder]] => Unit) = Async[F]
     .fromFuture {
