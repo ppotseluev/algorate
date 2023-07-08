@@ -5,13 +5,14 @@ import org.ta4j.core.num.Num
 import cats.implicits._
 import FullStrategy.{IndicatorInfo, TradeIdea}
 import com.github.ppotseluev.algorate.{ExitBounds, OperationType, Order}
+import org.ta4j.core.indicators.AbstractIndicator
 
 class FullStrategy(
     longStrategy: Strategy,
     shortStrategy: Strategy,
     getPriceIndicators: () => Map[String, IndicatorInfo],
     val oscillators: Map[String, IndicatorInfo],
-    stopIndicator: Indicator[(Num, Num)]
+    val stopIndicator: AbstractIndicator[(Num, Num)]
 ) {
   lazy val priceIndicators: Map[String, IndicatorInfo] = getPriceIndicators()
 

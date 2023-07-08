@@ -1,5 +1,7 @@
 package com.github.ppotseluev.algorate.charts
 
+import cats.implicits._
+import com.github.ppotseluev.algorate.strategy.indicator._
 import com.github.ppotseluev.algorate.AssetData
 import com.github.ppotseluev.algorate.Ta4jUtils.BarSeriesOps
 import com.github.ppotseluev.algorate.TradingStats
@@ -7,6 +9,7 @@ import com.github.ppotseluev.algorate.strategy.FullStrategy.IndicatorInfo
 import com.github.ppotseluev.algorate.strategy.FullStrategy.Representation
 import com.github.ppotseluev.algorate.strategy.FullStrategy.Representation.Line
 import com.github.ppotseluev.algorate.strategy.StrategyBuilder
+
 import java.awt.BasicStroke
 import java.awt.Color
 import java.awt.Container
@@ -26,7 +29,7 @@ import org.ta4j.core.BarSeries
 import org.ta4j.core.Indicator
 import org.ta4j.core.Position
 import org.ta4j.core.Trade.TradeType
-import org.ta4j.core.num.Num
+import org.ta4j.core.num.{NaN, Num}
 
 object TradingCharts {
 
@@ -221,6 +224,7 @@ object TradingCharts {
         !profitable && !position.hasProfit
       }
     tradingStats.foreach { stats =>
+      val allPositions = stats.long.allPositions ++ stats.short.allPositions
       TradingCharts.addBuySellSignals(
         series,
         stats.long.allPositions.filter(displayPosition),
@@ -232,6 +236,27 @@ object TradingCharts {
         stats.short.allPositions.filter(displayPosition),
         pricePlot,
         indicatorPlot
+      )
+      def stopIndicator(select: ((Num, Num)) => Num) = {
+        val indicator = strategy.stopIndicator.map(select)
+        indicator.zipWithIndex.map { case (i, _) =>
+          allPositions
+            .collectFirst {
+              case p
+                  if p.getEntry.getIndex <= i && Option(p.getExit).map(_.getIndex).forall(_ >= i) =>
+                indicator.getValue(p.getEntry.getIndex)
+            }
+            .getOrElse(NaN.NaN)
+        }
+      }
+
+      addIndicators(
+        series,
+        mainDataset,
+        Map(
+          "highStop" -> IndicatorInfo(stopIndicator(_.toList.max)),
+          "lowStop" -> IndicatorInfo(stopIndicator(_.toList.min))
+        )
       )
     }
     new JFreeChart(title, null, combinedPlot, true)
