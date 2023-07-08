@@ -4,9 +4,7 @@ case class ExitBounds(
     takeProfit: Price,
     stopLoss: Price
 ) {
-  def shouldExit(price: Price): Boolean = {
-    val min = takeProfit.min(stopLoss)
-    val max = takeProfit.max(stopLoss)
-    price <= min || price >= max
-  }
+  def max: Price = takeProfit.max(stopLoss)
+  def min: Price = takeProfit.min(stopLoss)
+  def shouldExit(price: Price): Boolean = price <= min || price >= max
 }

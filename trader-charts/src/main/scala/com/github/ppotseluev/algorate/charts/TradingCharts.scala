@@ -2,13 +2,12 @@ package com.github.ppotseluev.algorate.charts
 
 import cats.implicits._
 import com.github.ppotseluev.algorate.strategy.indicator._
-import com.github.ppotseluev.algorate.AssetData
+import com.github.ppotseluev.algorate.{AssetData, ExitBounds, Price, TradingStats}
 import com.github.ppotseluev.algorate.Ta4jUtils.BarSeriesOps
-import com.github.ppotseluev.algorate.TradingStats
 import com.github.ppotseluev.algorate.strategy.FullStrategy.IndicatorInfo
 import com.github.ppotseluev.algorate.strategy.FullStrategy.Representation
 import com.github.ppotseluev.algorate.strategy.FullStrategy.Representation.Line
-import com.github.ppotseluev.algorate.strategy.StrategyBuilder
+import com.github.ppotseluev.algorate.strategy.{StrategyBuilder, ind}
 
 import java.awt.BasicStroke
 import java.awt.Color
@@ -160,7 +159,7 @@ object TradingCharts {
       title: String,
       profitableTrades: Option[Boolean]
   ): JFreeChart = {
-    val series = assetData.barSeries
+    implicit val series = assetData.barSeries
 
     def addIndicators(
         series: BarSeries,
@@ -237,25 +236,26 @@ object TradingCharts {
         pricePlot,
         indicatorPlot
       )
-      def stopIndicator(select: ((Num, Num)) => Num) = {
-        val indicator = strategy.stopIndicator.map(select)
-        indicator.zipWithIndex.map { case (i, _) =>
-          allPositions
-            .collectFirst {
-              case p
-                  if p.getEntry.getIndex <= i && Option(p.getExit).map(_.getIndex).forall(_ >= i) =>
-                indicator.getValue(p.getEntry.getIndex)
-            }
-            .getOrElse(NaN.NaN)
-        }
+      def stopIndicator(select: ExitBounds => Price) = ind { i =>
+        allPositions
+          .collectFirst {
+            case p
+                if p.getEntry.getIndex - 10 <= i && Option(p.getExit)
+                  .map(_.getIndex)
+                  .forall(_ >= i) =>
+              stats.stopsInfo.get(p.getEntry.getIndex).map(select)
+          }
+          .flatten
+          .map(series.numOf)
+          .getOrElse(NaN.NaN)
       }
 
       addIndicators(
         series,
         mainDataset,
         Map(
-          "highStop" -> IndicatorInfo(stopIndicator(_.toList.max)),
-          "lowStop" -> IndicatorInfo(stopIndicator(_.toList.min))
+          "highStop" -> IndicatorInfo(stopIndicator(_.max)),
+          "lowStop" -> IndicatorInfo(stopIndicator(_.min))
         )
       )
     }

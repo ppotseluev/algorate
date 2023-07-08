@@ -4,13 +4,17 @@ import cats.Monoid
 import cats.Show
 import cats.derived.semiauto
 import cats.implicits._
+import cats.kernel.Semigroup
+
 import java.time.YearMonth
 import org.apache.commons.math3.stat.descriptive.rank.Percentile
+
 import scala.collection.immutable.SeqMap
 
 case class TradingStats(
     long: Stats,
-    short: Stats
+    short: Stats,
+    stopsInfo: Map[Int, ExitBounds] = Map.empty
 ) {
   lazy val noFeeProfit = profit(fee = false, profitable = true.some)
   lazy val noFeeLoss = profit(fee = false, profitable = false.some)
@@ -74,6 +78,7 @@ case class TradingStats(
 }
 
 object TradingStats {
+  implicit val exitBoundsSemigroup: Semigroup[ExitBounds] = Semigroup.first
   implicit val monoid: Monoid[TradingStats] = semiauto.monoid
   implicit val show: Show[TradingStats] = Show.show { s =>
     import s._

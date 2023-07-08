@@ -1,5 +1,6 @@
 package com.github.ppotseluev.algorate.trader.akkabot
 
+import scala.collection.mutable
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import cats.implicits._
@@ -182,6 +183,8 @@ object Trader extends LoggingSupport {
       val longHistory = new BaseTradingRecord(TradeType.BUY, feeModel, zeroCost)
       val shortHistory = new BaseTradingRecord(TradeType.SELL, feeModel, zeroCost)
 
+      val positionsStops = new mutable.HashMap[Int, ExitBounds]()
+
       def historyRecord(operationType: OperationType) = operationType match {
         case OperationType.Buy  => longHistory
         case OperationType.Sell => shortHistory
@@ -215,8 +218,12 @@ object Trader extends LoggingSupport {
             placeOrder(
               order,
               onSuccess = () => {
-                historyRecord(trade.operationType)
-                  .enter(lastIndex, lastPrice, barSeries.numOf(order.lots))
+                historyRecord(trade.operationType).enter(
+                  lastIndex,
+                  lastPrice,
+                  barSeries.numOf(order.lots)
+                )
+                positionsStops(lastIndex) = trade.exitBounds
               },
               onFailure = () => {
                 state = prevState
@@ -360,7 +367,8 @@ object Trader extends LoggingSupport {
       def buildSnapshot(event: Event) = {
         val tradingStats = TradingStats(
           long = Stats.fromRecord(longHistory, barSeries, asset, includeCurrent = true),
-          short = Stats.fromRecord(shortHistory, barSeries, asset, includeCurrent = true)
+          short = Stats.fromRecord(shortHistory, barSeries, asset, includeCurrent = true),
+          stopsInfo = positionsStops.toMap
         )
         StateSnapshot(
           asset = asset,
@@ -392,13 +400,13 @@ object Trader extends LoggingSupport {
             logger.debug(s"Received tick $bar")
             handleBar(bar)
           case Trader.Event.OrderPlaced(info, callback) =>
-            ordersWatcher ! OrdersWatcher.Request.RegisterOrder(info, ctx.self)
             callback()
+            ordersWatcher ! OrdersWatcher.Request.RegisterOrder(info, ctx.self)
           case event: Trader.Event.OrderUpdated =>
             handleOrderInfo(event)
           case Trader.Event.FailedToPlaceOrder(order, t, callback) =>
-            logger.error(s"Failed to place order $order", t)
             callback()
+            logger.error(s"Failed to place order $order", t)
           case Trader.Event.StateSnapshotRequested =>
             sinkSnapshot(event)
           case Trader.Event.TradeRequested(trade) =>
