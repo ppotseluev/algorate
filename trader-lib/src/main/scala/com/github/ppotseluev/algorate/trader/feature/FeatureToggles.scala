@@ -1,7 +1,5 @@
 package com.github.ppotseluev.algorate.trader.feature
 
-import cats.effect.Sync
-
 import scala.collection.mutable
 
 trait FeatureToggles {
@@ -24,24 +22,25 @@ object FeatureToggles {
       features.values.toList
     }
 
-    override def register[T: Feature.Parse](featureName: String, value: T): Feature[T] = lock.synchronized {
-      features.get(featureName) match {
-        case Some(feature) => feature.asInstanceOf[Feature[T]]
-        case None =>
-          val feature = new Feature[T] {
-            override def name: String = featureName
+    override def register[T: Feature.Parse](featureName: String, value: T): Feature[T] =
+      lock.synchronized {
+        features.get(featureName) match {
+          case Some(feature) => feature.asInstanceOf[Feature[T]]
+          case None =>
+            val feature = new Feature[T] {
+              override def name: String = featureName
 
-            override def apply(): T = featureValues(name).asInstanceOf[T]
+              override def apply(): T = featureValues(name).asInstanceOf[T]
 
-            override def set(value: T): Unit = {
-              featureValues(name) = value
+              override def set(value: T): Unit = {
+                featureValues(name) = value
+              }
             }
-          }
-          featureValues.put(featureName, value)
-          features.put(featureName, feature)
-          feature
+            featureValues.put(featureName, value)
+            features.put(featureName, feature)
+            feature
+        }
       }
-    }
   }
 
 }

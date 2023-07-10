@@ -16,7 +16,6 @@ import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.Day
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
-import com.github.ppotseluev.algorate.broker.LoggingBroker
 import com.github.ppotseluev.algorate.broker.MoneyTracker
 import com.github.ppotseluev.algorate.broker.RedisCachedBroker
 import com.github.ppotseluev.algorate.broker.TestBroker

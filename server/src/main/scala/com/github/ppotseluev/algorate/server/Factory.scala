@@ -3,21 +3,20 @@ package com.github.ppotseluev.algorate.server
 import akka.actor.typed.ActorSystem
 import boopickle.Default.iterablePickler
 import cats.Parallel
-import cats.effect.{IO, Ref, Resource, Sync}
+import cats.effect.IO
+import cats.effect.Ref
+import cats.effect.Resource
 import cats.effect.kernel.Async
 import cats.effect.std.Console
 import cats.implicits._
-import com.binance.api.client.{
-  BinanceApiAsyncRestClient,
-  BinanceApiClientFactory,
-  BinanceApiRestClient
-}
-import com.binance.api.client.impl.{BinanceApiAsyncRestClientImpl, BinanceApiRestClientImpl}
+import com.binance.api.client.BinanceApiClientFactory
 import com.github.ppotseluev.algorate.Bar
 import com.github.ppotseluev.algorate.InstrumentId
 import com.github.ppotseluev.algorate.Ticker
-import com.github.ppotseluev.algorate.broker.{Archive, Broker, LoggingBroker}
-import com.github.ppotseluev.algorate.broker.tinkoff.{BinanceBroker, TinkoffApi, TinkoffBroker}
+import com.github.ppotseluev.algorate.broker.Archive
+import com.github.ppotseluev.algorate.broker.tinkoff.BinanceBroker
+import com.github.ppotseluev.algorate.broker.tinkoff.TinkoffApi
+import com.github.ppotseluev.algorate.broker.tinkoff.TinkoffBroker
 import com.github.ppotseluev.algorate.redis.RedisCodecs
 import com.github.ppotseluev.algorate.redis.codec._
 import com.github.ppotseluev.algorate.server.Codecs._
@@ -36,9 +35,7 @@ import dev.profunktor.redis4cats.Redis
 import dev.profunktor.redis4cats.connection.RedisClient
 import dev.profunktor.redis4cats.effect.Log.Stdout.instance
 import io.github.paoloboni.binance.BinanceClient
-import io.github.paoloboni.binance.common.SpotConfig
 import io.github.paoloboni.binance.spot.SpotApi
-
 import java.io.File
 import java.time.ZoneOffset
 import pureconfig.ConfigSource

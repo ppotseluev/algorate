@@ -3,15 +3,12 @@ package com.github.ppotseluev.algorate.trader.akkabot
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import cats.implicits._
-import com.github.ppotseluev.algorate.{
-  BarInfo,
-  EnrichedPosition,
-  InstrumentId,
-  OperationType,
-  Stats,
-  TradingAsset,
-  TradingStats
-}
+import com.github.ppotseluev.algorate.BarInfo
+import com.github.ppotseluev.algorate.EnrichedPosition
+import com.github.ppotseluev.algorate.InstrumentId
+import com.github.ppotseluev.algorate.Stats
+import com.github.ppotseluev.algorate.TradingAsset
+import com.github.ppotseluev.algorate.TradingStats
 import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.broker.MoneyTracker
 import com.github.ppotseluev.algorate.strategy.FullStrategy.TradeIdea
@@ -21,7 +18,6 @@ import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.Trader
 import com.github.ppotseluev.algorate.trader.feature.FeatureToggles
 import com.github.ppotseluev.algorate.trader.policy.Policy
 import com.typesafe.scalalogging.LazyLogging
-
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration._

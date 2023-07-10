@@ -1,7 +1,5 @@
 package com.github.ppotseluev.algorate
 
-import com.github.ppotseluev.algorate.ClosePositionOrder.Type
-import com.github.ppotseluev.algorate.Order.Info
 import enumeratum._
 //
 //case class ClosePositionOrder(

@@ -9,21 +9,17 @@ import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
-import com.github.ppotseluev.algorate.broker.tinkoff.{BinanceConverters, TinkoffConverters}
+import com.github.ppotseluev.algorate.broker.tinkoff.BinanceConverters
+import com.github.ppotseluev.algorate.broker.tinkoff.TinkoffConverters
 import com.github.ppotseluev.algorate.trader.HistoryStream
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager
 import com.typesafe.scalalogging.LazyLogging
-import io.github.paoloboni.binance.common.Interval
 import io.github.paoloboni.binance.spot.SpotApi
-
 import java.time.LocalDate
 import java.util.function.Consumer
 import ru.tinkoff.piapi.contract.v1.MarketDataResponse
-import ru.tinkoff.piapi.contract.v1.SubscriptionInterval
-import ru.tinkoff.piapi.contract.v1.SubscriptionInterval._
 import ru.tinkoff.piapi.core.InvestApi
 import ru.tinkoff.piapi.core.stream.StreamProcessor
-
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 

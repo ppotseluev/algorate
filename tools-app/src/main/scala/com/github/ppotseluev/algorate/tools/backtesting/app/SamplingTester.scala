@@ -26,7 +26,7 @@ object SamplingTester extends IOApp.Simple {
 
   private val strategies: Map[String, StrategyBuilder] = Map(
     "current" -> Strategies.default,
-    "feature" -> Strategies.createDefault(Params(enableFeature = true)),
+    "feature" -> Strategies.createDefault(Params(enableFeature = true))
 //    "intraChannel" -> Strategies.intraChannel
 //    "channelBreakdown" -> Strategies.channelBreakdown,
 //    "random" -> Strategies.random()

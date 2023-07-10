@@ -2,10 +2,10 @@ package com.github.ppotseluev.algorate.broker.tinkoff
 
 import com.github.ppotseluev.algorate.Bar
 import com.github.ppotseluev.algorate.Price
-import com.github.ppotseluev.algorate.broker.Broker.{CandleResolution, OrderExecutionStatus}
+import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
+import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus
 import com.github.ppotseluev.algorate.math.RealNumber
 import com.google.protobuf.Timestamp
-
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -16,7 +16,6 @@ import ru.tinkoff.piapi.contract.v1.OrderExecutionReportStatus._
 import ru.tinkoff.piapi.contract.v1.Quotation
 import ru.tinkoff.piapi.contract.v1.SubscriptionInterval
 import ru.tinkoff.piapi.contract.v1.SubscriptionInterval._
-
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
 

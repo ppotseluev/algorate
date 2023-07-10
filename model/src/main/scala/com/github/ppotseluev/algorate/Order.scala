@@ -1,6 +1,6 @@
 package com.github.ppotseluev.algorate
 
-import com.github.ppotseluev.algorate.Order.{Details}
+import com.github.ppotseluev.algorate.Order.Details
 import enumeratum._
 
 case class Order(

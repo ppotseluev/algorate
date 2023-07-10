@@ -1,7 +1,5 @@
 package com.github.ppotseluev.algorate.tools
 
-import cats.implicits._
-import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.server.Factory
 import com.google.protobuf.Timestamp
 import java.time.Instant

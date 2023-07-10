@@ -1,8 +1,6 @@
 package com.github.ppotseluev.algorate.trader.feature
 
-import cats.ApplicativeError
 import com.github.ppotseluev.algorate.trader.feature.Feature.Parse
-
 import scala.util.Try
 
 abstract class Feature[T: Parse] extends (() => T) {

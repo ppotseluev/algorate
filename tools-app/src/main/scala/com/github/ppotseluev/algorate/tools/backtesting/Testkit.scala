@@ -1,8 +1,7 @@
 package com.github.ppotseluev.algorate.tools.backtesting
 
 import cats.Parallel
-import cats.effect.unsafe.implicits.global
-import cats.effect.{Async, IO}
+import cats.effect.Async
 import cats.implicits._
 import com.github.ppotseluev.algorate.AssetData
 import com.github.ppotseluev.algorate.TradingAsset
@@ -11,7 +10,6 @@ import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.math.PrettyDuration.PrettyPrintableDuration
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.StrategyBuilder
-
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.duration._
 

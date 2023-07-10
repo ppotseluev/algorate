@@ -3,8 +3,10 @@ package com.github.ppotseluev.algorate.trader.cli
 import cats.effect.Sync
 import cats.effect.std.Console
 import cats.implicits._
-import com.github.ppotseluev.algorate.trader.telegram.{BotToken, TelegramClient}
-import com.github.ppotseluev.algorate.trader.{Request, RequestHandler}
+import com.github.ppotseluev.algorate.trader.Request
+import com.github.ppotseluev.algorate.trader.RequestHandler
+import com.github.ppotseluev.algorate.trader.telegram.BotToken
+import com.github.ppotseluev.algorate.trader.telegram.TelegramClient
 
 /**
  * Utils to handle user CLI commands

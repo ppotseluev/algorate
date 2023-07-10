@@ -7,7 +7,8 @@ import com.github.ppotseluev.algorate.trader.telegram.TelegramClient.Message
 import io.circe.Printer
 import io.circe.syntax._
 import sttp.client3._
-import sttp.model.{Header, MediaType}
+import sttp.model.Header
+import sttp.model.MediaType
 
 class HttpTelegramClient[F[_]](telegramUrl: String, sttpBackend: SttpBackend[F, Any])(implicit
     F: MonadError[F, Throwable]

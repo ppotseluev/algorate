@@ -1,14 +1,15 @@
 package com.github.ppotseluev.algorate.charts
 
-import cats.implicits._
-import com.github.ppotseluev.algorate.strategy.indicator._
-import com.github.ppotseluev.algorate.{AssetData, ExitBounds, Price, TradingStats}
+import com.github.ppotseluev.algorate.AssetData
+import com.github.ppotseluev.algorate.ExitBounds
+import com.github.ppotseluev.algorate.Price
 import com.github.ppotseluev.algorate.Ta4jUtils.BarSeriesOps
+import com.github.ppotseluev.algorate.TradingStats
 import com.github.ppotseluev.algorate.strategy.FullStrategy.IndicatorInfo
 import com.github.ppotseluev.algorate.strategy.FullStrategy.Representation
 import com.github.ppotseluev.algorate.strategy.FullStrategy.Representation.Line
-import com.github.ppotseluev.algorate.strategy.{StrategyBuilder, ind}
-
+import com.github.ppotseluev.algorate.strategy.StrategyBuilder
+import com.github.ppotseluev.algorate.strategy.ind
 import java.awt.BasicStroke
 import java.awt.Color
 import java.awt.Container
@@ -28,7 +29,8 @@ import org.ta4j.core.BarSeries
 import org.ta4j.core.Indicator
 import org.ta4j.core.Position
 import org.ta4j.core.Trade.TradeType
-import org.ta4j.core.num.{NaN, Num}
+import org.ta4j.core.num.NaN
+import org.ta4j.core.num.Num
 
 object TradingCharts {
 

@@ -5,8 +5,9 @@ import cats.effect.IOApp
 import cats.effect.Resource
 import cats.implicits._
 import cats.kernel.Monoid
+import com.github.ppotseluev.algorate.TradingAsset
+import com.github.ppotseluev.algorate.TradingStats
 import com.github.ppotseluev.algorate.broker.BarDataProvider
-import com.github.ppotseluev.algorate.{TradingAsset, TradingStats}
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.math.PrettyDuration.PrettyPrintableDuration
@@ -18,7 +19,6 @@ import com.github.ppotseluev.algorate.tools.backtesting.Assets._
 import com.github.ppotseluev.algorate.tools.backtesting.Period
 import com.github.ppotseluev.algorate.tools.backtesting.SectorsResults
 import com.github.ppotseluev.algorate.tools.backtesting.Testkit
-
 import java.io.File
 import java.io.PrintWriter
 import java.nio.file.Files

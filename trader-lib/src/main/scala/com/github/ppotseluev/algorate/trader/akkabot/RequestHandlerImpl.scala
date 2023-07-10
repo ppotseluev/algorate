@@ -1,39 +1,32 @@
 package com.github.ppotseluev.algorate.trader.akkabot
 
-import cats.implicits._
 import akka.actor.typed.ActorSystem
-import cats.effect.kernel.Sync
 import cats.effect.Ref
-import com.github.ppotseluev.algorate._
-import com.github.ppotseluev.algorate.broker.Broker
+import cats.effect.kernel.Sync
+import cats.implicits._
 import com.github.ppotseluev.algorate.ExitBounds
+import com.github.ppotseluev.algorate._
 import com.github.ppotseluev.algorate.broker.tinkoff.BinanceBroker
 import com.github.ppotseluev.algorate.strategy.FullStrategy.TradeIdea
 import com.github.ppotseluev.algorate.trader.Request
 import com.github.ppotseluev.algorate.trader.RequestHandler
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State
-import scala.jdk.CollectionConverters._
-import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.{
-  WaitingCancelOrdersTicker,
-  WaitingExitTicker,
-  WaitingFeatureAction,
-  WaitingFeatureName,
-  WaitingFeatureValue,
-  WaitingOrdersTicker,
-  WaitingShowTicker,
-  WaitingStopLoss,
-  WaitingTakeProfit,
-  WaitingTradingTicker
-}
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingCancelOrdersTicker
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingExitTicker
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingFeatureAction
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingFeatureName
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingFeatureValue
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingOrdersTicker
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingShowTicker
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingStopLoss
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingTakeProfit
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingTradingTicker
 import com.github.ppotseluev.algorate.trader.feature.FeatureToggles
-import com.github.ppotseluev.algorate.trader.telegram.TelegramClient.{
-  KeyboardButton,
-  Message,
-  MessageSource,
-  ReplyMarkup
-}
+import com.github.ppotseluev.algorate.trader.telegram.TelegramClient.KeyboardButton
+import com.github.ppotseluev.algorate.trader.telegram.TelegramClient.MessageSource
+import com.github.ppotseluev.algorate.trader.telegram.TelegramClient.ReplyMarkup
 import com.typesafe.scalalogging.LazyLogging
-
+import scala.jdk.CollectionConverters._
 import scala.util.control.NonFatal
 
 class RequestHandlerImpl[F[_]: Sync](

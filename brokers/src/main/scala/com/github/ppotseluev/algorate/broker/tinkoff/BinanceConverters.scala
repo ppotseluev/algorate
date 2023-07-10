@@ -1,14 +1,19 @@
 package com.github.ppotseluev.algorate.broker.tinkoff
 
 import com.binance.api.client.domain.OrderStatus
-import com.github.ppotseluev.algorate.{Bar, OperationType}
-import com.github.ppotseluev.algorate.broker.Broker.{CandleResolution, OrderExecutionStatus}
-import io.github.paoloboni.binance.common.{Interval, KLine, OrderSide}
+import com.github.ppotseluev.algorate.Bar
+import com.github.ppotseluev.algorate.OperationType
+import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
+import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus
+import io.github.paoloboni.binance.common.Interval
+import io.github.paoloboni.binance.common.KLine
+import io.github.paoloboni.binance.common.OrderSide
 import io.github.paoloboni.binance.common.response.KLineStream
 import io.github.paoloboni.binance.spot.SpotOrderStatus
 import io.github.paoloboni.binance.spot.SpotOrderStatus._
-
-import java.time.{Instant, OffsetDateTime, ZoneOffset}
+import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import scala.concurrent.duration.FiniteDuration
 
 object BinanceConverters {

@@ -1,45 +1,45 @@
 package com.github.ppotseluev.algorate.broker.tinkoff
 
-import cats.{Functor, Parallel}
-import cats.effect.{Async, Sync}
+import cats.Parallel
+import cats.effect.Async
+import cats.effect.Sync
 import cats.effect.kernel.Concurrent
-import com.github.ppotseluev.algorate.{Bar, OperationType, Order, OrderId, Ticker, TradingAsset}
-import com.github.ppotseluev.algorate.broker.{
-  Archive,
-  ArchiveCachedBroker,
-  Broker,
-  RedisCachedBroker
-}
-import com.github.ppotseluev.algorate.broker.Broker.{CandlesInterval, OrderPlacementInfo}
-import io.github.paoloboni.binance.spot.{SpotApi, SpotTimeInForce}
 import cats.implicits._
-import com.binance.api.client.domain.account.request.{AllOrdersRequest, OrderRequest}
-import com.binance.api.client.domain.account.{MarginAccount, MarginNewOrder, Order => BinanceOrder}
-import com.binance.api.client.{
-  BinanceApiAsyncMarginRestClient,
-  BinanceApiAsyncRestClient,
-  BinanceApiCallback,
-  BinanceApiRestClient
-}
+import com.binance.api.client.BinanceApiAsyncMarginRestClient
+import com.binance.api.client.BinanceApiAsyncRestClient
+import com.binance.api.client.BinanceApiCallback
+import com.binance.api.client.domain.account.MarginAccount
+import com.binance.api.client.domain.account.MarginNewOrder
+import com.binance.api.client.domain.account.request.AllOrdersRequest
+import com.binance.api.client.domain.account.request.OrderRequest
+import com.binance.api.client.domain.account.{Order => BinanceOrder}
+import com.github.ppotseluev.algorate.Bar
+import com.github.ppotseluev.algorate.OperationType
+import com.github.ppotseluev.algorate.Order
+import com.github.ppotseluev.algorate.OrderId
+import com.github.ppotseluev.algorate.Ticker
+import com.github.ppotseluev.algorate.TradingAsset
+import com.github.ppotseluev.algorate.broker.Archive
+import com.github.ppotseluev.algorate.broker.ArchiveCachedBroker
+import com.github.ppotseluev.algorate.broker.Broker
+import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
+import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
+import com.github.ppotseluev.algorate.broker.RedisCachedBroker
 import com.typesafe.scalalogging.LazyLogging
 import dev.profunktor.redis4cats.RedisCommands
-import io.github.paoloboni.binance.common.Interval
+import io.github.paoloboni.binance.spot.SpotApi
+import io.github.paoloboni.binance.spot.parameters.SpotOrderCancelAllParams
+import io.github.paoloboni.binance.spot.parameters.SpotOrderCreateParams
+import io.github.paoloboni.binance.spot.parameters.SpotOrderQueryParams
 import io.github.paoloboni.binance.spot.parameters.v3.KLines
-import io.github.paoloboni.binance.spot.parameters.{
-  SpotOrderCancelAllParams,
-  SpotOrderCreateParams,
-  SpotOrderQueryParams
-}
-import io.github.paoloboni.binance.spot.response.{ExchangeInformation, SpotAccountInfoResponse}
-
-import scala.jdk.CollectionConverters._
-import java.math.MathContext
+import io.github.paoloboni.binance.spot.response.ExchangeInformation
+import io.github.paoloboni.binance.spot.response.SpotAccountInfoResponse
 import java.nio.file.Path
-import java.util.{List => JList}
 import scala.concurrent.Promise
-import scala.concurrent.Promise
+import scala.jdk.CollectionConverters._
 import scala.math.BigDecimal.RoundingMode
-import scala.util.{Failure, Success}
+import scala.util.Failure
+import scala.util.Success
 
 class BinanceBroker[F[_]: Concurrent: Async](
     spotApi: SpotApi[F],

@@ -1,10 +1,13 @@
 package com.github.ppotseluev.algorate.strategy
 
-import org.ta4j.core.{BarSeries, Indicator, Strategy}
-import org.ta4j.core.num.Num
 import cats.implicits._
+import com.github.ppotseluev.algorate.ExitBounds
+import com.github.ppotseluev.algorate.OperationType
+import org.ta4j.core.Indicator
+import org.ta4j.core.Strategy
+import org.ta4j.core.num.Num
+
 import FullStrategy.{IndicatorInfo, TradeIdea}
-import com.github.ppotseluev.algorate.{ExitBounds, OperationType, Order}
 
 class FullStrategy(
     longStrategy: Strategy,

@@ -3,7 +3,6 @@ package com.github.ppotseluev.algorate.trader.telegram
 import cats.Monad
 import cats.effect.kernel.Async
 import cats.implicits._
-import com.github.ppotseluev.algorate.Ticker
 import com.github.ppotseluev.algorate.trader.Request
 import com.github.ppotseluev.algorate.trader.RequestHandler
 import com.typesafe.scalalogging.LazyLogging
@@ -14,8 +13,6 @@ import io.circe.generic.semiauto.deriveCodec
 import sttp.tapir._
 import sttp.tapir.generic.auto._
 import sttp.tapir.json.circe.jsonBody
-
-import java.time.format.SignStyle
 
 object TelegramWebhook extends LazyLogging {
   implicit private val circeConfig: Configuration = Configuration.default.withSnakeCaseMemberNames

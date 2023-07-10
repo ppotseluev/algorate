@@ -13,7 +13,10 @@ import com.github.ppotseluev.algorate.strategy.indicator.LocalExtremumIndicator
 import com.github.ppotseluev.algorate.strategy.indicator.LocalExtremumIndicator.Extremum
 import com.github.ppotseluev.algorate.strategy.indicator.VisualChannelIndicator
 import com.github.ppotseluev.algorate.strategy.indicator._
-import org.ta4j.core.{BarSeries, BaseStrategy, Indicator, Strategy, TradingRecord}
+import org.ta4j.core.BarSeries
+import org.ta4j.core.BaseStrategy
+import org.ta4j.core.Strategy
+import org.ta4j.core.TradingRecord
 import org.ta4j.core.indicators.AbstractIndicator
 import org.ta4j.core.indicators.EMAIndicator
 import org.ta4j.core.indicators.MACDIndicator
