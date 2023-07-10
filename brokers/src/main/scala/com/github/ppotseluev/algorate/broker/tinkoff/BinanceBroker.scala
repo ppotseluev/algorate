@@ -121,6 +121,7 @@ class BinanceBroker[F[_]: Concurrent: Async](
         quantity <- quantityF
         _ <- borrow.unlessA(order.isClosing)
         marginOrder = makeOrder(order.instrumentId, quantity._1.toString)
+        //TODO 'repay full' like in app instead order & repay?
         resp <- invoke(marginClient.newOrder(marginOrder, _)).map { resp =>
           OrderPlacementInfo(
             orderId = resp.getOrderId.toString,
