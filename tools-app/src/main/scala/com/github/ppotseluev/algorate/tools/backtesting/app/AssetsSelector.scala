@@ -37,20 +37,11 @@ object AssetsSelector extends IOApp.Simple {
     Resource.pure[IO, BarDataProvider[IO]](Factory.io.archive)
 
   private implicit val sampler: Sampler = Sampler.All
-  private val mode: Mode = Mode.Periods(
-    Period(
-      2022,
-      Some(
-        MonthDay.of(1, 1),
-        MonthDay.of(12, 30)
-      )
-    )
-//    Period.firstHalf(2021),
-//    Period.secondHalf(2021),
-//    Period.firstHalf(2022),
-//    Period.secondHalf(2022),
-//    Period.firstHalf(2023)
-  )
+//    .KFold(
+//      k = 4,
+//      select = 0.some
+//    )
+  private val mode: Mode = Mode.Periods(Period(2022))
 
   private val assets = allCryptocurrencies.sample
   private val selectionStrategy: SelectionStrategy = SelectAll

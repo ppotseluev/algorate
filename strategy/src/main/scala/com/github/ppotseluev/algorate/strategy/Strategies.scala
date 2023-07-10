@@ -108,17 +108,19 @@ object Strategies {
     val tradesFastSma: AbstractIndicator[Num] = //tradesCountIndicator
       new SMAIndicator(tradesCountIndicator, 2)
     val tradesSlowSma: AbstractIndicator[Num] = new SMAIndicator(tradesCountIndicator, 200)
-    val tradesUpper = tradesSlowSma.map(_.multipliedBy(num(1.25)))
-    val tradesLower = tradesSlowSma.map(_.multipliedBy(num(0.75)))
 
     val normalTrades = for {
       tradesCount <- tradesFastSma
-      upper <- tradesUpper
-      lower <- tradesLower
+      upper <- tradesSlowSma.map(_.multipliedBy(num(1.2)))
+      highUpper <- tradesSlowSma.map(_.multipliedBy(num(5)))
+      normal <- tradesSlowSma
     } yield {
-      tradesCount.isGreaterThanOrEqual(lower) &&
-      tradesCount.isLessThanOrEqual(upper) &&
-      tradesCount.isGreaterThanOrEqual(num(50)) //TODO
+//      true
+      tradesCount.isGreaterThanOrEqual(num(10)) &&
+      tradesCount.isGreaterThanOrEqual(upper) &&
+      tradesCount.isLessThanOrEqual(highUpper)
+//      tradesCount.isLessThanOrEqual(upper) //&&
+//      tradesCount.isGreaterThanOrEqual(num(10)) //TODO
     }
 
     // Define MACD parameters
