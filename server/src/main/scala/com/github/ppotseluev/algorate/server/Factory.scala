@@ -71,22 +71,31 @@ class Factory[F[_]: Async: Parallel] {
   lazy val binanceApi: Resource[F, SpotApi[F]] = BinanceClient.createSpotClient(binanceConfig)
 
   lazy val binanceClientFactory = BinanceApiClientFactory
-      .newInstance(
-        binanceConfig.apiKey,
-        binanceConfig.apiSecret,
-        binanceConfig.testnet,
-        binanceConfig.testnet
-      )
+    .newInstance(
+      binanceConfig.apiKey,
+      binanceConfig.apiSecret,
+      binanceConfig.testnet,
+      binanceConfig.testnet
+    )
 
   lazy val binanceSpotClient = binanceClientFactory.newAsyncRestClient()
 
   lazy val binanceMarginClient = binanceClientFactory.newAsyncMarginRestClient()
 
-  lazy val binanceBroker: Resource[F, BinanceBroker[F]] = binanceApi.map {
-    new BinanceBroker(_, binanceSpotClient, binanceMarginClient) with LoggingBroker[F] {
-      override def F: Sync[F] = implicitly
-    }
-  }
+  lazy val binanceBroker: Resource[F, BinanceBroker[F]] =
+    for {
+      api <- binanceApi
+      redis <- redisClient
+      barsCache <- Redis[F].fromClient(
+        redis,
+        RedisCodecs.byteBuffer.stringKeys.boopickleValues[List[Bar]]
+      )
+    } yield BinanceBroker.cached( //TODO check cacheEnable param from config
+      api,
+      binanceSpotClient,
+      binanceMarginClient,
+      Right(barsCache)
+    )
 
   val redisClient: Resource[F, RedisClient] = RedisClient[F].from("redis://localhost")
 

@@ -5,6 +5,7 @@ import cats.effect.IOApp
 import cats.effect.Resource
 import cats.implicits._
 import cats.kernel.Monoid
+import com.github.ppotseluev.algorate.broker.BarDataProvider
 import com.github.ppotseluev.algorate.{TradingAsset, TradingStats}
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
@@ -31,13 +32,17 @@ object AssetsSelector extends IOApp.Simple {
     Params()
   )
 
+  private val dataProvider =
+//    Factory.io.binanceBroker
+    Resource.pure[IO, BarDataProvider[IO]](Factory.io.archive)
+
   private implicit val sampler: Sampler = Sampler.All
   private val mode: Mode = Mode.Periods(
     Period(
-      2023,
+      2022,
       Some(
-        MonthDay.of(2, 20),
-        MonthDay.of(2, 28)
+        MonthDay.of(1, 1),
+        MonthDay.of(12, 30)
       )
     )
 //    Period.firstHalf(2021),
@@ -47,7 +52,7 @@ object AssetsSelector extends IOApp.Simple {
 //    Period.firstHalf(2023)
   )
 
-  private val assets = selectedShares.sample
+  private val assets = allCryptocurrencies.sample
   private val selectionStrategy: SelectionStrategy = SelectAll
   private val candlesResolution = CandleResolution.FiveMinute
 
@@ -237,7 +242,7 @@ object AssetsSelector extends IOApp.Simple {
 
   override def run: IO[Unit] = {
     val start = System.currentTimeMillis()
-    Factory.io.tinkoffBroker
+    dataProvider
       .map(_.some)
       .map(new Testkit(_, skipNotFound = true))
       .use { implicit tk =>

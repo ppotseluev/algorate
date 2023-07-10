@@ -1,24 +1,40 @@
 package com.github.ppotseluev.algorate.broker.tinkoff
 
-import cats.Functor
+import cats.{Functor, Parallel}
 import cats.effect.{Async, Sync}
 import cats.effect.kernel.Concurrent
 import com.github.ppotseluev.algorate.{Bar, OperationType, Order, OrderId, Ticker, TradingAsset}
-import com.github.ppotseluev.algorate.broker.Broker
+import com.github.ppotseluev.algorate.broker.{
+  Archive,
+  ArchiveCachedBroker,
+  Broker,
+  RedisCachedBroker
+}
 import com.github.ppotseluev.algorate.broker.Broker.{CandlesInterval, OrderPlacementInfo}
 import io.github.paoloboni.binance.spot.{SpotApi, SpotTimeInForce}
 import cats.implicits._
 import com.binance.api.client.domain.account.request.{AllOrdersRequest, OrderRequest}
 import com.binance.api.client.domain.account.{MarginAccount, MarginNewOrder, Order => BinanceOrder}
-import com.binance.api.client.{BinanceApiAsyncMarginRestClient, BinanceApiAsyncRestClient, BinanceApiCallback, BinanceApiRestClient}
+import com.binance.api.client.{
+  BinanceApiAsyncMarginRestClient,
+  BinanceApiAsyncRestClient,
+  BinanceApiCallback,
+  BinanceApiRestClient
+}
 import com.typesafe.scalalogging.LazyLogging
+import dev.profunktor.redis4cats.RedisCommands
 import io.github.paoloboni.binance.common.Interval
 import io.github.paoloboni.binance.spot.parameters.v3.KLines
-import io.github.paoloboni.binance.spot.parameters.{SpotOrderCancelAllParams, SpotOrderCreateParams, SpotOrderQueryParams}
+import io.github.paoloboni.binance.spot.parameters.{
+  SpotOrderCancelAllParams,
+  SpotOrderCreateParams,
+  SpotOrderQueryParams
+}
 import io.github.paoloboni.binance.spot.response.{ExchangeInformation, SpotAccountInfoResponse}
 
 import scala.jdk.CollectionConverters._
 import java.math.MathContext
+import java.nio.file.Path
 import java.util.{List => JList}
 import scala.concurrent.Promise
 import scala.concurrent.Promise
@@ -30,7 +46,8 @@ class BinanceBroker[F[_]: Concurrent: Async](
     spotClient: BinanceApiAsyncRestClient,
     marginClient: BinanceApiAsyncMarginRestClient,
     fee: BigDecimal = 0.001 //0.1%
-) extends Broker[F] with LazyLogging {
+) extends Broker[F]
+    with LazyLogging {
   def getBalance(nonZero: Boolean): F[SpotAccountInfoResponse] = {
     spotApi.V3.getBalance().map { resp =>
       val balances =
@@ -116,7 +133,9 @@ class BinanceBroker[F[_]: Concurrent: Async](
         case OperationType.Sell => MarginNewOrder.marketSell _
       }
       val borrow = invoke(marginClient.borrow(order.asset.symbol, order.lots.toString, _))
-      def repay(amount: BigDecimal) = invoke(marginClient.repay(order.asset.symbol, amount.toString, _))
+      def repay(amount: BigDecimal) = invoke(
+        marginClient.repay(order.asset.symbol, amount.toString, _)
+      )
       for {
         quantity <- quantityF
         _ <- borrow.unlessA(order.isClosing)
@@ -178,5 +197,30 @@ class BinanceBroker[F[_]: Concurrent: Async](
       .map(BinanceConverters.convert(interval.resolution.duration))
       .compile
       .toList
+
+}
+
+object BinanceBroker {
+  def cached[F[_]: Concurrent: Async: Parallel](
+      spotApi: SpotApi[F],
+      spotClient: BinanceApiAsyncRestClient,
+      marginClient: BinanceApiAsyncMarginRestClient,
+      barsCache: Either[(String, Path), RedisCommands[F, String, List[Bar]]],
+      fee: BigDecimal = 0.001 //0.1
+  ): BinanceBroker[F] = {
+    val binanceBroker = new BinanceBroker[F](spotApi, spotClient, marginClient, fee)
+    new BinanceBroker[F](spotApi, spotClient, marginClient, fee) {
+      private val cachedBroker = barsCache match {
+        case Left(token -> archiveDir) =>
+          val archive = new Archive[F](token, archiveDir)
+          new ArchiveCachedBroker(binanceBroker, archive)
+        case Right(redisCache) =>
+          new RedisCachedBroker(binanceBroker, redisCache)
+      }
+
+      override def getData(asset: TradingAsset, interval: CandlesInterval): F[List[Bar]] =
+        cachedBroker.getData(asset, interval)
+    }
+  }
 
 }
