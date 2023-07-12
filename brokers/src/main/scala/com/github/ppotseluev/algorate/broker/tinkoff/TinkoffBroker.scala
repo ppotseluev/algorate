@@ -16,7 +16,6 @@ import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.Day
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
-import com.github.ppotseluev.algorate.broker.LoggingBroker
 import com.github.ppotseluev.algorate.broker.MoneyTracker
 import com.github.ppotseluev.algorate.broker.RedisCachedBroker
 import com.github.ppotseluev.algorate.broker.TestBroker
@@ -155,6 +154,7 @@ object TinkoffBroker {
       timeResolution match {
         case CandleResolution.OneMinute  => CandleInterval.CANDLE_INTERVAL_1_MIN
         case CandleResolution.FiveMinute => CandleInterval.CANDLE_INTERVAL_5_MIN
+        case CandleResolution.Minutes(_) => ???
       }
 
     override def getData(
@@ -205,27 +205,27 @@ object TinkoffBroker {
     }
   }
 
-  def withLogging[F[_]: Sync](_broker: TinkoffBroker[F]): TinkoffBroker[F] =
-    new Broker[F] with Ops[F] {
-      private val broker = new LoggingBroker(_broker)
-
-      override def getAllShares: F[List[Share]] =
-        _broker.getAllShares
-
-      override def getOrderInfo(orderId: OrderId): F[OrderPlacementInfo] =
-        broker.getOrderInfo(orderId)
-
-      override def placeOrder(order: Order): F[OrderPlacementInfo] =
-        broker.placeOrder(order)
-
-      override def getData(
-          asset: TradingAsset,
-          candlesInterval: CandlesInterval
-      ): F[List[Bar]] =
-        broker.getData(asset, candlesInterval)
-
-      override def getPositions: F[Positions] = _broker.getPositions
-    }
+//  def withLogging[F[_]: Sync](_broker: TinkoffBroker[F]): TinkoffBroker[F] =
+//    new Broker[F] with Ops[F] {
+//      private val broker = new LoggingBroker(_broker)
+//
+//      override def getAllShares: F[List[Share]] =
+//        _broker.getAllShares
+//
+//      override def getOrderInfo(orderId: OrderId): F[OrderPlacementInfo] =
+//        broker.getOrderInfo(orderId)
+//
+//      override def placeOrder(order: Order): F[OrderPlacementInfo] =
+//        broker.placeOrder(order)
+//
+//      override def getData(
+//          asset: TradingAsset,
+//          candlesInterval: CandlesInterval
+//      ): F[List[Bar]] =
+//        broker.getData(asset, candlesInterval)
+//
+//      override def getPositions: F[Positions] = _broker.getPositions
+//    }
 
   def withCaching[F[_]: Sync: Parallel](
       token: String,

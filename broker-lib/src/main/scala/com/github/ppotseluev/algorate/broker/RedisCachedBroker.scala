@@ -35,7 +35,7 @@ class RedisCachedBroker[F[_]: Monad: Parallel](
           result <- cached.get(key(day)) match {
             case Some(value) => value.pure[F]
             case None =>
-              logger.info(s"Cache miss $instrumentId $day")
+              logger.debug(s"Cache miss $instrumentId $day")
               for {
                 newData <- broker.getData(
                   asset,

@@ -40,6 +40,9 @@ object Broker {
   case class DaysInterval(start: LocalDate, end: LocalDate) {
     require(!start.isAfter(end), "start can't be after end")
 
+    def firstDay = Day(start)
+    def lastDay = Day(end)
+
     def contains(dateTime: OffsetDateTime): Boolean =
       dateTime.isAfter(start.atStartOfDay.atOffset(ZoneOffset.UTC)) &&
         dateTime.isBefore(end.plusDays(1).atStartOfDay.atOffset(ZoneOffset.UTC))
@@ -81,9 +84,15 @@ object Broker {
       override def toString: String = "1m"
     }
 
-    case object FiveMinute extends CandleResolution {
+    case object FiveMinute extends CandleResolution { //todo reuse Minutes
       override def duration: FiniteDuration = 5.minute
       override def toString: String = "5m"
+    }
+
+    case class Minutes(n: Int) extends CandleResolution {
+      require(n != 1 && n != 5) //TODO
+      override def duration: FiniteDuration = n.minute
+      override def toString: BrokerAccountId = s"${n}m"
     }
   }
 }

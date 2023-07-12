@@ -4,13 +4,17 @@ import akka.actor.typed.ActorSystem
 import boopickle.Default.iterablePickler
 import cats.Parallel
 import cats.effect.IO
+import cats.effect.Ref
 import cats.effect.Resource
 import cats.effect.kernel.Async
+import cats.effect.std.Console
 import cats.implicits._
+import com.binance.api.client.BinanceApiClientFactory
 import com.github.ppotseluev.algorate.Bar
 import com.github.ppotseluev.algorate.InstrumentId
 import com.github.ppotseluev.algorate.Ticker
 import com.github.ppotseluev.algorate.broker.Archive
+import com.github.ppotseluev.algorate.broker.tinkoff.BinanceBroker
 import com.github.ppotseluev.algorate.broker.tinkoff.TinkoffApi
 import com.github.ppotseluev.algorate.broker.tinkoff.TinkoffBroker
 import com.github.ppotseluev.algorate.redis.RedisCodecs
@@ -20,13 +24,19 @@ import com.github.ppotseluev.algorate.trader.Api
 import com.github.ppotseluev.algorate.trader.RequestHandler
 import com.github.ppotseluev.algorate.trader.akkabot.EventsSink
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager
+import com.github.ppotseluev.algorate.trader.cli.AlgorateCli
+import com.github.ppotseluev.algorate.trader.feature.FeatureToggles
 import com.github.ppotseluev.algorate.trader.telegram.HttpTelegramClient
 import com.github.ppotseluev.algorate.trader.telegram.TelegramClient
 import com.github.ppotseluev.algorate.trader.telegram.TelegramWebhook
-import dev.profunktor.redis4cats.Redis
+import dev.profunktor.redis4cats.{Redis, RedisCommands}
 import dev.profunktor.redis4cats.connection.RedisClient
 import dev.profunktor.redis4cats.effect.Log.Stdout.instance
+import io.github.paoloboni.binance.BinanceClient
+import io.github.paoloboni.binance.spot.SpotApi
+
 import java.io.File
 import java.time.ZoneOffset
 import pureconfig.ConfigSource
@@ -50,9 +60,56 @@ class Factory[F[_]: Async: Parallel] {
     )
   import config._
 
+  lazy implicit val featureToggles: FeatureToggles = FeatureToggles.inMemory
+
   lazy val prometheusMetrics: PrometheusMetrics[F] = PrometheusMetrics.default[F]()
 
   lazy val investApi: InvestApi = InvestApi.createSandbox(tinkoffAccessToken)
+
+  lazy val binanceApi: Resource[F, SpotApi[F]] = BinanceClient.createSpotClient(binanceConfig)
+
+  lazy val binanceClientFactory = BinanceApiClientFactory
+    .newInstance(
+      binanceConfig.apiKey,
+      binanceConfig.apiSecret,
+      binanceConfig.testnet,
+      binanceConfig.testnet
+    )
+
+  lazy val binanceSpotClient = binanceClientFactory.newAsyncRestClient()
+
+  lazy val binanceMarginClient = binanceClientFactory.newAsyncMarginRestClient()
+
+  lazy val binanceBroker: Resource[F, BinanceBroker[F]] =
+    for {
+      api <- binanceApi
+      barsCache <-
+        if (enableBrokerCache)
+          redisClient
+            .flatMap { redis =>
+              Redis[F]
+                .fromClient(
+                  redis,
+                  RedisCodecs.byteBuffer.stringKeys.boopickleValues[List[Bar]]
+                )
+            }
+            .map(_.some)
+        else Resource.pure[F, Option[RedisCommands[F, String, List[Bar]]]](none)
+    } yield barsCache match {
+      case Some(cache) =>
+        BinanceBroker.cached(
+          api,
+          binanceSpotClient,
+          binanceMarginClient,
+          Right(cache)
+        )
+      case None =>
+        new BinanceBroker(
+          api,
+          binanceSpotClient,
+          binanceMarginClient
+        )
+    }
 
   val redisClient: Resource[F, RedisClient] = RedisClient[F].from("redis://localhost")
 
@@ -68,9 +125,9 @@ class Factory[F[_]: Async: Parallel] {
         .wrap[F](investApi)
         .withCandlesLimit(candlesLimiter)
         .withLogging
-      TinkoffBroker.withLogging(
-        TinkoffBroker[F](tinkoffApi, accountId, ZoneOffset.UTC)
-      )
+//      TinkoffBroker.withLogging(
+      TinkoffBroker[F](tinkoffApi, accountId, ZoneOffset.UTC)
+//      )
     }
     resultBroker <-
       if (enableBrokerCache) {
@@ -99,30 +156,55 @@ class Factory[F[_]: Async: Parallel] {
       new HttpTelegramClient[F](telegramUrl, sttpBackend)
     }
 
-  val telegramEventsSink: Resource[F, EventsSink[F]] =
-    telegramClient.map(EventsSink.telegram(telegramBotToken, telegramChatId, _))
+  def telegramEventsSink(telegramClient: TelegramClient[F]): EventsSink[F] =
+    EventsSink.telegram(telegramBotToken, telegramChatId, telegramClient)
 
   def traderRequestHandler(
       actorSystem: ActorSystem[TradingManager.Event],
       assets: Map[Ticker, InstrumentId],
-      eventsSink: EventsSink[F]
-  ): RequestHandler[F] =
-    new RequestHandlerImpl[F](actorSystem, assets, eventsSink)
+      eventsSink: EventsSink[F],
+      broker: BinanceBroker[F]
+  ): F[RequestHandler[F]] =
+    Ref.of[F, State](State.Empty).map { state =>
+      new RequestHandlerImpl[F](
+        actorSystem = actorSystem,
+        assets = assets,
+        eventsSink = eventsSink,
+        state = state,
+        broker = broker
+      )
+    }
 
   def telegramWebhookHandler(
-      requestHandler: RequestHandler[F]
+      requestHandler: RequestHandler[F],
+      telegramClient: TelegramClient[F]
   ): TelegramWebhook.Handler[F] =
     new TelegramWebhook.Handler[F](
       allowedUsers = telegramUsersWhitelist,
       trackedChats = telegramTrackedChats,
+      botToken = telegramBotToken,
+      telegramClient = telegramClient,
       requestHandler = requestHandler
     )
 
-  def traderApi(requestHandler: RequestHandler[F]): Api[F] = new Api(
-    telegramHandler = telegramWebhookHandler(requestHandler),
+  def traderApi(
+      requestHandler: RequestHandler[F],
+      telegramClient: TelegramClient[F]
+  ): Api[F] = new Api(
+    telegramHandler = telegramWebhookHandler(requestHandler, telegramClient),
     telegramWebhookSecret = telegramWebhookSecret,
     prometheusMetrics = prometheusMetrics,
     config = apiConfig
+  )
+
+  def algorateCli(
+      requestHandler: RequestHandler[F],
+      telegramClient: TelegramClient[F]
+  )(implicit console: Console[F]) = new AlgorateCli[F](
+    requestHandler = requestHandler,
+    telegramClient = telegramClient,
+    chatId = telegramChatId,
+    botToken = telegramBotToken
   )
 }
 

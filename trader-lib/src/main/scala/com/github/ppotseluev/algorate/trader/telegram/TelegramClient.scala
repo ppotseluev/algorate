@@ -7,7 +7,7 @@ import io.circe.generic.extras.ConfiguredJsonCodec
 import io.circe.generic.semiauto.deriveCodec
 
 trait TelegramClient[F[_]] {
-  def send(botToken: BotToken)(messageSource: MessageSource): F[Unit]
+  def send(botToken: BotToken)(messageSource: Message): F[Unit]
 }
 
 object TelegramClient {
@@ -31,16 +31,30 @@ object TelegramClient {
   }
 
   @ConfiguredJsonCodec
-  case class MessageSource(
+  case class Message(
       chatId: String,
       text: String,
-      @transient photo: Array[Byte],
-      replyMarkup: Option[ReplyMarkup],
-      parseMode: Option[String] = Some("MarkdownV2")
+      @transient photo: Option[Array[Byte]] = None,
+      replyMarkup: Option[ReplyMarkup] = None,
+      parseMode: Option[String] = None //Some("MarkdownV2")
   )
 
-  object MessageSource {
-    implicit val messageSourceCodec: Codec[MessageSource] = deriveCodec
+  object Message {
+    implicit val messageCodec: Codec[Message] = deriveCodec
   }
 
+  case class MessageSource(
+      text: String,
+      photo: Option[Array[Byte]] = None,
+      replyMarkup: Option[ReplyMarkup] = None,
+      parseMode: Option[String] = None //Some("MarkdownV2")
+  ) {
+    def toMessage(chatId: String) = Message(
+      chatId = chatId,
+      text = text,
+      photo = photo,
+      replyMarkup = replyMarkup,
+      parseMode = parseMode
+    )
+  }
 }

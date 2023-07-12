@@ -1,7 +1,5 @@
 package com.github.ppotseluev.algorate.tools
 
-import cats.implicits._
-import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.server.Factory
 import com.google.protobuf.Timestamp
 import java.time.Instant
@@ -33,33 +31,35 @@ object SharesFinder extends App {
   lazy val allShares = api.getInstrumentsService.getAllSharesSync.asScala.toList
   val shares =
     allShares
-      .filter(shareFilter)
-      .groupBy(_.getTicker)
-      .filter(_._2.size == 1)
-      .flatMap(_._2)
-
-  def q(str: String): String = s""""$str""""
-
-  val data = shares.flatMap { share =>
-//    if (ids.contains(share.getFigi)) {
-    (
-      q(share.getFigi) -> TradingAsset(
-        q(share.getFigi),
-        q(share.getTicker),
-        q(share.getCurrency),
-        TradingAsset.Type.Share,
-        q(share.getSector)
-      )
-    ).some
-//    } else {
-//      None
-//    }
-  }
-  val map = data.toMap
-
-//  val accounts = api.getUserService.getAccountsSync
+      .filter(_.getFigi == "BBG000BR54L0")
+//      .groupBy(_.getTicker)
+//      .filter(_._2.size == 1)
+//      .flatMap(_._2)
 //
-//  val sectors = shares.map(_.getSector).toSet
-  println(map.mkString("\n"))
-  println(map.size)
+  println(shares)
+
+//  def q(str: String): String = s""""$str""""
+//
+//  val data = shares.flatMap { share =>
+////    if (ids.contains(share.getFigi)) {
+//    (
+//      q(share.getFigi) -> TradingAsset(
+//        q(share.getFigi),
+//        q(share.getTicker),
+//        q(share.getCurrency),
+//        TradingAsset.Type.Share,
+//        q(share.getSector)
+//      )
+//    ).some
+////    } else {
+////      None
+////    }
+//  }
+//  val map = data.toMap
+//
+////  val accounts = api.getUserService.getAccountsSync
+////
+////  val sectors = shares.map(_.getSector).toSet
+//  println(map.mkString("\n"))
+//  println(map.size)
 }

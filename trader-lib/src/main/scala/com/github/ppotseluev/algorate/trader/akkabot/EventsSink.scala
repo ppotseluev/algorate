@@ -27,13 +27,14 @@ object EventsSink extends LoggingSupport {
       .catchNonFatal {
         val (text, image) = event match {
           case TradingSnapshot(snapshot, aggregatedStats, money) =>
-            val profit = new ProfitLossPercentageCriterion()
+            val profit = new ProfitLossPercentageCriterion() //todo take from stats
             val longProfit =
               profit.calculate(snapshot.unsafe.barSeries, snapshot.unsafe.longHistory)
             val shortProfit =
               profit.calculate(snapshot.unsafe.barSeries, snapshot.unsafe.shortHistory)
             val msg = s"""
              |asset: ${snapshot.asset}
+             |price: ${snapshot.currentPrice}
              |state: ${snapshot.state}
              |stats: ${snapshot.tradingStats}
              |long profit: $longProfit%, short profit: $shortProfit%
@@ -50,12 +51,10 @@ object EventsSink extends LoggingSupport {
             )
             (msg, img)
         }
-        TelegramClient.MessageSource(
+        TelegramClient.Message(
           chatId = chatId,
           text = text,
-          photo = image,
-          replyMarkup = None,
-          parseMode = None
+          photo = image.some
         )
       }
       .flatMap { messageSource => client.send(botToken)(messageSource) }

@@ -57,60 +57,70 @@ class Archive[F[_]: Sync](
   override def getData(
       asset: TradingAsset,
       candlesInterval: CandlesInterval
-  ): F[List[Bar]] = Sync[F]
-    .defer {
-      val instrumentId = asset.instrumentId
-      logger.debug(s"Getting data for $instrumentId")
-      val paths = candlesInterval.interval.years
-        .traverse { year =>
-          val resolution = asset.`type` match {
-            case Type.Crypto => candlesInterval.resolution
-            case Type.Share  => CandleResolution.OneMinute
-          }
-          val dataPath = s"$resolution/${instrumentId}_$year"
-          val baseDir = archiveDir.resolve(dataPath).toFile
-          val done = if (downloadIfNotExist && !baseDir.exists()) {
-            download(asset, year, candlesInterval.resolution)
-          } else {
-            ().pure[F]
-          }
-          def files = baseDir
-            .listFiles { file =>
-              val name = file.getName
-              name.endsWith(".csv") && {
-                val month = name.slice(4, 6).toInt
-                candlesInterval.interval.contains(year, month)
-              }
+  ): F[List[Bar]] = {
+    val (resolution, downsampleFactor) = candlesInterval.resolution match {
+      case m1 @ CandleResolution.OneMinute => m1 -> None
+      case m5 @ CandleResolution.FiveMinute =>
+        asset.`type` match {
+          case Type.Crypto => m5 -> None
+          case Type.Share  => CandleResolution.OneMinute -> 5.some
+        }
+      case CandleResolution.Minutes(n) =>
+        val df5 = n.toDouble / 5
+        if (df5.isValidInt) {
+          CandleResolution.FiveMinute -> df5.toInt.some
+        } else {
+          CandleResolution.OneMinute -> n.some
+        }
+    }
+    Sync[F]
+      .defer {
+        val instrumentId = asset.instrumentId
+        logger.debug(s"Getting data for $instrumentId")
+        val paths = candlesInterval.interval.years
+          .traverse { year =>
+            val dataPath = s"$resolution/${instrumentId}_$year"
+            val baseDir = archiveDir.resolve(dataPath).toFile
+            val done = if (downloadIfNotExist && !baseDir.exists()) {
+              download(asset, year, candlesInterval.resolution)
+            } else {
+              ().pure[F]
             }
-            .sortBy(_.getName)
-          done.flatMap { _ =>
-            Either
-              .cond(
-                baseDir.exists(),
-                right = files,
-                left = ArchiveNotFound(instrumentId, year)
-              )
-              .toFT[F]
+            def files = baseDir
+              .listFiles { file =>
+                val name = file.getName
+                name.endsWith(".csv") && {
+                  val month = name.slice(4, 6).toInt
+                  candlesInterval.interval.contains(year, month)
+                }
+              }
+              .sortBy(_.getName)
+            done.flatMap { _ =>
+              Either
+                .cond(
+                  baseDir.exists(),
+                  right = files,
+                  left = ArchiveNotFound(instrumentId, year)
+                )
+                .toFT[F]
+            }
           }
-        }
-        .map(_.flatten.toList)
-      paths.flatMap(readAllCsv(asset.`type`, candlesInterval.resolution.duration))
-    }
-    .map { bars =>
-      bars
-        .dropWhile { bar =>
-          !candlesInterval.interval.contains(bar.endTime)
-        }
-        .takeWhile { bar =>
-          candlesInterval.interval.contains(bar.endTime)
-        }
-    }
-    .map { bars =>
-      (asset.`type`, candlesInterval.resolution) match {
-        case (TradingAsset.Type.Share, CandleResolution.FiveMinute) => Archive.downsample(bars, 5)
-        case _                                                      => bars
+          .map(_.flatten.toList)
+        paths.flatMap(readAllCsv(asset.`type`, candlesInterval.resolution.duration))
       }
-    }
+      .map { bars =>
+        bars
+          .dropWhile { bar =>
+            !candlesInterval.interval.contains(bar.endTime)
+          }
+          .takeWhile { bar =>
+            candlesInterval.interval.contains(bar.endTime)
+          }
+      }
+      .map { bars =>
+        downsampleFactor.fold(bars)(Archive.downsample(bars, _))
+      }
+  }
 
   private def download(
       asset: TradingAsset,

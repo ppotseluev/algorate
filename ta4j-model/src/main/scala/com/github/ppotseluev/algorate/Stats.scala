@@ -10,15 +10,17 @@ import scala.collection.immutable.SeqMap
 import scala.jdk.CollectionConverters._
 
 case class Stats(enrichedPositions: Seq[EnrichedPosition]) {
-  val positions = enrichedPositions.map(_.position)
+  val allPositions = enrichedPositions.map(_.position)
+  val closedPositions = allPositions.filter(_.isClosed)
 
-  val totalClosedPositions: Int = positions.count(_.isClosed)
-  def winningPositions(fee: Boolean): Int = positions.count { p =>
+  def totalClosedPositions: Int = closedPositions.size
+
+  def winningPositions(fee: Boolean): Int = closedPositions.count { p =>
     if (fee) p.hasProfit
     else p.getGrossProfit.isPositive
   }
 
-  def nonWinningPositions(fee: Boolean): Int = positions.count { p =>
+  def nonWinningPositions(fee: Boolean): Int = closedPositions.count { p =>
     if (fee) !p.hasProfit
     else !p.getGrossProfit.isPositive
   }
@@ -71,9 +73,14 @@ object Stats {
   def fromRecord(
       record: TradingRecord,
       series: BarSeries,
-      asset: TradingAsset
+      asset: TradingAsset,
+      includeCurrent: Boolean
   ): Stats = {
-    val positions = record.getPositions.asScala.toSeq.map { pos =>
+    val currentPosition = Option(record.getCurrentPosition)
+      .filter(_.getEntry != null)
+      .filter(_ => includeCurrent)
+    val recordPositions = record.getPositions.asScala.toList ++ currentPosition
+    val positions = recordPositions.map { pos =>
       val entryTime = series.getBar(pos.getEntry.getIndex).getBeginTime
       EnrichedPosition(pos, entryTime, asset)
     }

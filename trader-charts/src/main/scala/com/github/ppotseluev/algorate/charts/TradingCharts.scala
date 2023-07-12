@@ -1,12 +1,15 @@
 package com.github.ppotseluev.algorate.charts
 
 import com.github.ppotseluev.algorate.AssetData
+import com.github.ppotseluev.algorate.ExitBounds
+import com.github.ppotseluev.algorate.Price
 import com.github.ppotseluev.algorate.Ta4jUtils.BarSeriesOps
 import com.github.ppotseluev.algorate.TradingStats
 import com.github.ppotseluev.algorate.strategy.FullStrategy.IndicatorInfo
 import com.github.ppotseluev.algorate.strategy.FullStrategy.Representation
 import com.github.ppotseluev.algorate.strategy.FullStrategy.Representation.Line
 import com.github.ppotseluev.algorate.strategy.StrategyBuilder
+import com.github.ppotseluev.algorate.strategy.ind
 import java.awt.BasicStroke
 import java.awt.Color
 import java.awt.Container
@@ -26,6 +29,7 @@ import org.ta4j.core.BarSeries
 import org.ta4j.core.Indicator
 import org.ta4j.core.Position
 import org.ta4j.core.Trade.TradeType
+import org.ta4j.core.num.NaN
 import org.ta4j.core.num.Num
 
 object TradingCharts {
@@ -70,7 +74,7 @@ object TradingCharts {
     // Adding markers to plot
     for ((position, idx) <- positions.zipWithIndex) {
       // Buy signal
-      val buySignalBarTime: Double = new Minute(
+      val enterSignalBarTime: Double = new Minute(
         Date.from(
           series
             .getBar(position.getEntry.getIndex)
@@ -78,32 +82,34 @@ object TradingCharts {
             .toInstant
         )
       ).getFirstMillisecond.toDouble
-      val buyMarker: Marker = new ValueMarker(buySignalBarTime)
-      buyMarker.setPaint(Color.GREEN)
+      val enterMarker: Marker = new ValueMarker(enterSignalBarTime)
+      enterMarker.setPaint(Color.GREEN)
       val entryLabel = position.getEntry.getType match {
         case TradeType.BUY  => s"LONG_$idx"
         case TradeType.SELL => s"SHORT_$idx"
       }
-      buyMarker.setLabel(entryLabel)
+      enterMarker.setLabel(entryLabel)
       // Sell signal
-      val sellSignalBarTime: Double = new Minute(
-        Date.from(
-          series
-            .getBar(position.getExit.getIndex)
-            .getEndTime
-            .toInstant
-        )
-      ).getFirstMillisecond.toDouble
-      val sellMarker: Marker = new ValueMarker(sellSignalBarTime)
-      sellMarker.setPaint(Color.RED)
+      val exitSignalBarTime = (index: Int) =>
+        new Minute(
+          Date.from(
+            series
+              .getBar(index)
+              .getEndTime
+              .toInstant
+          )
+        ).getFirstMillisecond.toDouble
+      val exitMarker: Option[Marker] =
+        Option(position.getExit).map(_.getIndex).map(i => new ValueMarker(exitSignalBarTime(i)))
       val closeLabel = position.getEntry.getType match {
         case TradeType.BUY  => s"EXIT_LONG_$idx"
         case TradeType.SELL => s"EXIT_SHORT_$idx"
       }
-      sellMarker.setLabel(closeLabel)
+      exitMarker.foreach(_.setPaint(Color.RED))
+      exitMarker.foreach(_.setLabel(closeLabel))
       plots.foreach { plot =>
-        plot.addDomainMarker(buyMarker)
-        plot.addDomainMarker(sellMarker)
+        plot.addDomainMarker(enterMarker)
+        exitMarker.foreach(plot.addDomainMarker)
       }
     }
   }
@@ -155,7 +161,7 @@ object TradingCharts {
       title: String,
       profitableTrades: Option[Boolean]
   ): JFreeChart = {
-    val series = assetData.barSeries
+    implicit val series = assetData.barSeries
 
     def addIndicators(
         series: BarSeries,
@@ -219,17 +225,40 @@ object TradingCharts {
         !profitable && !position.hasProfit
       }
     tradingStats.foreach { stats =>
+      val allPositions = stats.long.allPositions ++ stats.short.allPositions
       TradingCharts.addBuySellSignals(
         series,
-        stats.long.positions.filter(displayPosition),
+        stats.long.allPositions.filter(displayPosition),
         pricePlot,
         indicatorPlot
       )
       TradingCharts.addBuySellSignals(
         series,
-        stats.short.positions.filter(displayPosition),
+        stats.short.allPositions.filter(displayPosition),
         pricePlot,
         indicatorPlot
+      )
+      def stopIndicator(select: ExitBounds => Price) = ind { i =>
+        allPositions
+          .collectFirst {
+            case p
+                if p.getEntry.getIndex - 10 <= i && Option(p.getExit)
+                  .map(_.getIndex)
+                  .forall(_ >= i) =>
+              stats.stopsInfo.get(p.getEntry.getIndex).map(select)
+          }
+          .flatten
+          .map(series.numOf)
+          .getOrElse(NaN.NaN)
+      }
+
+      addIndicators(
+        series,
+        mainDataset,
+        Map(
+          "highStop" -> IndicatorInfo(stopIndicator(_.max)),
+          "lowStop" -> IndicatorInfo(stopIndicator(_.min))
+        )
       )
     }
     new JFreeChart(title, null, combinedPlot, true)

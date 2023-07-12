@@ -3,9 +3,9 @@ package com.github.ppotseluev.algorate.trader.telegram
 import cats.Monad
 import cats.effect.kernel.Async
 import cats.implicits._
-import com.github.ppotseluev.algorate.Ticker
 import com.github.ppotseluev.algorate.trader.Request
 import com.github.ppotseluev.algorate.trader.RequestHandler
+import com.typesafe.scalalogging.LazyLogging
 import io.circe.Codec
 import io.circe.generic.extras.Configuration
 import io.circe.generic.extras.ConfiguredJsonCodec
@@ -14,7 +14,7 @@ import sttp.tapir._
 import sttp.tapir.generic.auto._
 import sttp.tapir.json.circe.jsonBody
 
-object TelegramWebhook {
+object TelegramWebhook extends LazyLogging {
   implicit private val circeConfig: Configuration = Configuration.default.withSnakeCaseMemberNames
 
   @ConfiguredJsonCodec
@@ -57,26 +57,15 @@ object TelegramWebhook {
       .errorOut(stringBody)
       .securityIn(auth.apiKey(header[WebhookSecret]("X-Telegram-Bot-Api-Secret-Token")))
 
-  sealed trait Command {
-    def toRequest: Request
-  }
-
-  object Command {
-    case class ShowState(ticker: Ticker) extends Command {
-      override def toRequest: Request = Request.ShowState(ticker)
-    }
-
-    private val show = "show ([0-9a-zA-Z]+)".r
-
-    def parse(input: String): Option[Command] = input match {
-      case show(ticker) => ShowState(ticker).some
-      case _            => None
-    }
-  }
+  private def parseRequest(input: String): Request = Request.fromString(
+    input.stripSuffix("@algorate_bot").stripPrefix("/")
+  )
 
   class Handler[F[_]: Monad](
       allowedUsers: Set[UserId],
       trackedChats: Set[String],
+      botToken: BotToken,
+      telegramClient: TelegramClient[F],
       requestHandler: RequestHandler[F]
   ) {
     private val success = ().asRight[Error].pure[F]
@@ -87,13 +76,19 @@ object TelegramWebhook {
     ): F[Either[Error, Unit]] =
       update.message match {
         case Some(Message(_, Some(user), chat, Some(text))) =>
+          val chatId = chat.id.toString
           val shouldReact =
             allowedUsers.contains(user.id) &&
-              trackedChats.contains(chat.id.toString)
+              trackedChats.contains(chatId)
           if (shouldReact) {
-            Command.parse(text).fold(skip) { cmd =>
-              requestHandler.handle(cmd.toRequest).map(_.asRight)
-            }
+            val request = parseRequest(text)
+            val send = telegramClient.send(botToken) _
+            requestHandler
+              .handle(
+                request,
+                m => send(m.toMessage(chatId))
+              )
+              .map(_.asRight)
           } else {
             skip
           }

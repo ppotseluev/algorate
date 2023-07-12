@@ -6,11 +6,11 @@ envs:
 - key: TELEGRAM_CHAT_ID
   scope: RUN_AND_BUILD_TIME
   type: SECRET
-  value: EV[1:XMo+nGS78O0l25ulsTFPXEVtZk7wMTSy:GmvsHOWxAuzECnlj9hCpZ6NGsgL4ZnCvR/w=]
+  value: EV[1:thIAkqN3B8ND7JP04KbuKrOtjXxKvOCU:4y7gB455TbmzkWNfw286cH758A/cXwoSVBo=]
 - key: TELEGRAM_BOT_TOKEN
   scope: RUN_AND_BUILD_TIME
   type: SECRET
-  value: EV[1:y2pwfRgRXqUzWZP9sHXdLgKKINXy/sX3:IaIzqsS0+FesPRBsKQYv0QJiYLofNmVUNLZyzyLEAVx5EkCCcaM6xxY6L6m+F2aW1XTTaCYHCB6A/ed+NKI=]
+  value: EV[1:gXEzY7PP/PccyeAif5q+Ynb866ZRuTqb:zPgaKA4q5WY78rp+SPFymE8ryTRW/Btwhwnul4NvJ/z6CLqTVGdeIya7+3JVjn939MKy5tAkiP8dnVC78aI=]
 name: algorate
 region: fra
 services:
@@ -19,17 +19,17 @@ services:
   - key: TINKOFF_ACCESS_TOKEN
     scope: RUN_AND_BUILD_TIME
     type: SECRET
-    value: EV[1:cu4JtaE8zyKNPS42NMctv3+jTJdzJS3I:Zih73bcZJ9Ir3XEMPMmxypH1J5tJLvS7IfLTnQdk5QrwcK6tzMxAzvif4Ytg5JndQWsQqmRtA3+Phe/A1jLtEECgWgrh0nQ7BhBa3gKOScFTtZHyGp3XTCk9ytnKxUVn+8zHJM3FuKg=]
+    value: EV[1:bsWtRsQZZkz9jqqE7HeQsfSPENQF64Y/:Ids/AammQ58b4utC84AnbWGxihHB/RW0xG0R1o7eKRk9DwcKcZI0kJmRHBqj+se140x1g/peiIdCLbXWeWLDriWi8NhPLiJWWfjZfWe1Cxhbn92ia63lIekumYJMifG/qVQLsDtJArY=]
   - key: JAVA_OPTS
     scope: RUN_AND_BUILD_TIME
     value: -Xms800m -Xmx800m
   - key: TELEGRAM_WEBHOOK_SECRET
     scope: RUN_AND_BUILD_TIME
     type: SECRET
-    value: EV[1:UkGjU5XT/kUzgUwv1Pkd2M+48q+/sruy:dnlahmN8rQn7Wz3xb7S2Agq0xi9XhMojM+/rKE8tTnvNWKwekoaPYbk1g6LEu/qA]
+    value: EV[1:1BgjnrVnD61XTMDlo6D5neOtfwFq5c77:yuaUu94gWlS2KWC7sYdzToZ3RH/k54ZNPYAwln6zFrfmLolO1uG49Vb5ZnAYLqqV]
   - key: ACCOUNT_ID
     scope: RUN_AND_BUILD_TIME
-    value: 3640052c-e89c-454c-87db-6d47a82affb0
+    value: f6377137-36a9-4262-a2a4-fb8f36ed18fe
   github:
     branch: master
     repo: ppotseluev/algorate

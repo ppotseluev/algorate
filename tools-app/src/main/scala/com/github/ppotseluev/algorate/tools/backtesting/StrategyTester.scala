@@ -57,9 +57,9 @@ private[backtesting] object StrategyTester {
     new MoneyManagementPolicy(() => Some(money))(
       maxPercentage = 1,
       maxAbsolute = Map(
-        "usd" -> usdTrade,
-        "usdt" -> usdTrade,
-        "rub" -> rubTrade
+        "usd" -> (() => usdTrade),
+        "usdt" -> (() => usdTrade),
+        "rub" -> (() => rubTrade)
       )
     )
   }
@@ -97,14 +97,14 @@ private[backtesting] object StrategyTester {
       val seriesManager = new BarSeriesManager(series, transactionCostModel, holdingCostModel)
       for {
         longRecord <- Sync[F].blocking(
-          seriesManager.run(strategy.longStrategy, TradeType.BUY, lots)
+          seriesManager.run(strategy.getLongStrategy, TradeType.BUY, lots)
         )
         shortRecord <- Sync[F].blocking(
-          seriesManager.run(strategy.shortStrategy, TradeType.SELL, lots)
+          seriesManager.run(strategy.getShortStrategy, TradeType.SELL, lots)
         )
       } yield TradingStats(
-        long = Stats.fromRecord(longRecord, series, asset),
-        short = Stats.fromRecord(shortRecord, series, asset)
+        long = Stats.fromRecord(longRecord, series, asset, includeCurrent = false),
+        short = Stats.fromRecord(shortRecord, series, asset, includeCurrent = false)
       )
     }
   }

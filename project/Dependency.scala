@@ -3,11 +3,13 @@ import sbt._
 object Dependency {
   val tinkoffInvestApi = "ru.tinkoff.piapi" % "java-sdk-core" % "1.2"
 
+  val binanceClient = "io.github.paoloboni" %% "binance-scala-client" % "1.6.1"
+
   val fs2 = "co.fs2" %% "fs2-reactive-streams" % "3.4.0"
 
-  val logback = "ch.qos.logback" % "logback-classic" % "1.2.9"
+  val logback = "ch.qos.logback" % "logback-classic" % "1.4.7"
 
-  val scalaLogging = "com.typesafe.scala-logging" %% "scala-logging" % "3.9.4"
+  val scalaLogging = "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5"
 
   val enumeratrum = "com.beachape" %% "enumeratum" % "1.7.0"
 
@@ -27,7 +29,7 @@ object Dependency {
 
   val boopickle = "io.suzaku" %% "boopickle" % "1.4.0"
 
-  val akka = "com.typesafe.akka" %% "akka-actor-typed" % "2.6.20"
+  val akka = "com.typesafe.akka" %% "akka-actor-typed" % "2.8.2"
 
   val jfree = "org.jfree" % "jfreechart" % "1.0.17" // TODO update versions
 
