@@ -200,23 +200,21 @@ object Strategies {
       val visualUpperBoundIndicator =
         visualChannel.map(_.map(_.section.upper).getOrElse(NaN.NaN))
 
-      val takeProfitIndicator = (closePrice: AbstractIndicator[Num]).zipWithIndex
-        .map { case (index, price) =>
-          if (entryShortRule.isSatisfied(index))
-            (closePrice \-\ halfChannel).getValue(index)
-          else if (entryLongRule.isSatisfied(index))
-            (closePrice \+\ halfChannel).getValue(index)
-          else NaN.NaN
-        }
+      val takeProfitIndicator = ind { index =>
+        if (entryShortRule.isSatisfied(index))
+          (closePrice \-\ halfChannel).getValue(index)
+        else if (entryLongRule.isSatisfied(index))
+          (closePrice \+\ halfChannel).getValue(index)
+        else NaN.NaN
+      }
 
-      val stopLossIndicator = (closePrice: AbstractIndicator[Num]).zipWithIndex
-        .map { case (index, price) =>
-          if (entryShortRule.isSatisfied(index))
-            price.plus(halfChannel.getValue(index))
-          else if (entryLongRule.isSatisfied(index))
-            price.minus(halfChannel.getValue(index))
-          else NaN.NaN
-        }
+      val stopLossIndicator = ind { index =>
+        if (entryShortRule.isSatisfied(index))
+          (closePrice \+\ halfChannel).getValue(index)
+        else if (entryLongRule.isSatisfied(index))
+          (closePrice \-\ halfChannel).getValue(index)
+        else NaN.NaN
+      }
 
       Map(
         "close price" -> IndicatorInfo(closePrice),

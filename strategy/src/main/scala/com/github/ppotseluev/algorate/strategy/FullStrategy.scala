@@ -22,7 +22,8 @@ class FullStrategy(
   def getShortStrategy = shortStrategy
 
   def recommendedTrade(index: Int): Option[TradeIdea] = {
-    lazy val stops = stopIndicator.getValue(index).toList.map(_.doubleValue)
+    lazy val (s1, s2) = stopIndicator.getValue(index)
+    lazy val stops = List(s1, s2).map(_.doubleValue)
     if (longStrategy.shouldEnter(index)) {
       TradeIdea(
         operationType = OperationType.Buy,

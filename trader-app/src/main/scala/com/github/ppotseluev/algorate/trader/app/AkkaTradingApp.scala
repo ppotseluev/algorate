@@ -138,7 +138,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
           {
             val subscriber = subscription.stub[IO](
               broker,
-              rate = 0.millis,
+              rate = if (config.localEnv) 10.millis else 0.millis,
               streamFrom = LocalDate.now.minusDays(2), //TODO
               streamTo = LocalDate.now
             )
