@@ -26,12 +26,12 @@ import enumeratum._
 
 object ClosePositionOrder {
 
-  sealed trait Type extends EnumEntry
+  sealed trait StopType extends EnumEntry
 
-  object Type extends Enum[Type] {
-    case object StopLoss extends Type
-    case object TakeProfit extends Type
+  object StopType extends Enum[StopType] {
+    case object StopLoss extends StopType
+    case object TakeProfit extends StopType
 
-    override val values: IndexedSeq[Type] = findValues
+    override val values: IndexedSeq[StopType] = findValues
   }
 }

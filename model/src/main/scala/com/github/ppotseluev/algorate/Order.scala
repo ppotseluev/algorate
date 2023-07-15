@@ -36,8 +36,8 @@ case class Order(
       case OperationType.Sell => point.value < this.price
     }
     val closingOrderType =
-      if (isProfitable) ClosePositionOrder.Type.TakeProfit
-      else ClosePositionOrder.Type.StopLoss
+      if (isProfitable) ClosePositionOrder.StopType.TakeProfit
+      else ClosePositionOrder.StopType.StopLoss
     this.copy(
       operationType = operationType.reverse,
       details = Order.Details.Market,
@@ -77,6 +77,6 @@ object Order {
 
   case class Info(
       point: Point,
-      closingOrderType: Option[ClosePositionOrder.Type]
+      closingOrderType: Option[ClosePositionOrder.StopType]
   )
 }

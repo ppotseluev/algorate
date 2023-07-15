@@ -4,6 +4,7 @@ import akka.actor.typed.ActorSystem
 import cats.effect.Ref
 import cats.effect.kernel.Sync
 import cats.implicits._
+import com.github.ppotseluev.algorate.ClosePositionOrder.StopType
 import com.github.ppotseluev.algorate.ExitBounds
 import com.github.ppotseluev.algorate._
 import com.github.ppotseluev.algorate.broker.tinkoff.BinanceBroker
@@ -19,6 +20,9 @@ import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.Wa
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingOrdersTicker
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingShowTicker
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingStopLoss
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingStopTicker
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingStopType
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingStopValue
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingTakeProfit
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingTradingTicker
 import com.github.ppotseluev.algorate.trader.feature.FeatureToggles
@@ -96,6 +100,16 @@ class RequestHandlerImpl[F[_]: Sync](
         case Request.Sell          => requestTicker(WaitingTradingTicker(OperationType.Sell))
         case Request.Buy           => requestTicker(WaitingTradingTicker(OperationType.Buy))
         case Request.Exit          => requestTicker(WaitingExitTicker)
+        case Request.SetStop =>
+          val msg = MessageSource(
+            text = s"Select stop type",
+            replyMarkup = ReplyMarkup(
+              Seq(
+                StopType.values.map(_.entryName).map(KeyboardButton.apply)
+              ).some
+            ).some
+          )
+          reply(msg) --> WaitingStopType
         case Request.GeneralInput(input) =>
           val ticker =
             s"${input.toUpperCase.stripSuffix("USDT")}USDT" //TODO can be non-crypto asset
@@ -166,6 +180,19 @@ class RequestHandlerImpl[F[_]: Sync](
                   case Right(()) =>
                     replyT("Updated successfully") --> State.Empty
                 }
+              case WaitingStopTicker(stopType) =>
+                replyT("Enter value") --> State.WaitingStopValue(stopType, ticker)
+              case WaitingStopValue(stopType, ticker) =>
+                parse(_.toDouble).flatMap { value =>
+                  notifyTraders(ticker, TradingManager.Event.SetStop(_, stopType, value))
+                }
+              case WaitingStopType =>
+                StopType.withNameOption(input) match {
+                  case Some(stopType) =>
+                    requestTicker(WaitingStopTicker(stopType))
+                  case None =>
+                    replyT("Incorrect stop type", removeKeyboard = none)
+                }
             }
         case Request.ShowActiveTrades => ???
         case Request.Features =>
@@ -201,5 +228,8 @@ object RequestHandlerImpl {
     case class WaitingStopLoss(operationType: OperationType, ticker: Ticker) extends State
     case class WaitingTakeProfit(operationType: OperationType, ticker: Ticker, stopLoss: Price)
         extends State
+    case object WaitingStopType extends State
+    case class WaitingStopTicker(stopType: StopType) extends State
+    case class WaitingStopValue(stopType: StopType, ticker: Ticker) extends State
   }
 }

@@ -4,6 +4,7 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.ActorContext
 import akka.actor.typed.scaladsl.Behaviors
 import cats.implicits._
+import com.github.ppotseluev.algorate.ClosePositionOrder.StopType
 import com.github.ppotseluev.algorate._
 import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus
@@ -97,6 +98,7 @@ object Trader extends LoggingSupport {
     case class TradeRequested(trade: TradeIdea) extends Event
     case object ExitRequested extends Event
     case class OrderUpdated(info: OrderPlacementInfo) extends OrderPlacementUpdate
+    case class SetStop(stopType: StopType, value: Price) extends Event
   }
 
   sealed trait TraderState
@@ -198,7 +200,9 @@ object Trader extends LoggingSupport {
       def tryEnter(bar: Bar, trade: TradeIdea)(implicit
           ctx: ActorContext[Event]
       ): Unit = {
+        val lastIndex = barSeries.getEndIndex
         val point = Point(
+          index = lastIndex,
           timestamp = bar.endTime,
           value = bar.closePrice
         )
@@ -206,7 +210,6 @@ object Trader extends LoggingSupport {
           asset = asset,
           price = point.value
         )
-        val lastIndex = barSeries.getEndIndex
         val lastPrice = barSeries.getBar(lastIndex).getClosePrice
         policy.apply(tradeRequest) match {
           case Decision.Allowed(lots) =>
@@ -235,12 +238,13 @@ object Trader extends LoggingSupport {
           bar: Bar,
           position: Position
       )(implicit ctx: ActorContext[Event]): Unit = {
+        val lastIndex = barSeries.getEndIndex
         val history = historyRecord(position.payload.operationType)
         val point = Point(
+          index = lastIndex,
           timestamp = bar.endTime,
           value = bar.closePrice
         )
-        val lastIndex = barSeries.getEndIndex
         val lastPrice = barSeries.getBar(lastIndex).getClosePrice
         val order = position.payload.buildClosingOrder(point)
         val prevState = state
@@ -428,6 +432,23 @@ object Trader extends LoggingSupport {
               case (Some(bar), TraderState.Entering(position)) =>
                 exit(bar, position) //, postOrder = true)
               case _ => logger.warn("Can't perform requested exit operation")
+            }
+          case Trader.Event.SetStop(stopType, value) =>
+            state match {
+              case TraderState.Entering(position) =>
+                val order = position.payload
+                val exitBounds = order.exitBounds
+                val newExitBounds = stopType match {
+                  case StopType.StopLoss   => exitBounds.copy(stopLoss = value)
+                  case StopType.TakeProfit => exitBounds.copy(takeProfit = value)
+                }
+                val updatedPosition = position.copy(
+                  payload = order.copy(exitBounds = newExitBounds)
+                )
+                val index = order.info.point.index
+                positionsStops(index) = newExitBounds
+                state = TraderState.Entering(updatedPosition)
+              case _ => ()
             }
         }
         Behaviors.same

@@ -4,8 +4,10 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import cats.implicits._
 import com.github.ppotseluev.algorate.BarInfo
+import com.github.ppotseluev.algorate.ClosePositionOrder.StopType
 import com.github.ppotseluev.algorate.EnrichedPosition
 import com.github.ppotseluev.algorate.InstrumentId
+import com.github.ppotseluev.algorate.Price
 import com.github.ppotseluev.algorate.Stats
 import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.TradingStats
@@ -34,6 +36,7 @@ object TradingManager extends LazyLogging {
         instrumentId: InstrumentId,
         operationType: TradeIdea
     ) extends Event
+    case class SetStop(instrumentId: InstrumentId, stopType: StopType, value: Price) extends Event
   }
 
   def apply[F[_]](
@@ -107,6 +110,9 @@ object TradingManager extends LazyLogging {
         Behaviors.same
       case Event.ExitRequested(instrumentId) =>
         useTrader(instrumentId)(_ ! Trader.Event.ExitRequested)
+        Behaviors.same
+      case Event.SetStop(instrumentId, stopType, value) =>
+        useTrader(instrumentId)(_ ! Trader.Event.SetStop(stopType, value))
         Behaviors.same
     }
   }
