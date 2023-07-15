@@ -94,19 +94,13 @@ object MarketSubscriber extends LazyLogging {
         }
 
     def stub[F[_]: Temporal: Sync](
-        broker: Broker[F],
-        streamFrom: LocalDate,
-        streamTo: LocalDate,
+        getData: (TradingAsset, CandleResolution) => F[List[Bar]],
         rate: FiniteDuration
     ): MarketSubscriber[F, Id] = (asset: TradingAsset) =>
       HistoryStream
         .make[F](
           asset = asset,
-          broker = broker,
-          candlesInterval = CandlesInterval(
-            interval = DaysInterval(streamFrom, streamTo),
-            resolution = candleResolution
-          ),
+          getData = getData(asset, candleResolution),
           rate = rate
         )
         .foreach { barInfo =>

@@ -9,8 +9,12 @@ import cats.implicits._
 import cats.~>
 import com.github.ppotseluev.algorate._
 import com.github.ppotseluev.algorate.broker.Broker
-import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
-import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
+import com.github.ppotseluev.algorate.broker.Broker.{
+  CandleResolution,
+  CandlesInterval,
+  DaysInterval,
+  OrderPlacementInfo
+}
 import com.github.ppotseluev.algorate.cats.Provider
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.Strategies
@@ -21,6 +25,7 @@ import com.github.ppotseluev.algorate.trader.policy.MoneyManagementPolicy
 import com.typesafe.scalalogging.LazyLogging
 import io.github.paoloboni.binance.spot.response.ExchangeInformation
 import io.github.paoloboni.binance.spot.response.LOT_SIZE
+
 import java.time.LocalDate
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -35,6 +40,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
   )
 
   val candleResolution: CandleResolution = CandleResolution.FiveMinute
+  val keepLastBars = 1000
 
   val useHistoricalData: Option[StubSettings] = None
 //    Some( //None to stream realtime market data
@@ -107,7 +113,7 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         strategy = Strategies.default,
         moneyTracker = moneyTracker,
         policy = policy,
-        keepLastBars = 1000,
+        keepLastBars = keepLastBars,
         eventsSink = eventsSinkFuture,
         maxLag = Option.when(useHistoricalData.isEmpty)(
           (candleResolution.duration * 1.5).asInstanceOf[FiniteDuration]
@@ -137,10 +143,8 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         exitCode <- useHistoricalData.fold {
           {
             val subscriber = subscription.stub[IO](
-              broker,
-              rate = if (config.localEnv) 10.millis else 0.millis,
-              streamFrom = LocalDate.now.minusDays(2), //TODO
-              streamTo = LocalDate.now
+              getData = (asset, resolution) => broker.getData(asset, resolution, keepLastBars),
+              rate = if (config.localEnv) 10.millis else 0.millis
             )
             assets.parTraverse(subscriber.subscribe).void
           } *> IO {
@@ -150,10 +154,12 @@ object AkkaTradingApp extends IOApp with LazyLogging {
             .subscribe(assets)
         } { case StubSettings(assets, streamFrom, streamTo, rate) =>
           val subscriber = subscription.stub[IO](
-            broker,
-            rate = rate,
-            streamFrom = streamFrom,
-            streamTo = streamTo
+            getData = (asset, resolution) =>
+              broker.getData(
+                asset,
+                CandlesInterval(DaysInterval(streamFrom, streamTo), resolution)
+              ),
+            rate = rate
           )
           assets.parTraverse(subscriber.subscribe).void
         } &>

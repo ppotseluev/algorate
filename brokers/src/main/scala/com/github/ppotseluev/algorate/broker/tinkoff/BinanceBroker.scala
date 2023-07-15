@@ -22,8 +22,11 @@ import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.broker.Archive
 import com.github.ppotseluev.algorate.broker.ArchiveCachedBroker
 import com.github.ppotseluev.algorate.broker.Broker
-import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
-import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
+import com.github.ppotseluev.algorate.broker.Broker.{
+  CandleResolution,
+  CandlesInterval,
+  OrderPlacementInfo
+}
 import com.github.ppotseluev.algorate.broker.RedisCachedBroker
 import com.typesafe.scalalogging.LazyLogging
 import dev.profunktor.redis4cats.RedisCommands
@@ -34,6 +37,7 @@ import io.github.paoloboni.binance.spot.parameters.SpotOrderQueryParams
 import io.github.paoloboni.binance.spot.parameters.v3.KLines
 import io.github.paoloboni.binance.spot.response.ExchangeInformation
 import io.github.paoloboni.binance.spot.response.SpotAccountInfoResponse
+
 import java.nio.file.Path
 import scala.concurrent.Promise
 import scala.jdk.CollectionConverters._
@@ -198,6 +202,20 @@ class BinanceBroker[F[_]: Concurrent: Async](
       .compile
       .toList
 
+  def getData(asset: TradingAsset, candlesResolution: CandleResolution, n: Int): F[List[Bar]] =
+    spotApi.V3
+      .getKLines(
+        KLines(
+          symbol = asset.instrumentId,
+          interval = BinanceConverters.convert(candlesResolution),
+          startTime = None,
+          endTime = None,
+          limit = n
+        )
+      )
+      .map(BinanceConverters.convert(candlesResolution.duration))
+      .compile
+      .toList
 }
 
 object BinanceBroker {
