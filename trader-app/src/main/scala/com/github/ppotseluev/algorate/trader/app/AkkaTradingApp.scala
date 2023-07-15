@@ -37,7 +37,6 @@ object AkkaTradingApp extends IOApp with LazyLogging {
   )
 
   val candleResolution: CandleResolution = CandleResolution.FiveMinute
-  val keepLastBars = 1000
 
   val useHistoricalData: Option[StubSettings] = None
 //    Some( //None to stream realtime market data
@@ -100,8 +99,8 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         )
       )
       val assets = enrichAssets(broker.getExchangeInfo) {
-        Assets.allCryptocurrencies.distinctBy(_.instrumentId)
-//        Assets.testnetAssets :+ TradingAsset.crypto("SOL")
+        if (config.localEnv) Assets.testnetAssets :+ TradingAsset.crypto("SOL")
+        else Assets.allCryptocurrencies.distinctBy(_.instrumentId)
       }
       val assetsMap = assets.map(a => a.instrumentId -> a).toMap
       val tradingManager = TradingManager(
@@ -110,11 +109,12 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         strategy = Strategies.default,
         moneyTracker = moneyTracker,
         policy = policy,
-        keepLastBars = keepLastBars,
+        keepLastBars = config.keepLastBars,
         eventsSink = eventsSinkFuture,
         maxLag = Option.when(useHistoricalData.isEmpty)(
           (candleResolution.duration * 1.5).asInstanceOf[FiniteDuration]
-        )
+        ),
+        enableTrading = config.enableTrading
       )
       for {
 //        shares <- broker.getSharesById(Assets.sharesIds.toSet)
@@ -131,7 +131,6 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         requestHandler <- factory.traderRequestHandler(
           actorSystem = actorSystem,
           assets = assetsMap.map { case (id, asset) => asset.ticker -> id },
-          eventsSink = eventsSink,
           broker = broker
         )
         api = factory.traderApi(requestHandler, telegramClient)
@@ -140,7 +139,8 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         exitCode <- useHistoricalData.fold {
           {
             val subscriber = subscription.stub[IO](
-              getData = (asset, resolution) => broker.getData(asset, resolution, keepLastBars),
+              getData =
+                (asset, resolution) => broker.getData(asset, resolution, config.keepLastBars),
               rate = if (config.localEnv) 10.millis else 0.millis
             )
             assets.parTraverse(subscriber.subscribe).void

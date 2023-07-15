@@ -15,14 +15,18 @@ import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
 import com.github.ppotseluev.algorate.strategy.FullStrategy.TradeIdea
 import com.github.ppotseluev.algorate.strategy.StrategyBuilder
 import com.github.ppotseluev.algorate.trader.LoggingSupport
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.AssetsFilter
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.AssetsFilter.TraderFilter
 import com.github.ppotseluev.algorate.trader.akkabot.Trader.Event.OrderUpdated
 import com.github.ppotseluev.algorate.trader.akkabot.Trader.Position.State
+import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.TraderResponse.Payload
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.TraderSnapshotEvent
 import com.github.ppotseluev.algorate.trader.feature.FeatureToggles
 import com.github.ppotseluev.algorate.trader.policy.Policy
 import com.github.ppotseluev.algorate.trader.policy.Policy.Decision
 import com.github.ppotseluev.algorate.trader.policy.Policy.TradeRequest
 import io.prometheus.client.Gauge
+
 import java.time.OffsetDateTime
 import java.time.ZonedDateTime
 import org.ta4j.core.BarSeries
@@ -31,6 +35,7 @@ import org.ta4j.core.BaseTradingRecord
 import org.ta4j.core.Trade.TradeType
 import org.ta4j.core.TradingRecord
 import org.ta4j.core.cost.ZeroCostModel
+
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -99,6 +104,7 @@ object Trader extends LoggingSupport {
     case object ExitRequested extends Event
     case class OrderUpdated(info: OrderPlacementInfo) extends OrderPlacementUpdate
     case class SetStop(stopType: StopType, value: Price) extends Event
+    case class Check(filter: TraderFilter, sender: TradingManager) extends Event
   }
 
   sealed trait TraderState
@@ -143,12 +149,13 @@ object Trader extends LoggingSupport {
       keepLastBars: Int,
       ordersWatcher: OrdersWatcher,
       snapshotSink: TraderSnapshotSink,
-      maxLag: Option[FiniteDuration]
+      maxLag: Option[FiniteDuration],
+      enableTrading: Boolean
   )(implicit featureToggles: FeatureToggles): Behavior[Event] = {
 
     val logger = getLogger(s"Trader-${asset.ticker}")
 
-    val tradingEnabled = featureToggles.register("trading-enabled", true)
+    val tradingEnabled = featureToggles.register("trading-enabled", enableTrading)
 
     def buildOrder(
         point: Point,
@@ -407,6 +414,11 @@ object Trader extends LoggingSupport {
         snapshotSink ! TraderSnapshotEvent(snapshot)
       }
 
+      def checkFilter(filter: TraderFilter): Boolean = filter match {
+        case AssetsFilter.HasChannel =>
+          strategy.channelIndicator.getValue(barSeries.getEndIndex).isDefined
+      }
+
       Behaviors.receive { (ctx, event) =>
         implicit val context: ActorContext[Event] = ctx
         event match {
@@ -450,6 +462,12 @@ object Trader extends LoggingSupport {
                 state = TraderState.Entering(updatedPosition)
               case _ => ()
             }
+          case Trader.Event.Check(filter, sender) =>
+            val response = TradingManager.Event.TraderResponse(
+              asset,
+              Payload.Check(checkFilter(filter))
+            )
+            sender ! response
         }
         Behaviors.same
       }

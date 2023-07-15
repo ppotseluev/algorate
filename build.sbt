@@ -25,7 +25,8 @@ lazy val settings = Seq(
   ) ++ (if (isCI) ciScalacOptions else Seq.empty),
   libraryDependencies ++= Seq(
     Dependency.kittens,
-    Dependency.munit
+    Dependency.munit,
+    Dependency.parCollections
   ),
   addCompilerPlugin(Dependency.kindProjector),
   assembly / assemblyMergeStrategy := {

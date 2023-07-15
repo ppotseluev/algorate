@@ -19,7 +19,9 @@ case class Config(
     enableBrokerCache: Boolean,
     historicalDataArchive: Option[String],
     binanceConfig: SpotConfig.Default[Id],
-    localEnv: Boolean = false
+    keepLastBars: Int,
+    localEnv: Boolean = false,
+    enableTrading: Boolean = true
 ) {
   def telegramTrackedChats: Set[String] = Set(telegramChatId)
 

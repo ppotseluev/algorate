@@ -248,7 +248,8 @@ object Strategies {
 //        "macdEma" -> IndicatorInfo(macdEma),
         "trades" -> IndicatorInfo(tradesCountIndicator)
       ),
-      stopIndicator = stopIndicator
+      stopIndicator = stopIndicator,
+      channelIndicator = channel
     )
   }
 

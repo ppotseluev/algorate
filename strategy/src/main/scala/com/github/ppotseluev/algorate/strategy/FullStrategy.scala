@@ -6,15 +6,18 @@ import com.github.ppotseluev.algorate.OperationType
 import org.ta4j.core.Indicator
 import org.ta4j.core.Strategy
 import org.ta4j.core.num.Num
-
 import FullStrategy.{IndicatorInfo, TradeIdea}
+import com.github.ppotseluev.algorate.strategy.indicator.ChannelIndicator
+import com.github.ppotseluev.algorate.strategy.indicator.ChannelIndicator.Channel
+import org.ta4j.core.indicators.AbstractIndicator
 
 class FullStrategy(
     longStrategy: Strategy,
     shortStrategy: Strategy,
     getPriceIndicators: () => Map[String, IndicatorInfo],
     val oscillators: Map[String, IndicatorInfo],
-    stopIndicator: Indicator[(Num, Num)]
+    stopIndicator: Indicator[(Num, Num)],
+    val channelIndicator: AbstractIndicator[Option[Channel]] //TODO
 ) {
   lazy val priceIndicators: Map[String, IndicatorInfo] = getPriceIndicators()
 
