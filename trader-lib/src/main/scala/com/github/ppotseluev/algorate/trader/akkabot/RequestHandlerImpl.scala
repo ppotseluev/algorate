@@ -80,6 +80,15 @@ class RequestHandlerImpl[F[_]: Sync](
             .map(_.getUserAssets.asScala.filter(_.getNetAsset != "0"))
             .map(_.toString)
             .flatMap(replyT(_))
+        case Request.Debt =>
+          broker.getMarginAccount
+            .map {
+              _.getUserAssets.asScala.filter { asset =>
+                asset.getBorrowed != "0" || asset.getInterest != "0"
+              }
+            }
+            .map(_.toString)
+            .flatMap(replyT(_))
         case Request.CancelOrders  => requestTicker(WaitingCancelOrdersTicker)
         case Request.GetOpenOrders => requestTicker(WaitingOrdersTicker(onlyOpen = true))
         case Request.GetAllOrders  => requestTicker(WaitingOrdersTicker(onlyOpen = false))
