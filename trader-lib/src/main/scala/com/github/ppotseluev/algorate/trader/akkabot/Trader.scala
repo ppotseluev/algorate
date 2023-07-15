@@ -287,16 +287,7 @@ object Trader extends LoggingSupport {
                   logger.warn("Trading disabled")
                 }
               }
-            case TraderState.Entering(position) =>
-              position.state match {
-                case State.Initial | State.Placed(Pending) | State.Placed(Failed) => ()
-                case State.Placed(Completed) =>
-                  if (shouldExit(bar, position.payload)) { //TODO check exit on every tick?
-                    exit(bar, position) //, postOrder = false) //exit by stop-signal
-                  } else {
-                    () //keep holding current position
-                  }
-              }
+            case TraderState.Entering(_) => ()
             case _: TraderState.Exiting =>
               logger.info("Exiting position in progress")
           }
@@ -305,7 +296,25 @@ object Trader extends LoggingSupport {
         }
       }
 
-      def handleBar(bar: Bar)(implicit ctx: ActorContext[Event]): Unit =
+      def handleExit(bar: Bar)(implicit ctx: ActorContext[Event]): Unit =
+        state match {
+          case TraderState.Entering(position) =>
+            position.state match {
+              case State.Initial | State.Placed(Pending) | State.Placed(Failed) => ()
+              case State.Placed(Completed) =>
+                if (shouldExit(bar, position.payload)) {
+                  exit(bar, position) //, postOrder = false) //exit by stop-signal
+                } else {
+                  () //keep holding current position
+                }
+            }
+          case _ => ()
+        }
+
+      def handleBar(bar: Bar)(implicit ctx: ActorContext[Event]): Unit = {
+        if (maxLag.forall(_ >= lag(bar))) {
+          handleExit(bar)
+        }
         currentBar match {
           case None =>
             currentBar = Some(bar)
@@ -322,6 +331,7 @@ object Trader extends LoggingSupport {
               logger.warn(s"Received old data, ts = ${bar.endTime}, curTs = ${cur.endTime}")
             }
         }
+      }
 
       def handleOrderInfo(event: OrderUpdated): Unit = {
         val placementInfo = event.info
