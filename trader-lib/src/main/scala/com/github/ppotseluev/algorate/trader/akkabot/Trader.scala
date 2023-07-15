@@ -204,7 +204,11 @@ object Trader extends LoggingSupport {
       )(implicit ctx: ActorContext[Event]): Unit =
         ctx.pipeToSelf(broker.placeOrder(order))(orderPlacedEvent(order, onSuccess, onFailure))
 
-      def tryEnter(bar: Bar, trade: TradeIdea)(implicit
+      def tryEnter(
+          bar: Bar,
+          trade: TradeIdea,
+          manualTrade: Boolean
+      )(implicit
           ctx: ActorContext[Event]
       ): Unit = {
         val lastIndex = barSeries.getEndIndex
@@ -215,7 +219,8 @@ object Trader extends LoggingSupport {
         )
         val tradeRequest = TradeRequest(
           asset = asset,
-          price = point.value
+          price = point.value,
+          manualTrade = manualTrade
         )
         val lastPrice = barSeries.getBar(lastIndex).getClosePrice
         policy.apply(tradeRequest) match {
@@ -293,7 +298,7 @@ object Trader extends LoggingSupport {
             case TraderState.Empty =>
               strategy.recommendedTrade(lastIndex).foreach { trade =>
                 if (tradingEnabled()) {
-                  tryEnter(bar, trade)
+                  tryEnter(bar, trade, manualTrade = false)
                 } else {
                   logger.warn("Trading disabled")
                 }
@@ -437,7 +442,7 @@ object Trader extends LoggingSupport {
             sinkSnapshot(event)
           case Trader.Event.TradeRequested(trade) =>
             currentBar.foreach { bar =>
-              tryEnter(bar, trade)
+              tryEnter(bar, trade, manualTrade = true)
             }
           case Trader.Event.ExitRequested =>
             (currentBar, state) match {

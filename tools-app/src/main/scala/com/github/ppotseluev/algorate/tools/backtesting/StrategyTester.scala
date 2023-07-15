@@ -54,13 +54,15 @@ private[backtesting] object StrategyTester {
       rubTrade: Int = 10_000
   ): Policy = {
     val money: Money = Map("usd" -> Int.MaxValue, "rub" -> Int.MaxValue, "usdt" -> Int.MaxValue)
+    val map: Map[String, () => Double] = Map(
+      "usd" -> (() => usdTrade),
+      "usdt" -> (() => usdTrade),
+      "rub" -> (() => rubTrade)
+    )
     new MoneyManagementPolicy(() => Some(money))(
       maxPercentage = 1,
-      maxAbsolute = Map(
-        "usd" -> (() => usdTrade),
-        "usdt" -> (() => usdTrade),
-        "rub" -> (() => rubTrade)
-      )
+      maxAbsolute = map,
+      manualMaxAbsolute = map
     )
   }
 
@@ -91,7 +93,7 @@ private[backtesting] object StrategyTester {
       val strategy = strategyBuilder(assetData)
       val lots: Function[Bar, Num] = bar => {
         series.numOf {
-          tradingPolicy.apply(TradeRequest(asset, bar.getClosePrice.doubleValue)).lots
+          tradingPolicy.apply(TradeRequest(asset, bar.getClosePrice.doubleValue, manualTrade = false)).lots
         }
       }
       val seriesManager = new BarSeriesManager(series, transactionCostModel, holdingCostModel)

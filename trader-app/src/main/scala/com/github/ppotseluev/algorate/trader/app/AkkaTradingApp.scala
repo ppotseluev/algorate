@@ -90,12 +90,17 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         IO.never[Money],
         Map("usdt" -> BigDecimal(100_000)).some
       )
-      val tradeAmount = featureToggles.register("trade-amount", 20d)
+      val botTradeAmount = featureToggles.register("bot-trade-amount", 100d)
+      val manualTradeAmount = featureToggles.register("manual-trade-amount", 20d)
       val policy = new MoneyManagementPolicy(() => moneyTracker.get)(
         maxPercentage = 1, //100%
         maxAbsolute = Map(
-          "usd" -> tradeAmount,
-          "usdt" -> tradeAmount
+          "usd" -> botTradeAmount,
+          "usdt" -> botTradeAmount
+        ),
+        manualMaxAbsolute = Map(
+          "usd" -> manualTradeAmount,
+          "usdt" -> manualTradeAmount
         )
       )
       val assets = enrichAssets(broker.getExchangeInfo) {

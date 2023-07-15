@@ -12,7 +12,8 @@ object Policy {
 
   case class TradeRequest(
       asset: TradingAsset,
-      price: Price
+      price: Price,
+      manualTrade: Boolean
   )
 
   sealed trait Decision {

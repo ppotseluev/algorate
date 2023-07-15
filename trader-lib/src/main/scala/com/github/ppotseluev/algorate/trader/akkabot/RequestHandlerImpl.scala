@@ -261,8 +261,7 @@ object RequestHandlerImpl {
   sealed trait State
   object State {
     case object Empty extends State
-    case class WaitingTradingTicker(operation: OperationType)
-        extends State //TODO support custom amount
+    case class WaitingTradingTicker(operation: OperationType) extends State
     case object WaitingExitTicker extends State
     case object WaitingShowTicker extends State
     case object WaitingCancelOrdersTicker extends State
