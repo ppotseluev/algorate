@@ -9,12 +9,10 @@ import cats.implicits._
 import cats.~>
 import com.github.ppotseluev.algorate._
 import com.github.ppotseluev.algorate.broker.Broker
-import com.github.ppotseluev.algorate.broker.Broker.{
-  CandleResolution,
-  CandlesInterval,
-  DaysInterval,
-  OrderPlacementInfo
-}
+import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
+import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
+import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
+import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
 import com.github.ppotseluev.algorate.cats.Provider
 import com.github.ppotseluev.algorate.server.Factory
 import com.github.ppotseluev.algorate.strategy.Strategies
@@ -25,7 +23,6 @@ import com.github.ppotseluev.algorate.trader.policy.MoneyManagementPolicy
 import com.typesafe.scalalogging.LazyLogging
 import io.github.paoloboni.binance.spot.response.ExchangeInformation
 import io.github.paoloboni.binance.spot.response.LOT_SIZE
-
 import java.time.LocalDate
 import scala.concurrent.Future
 import scala.concurrent.duration._

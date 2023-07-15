@@ -1,11 +1,10 @@
 package com.github.ppotseluev.algorate.trader
 
 import cats.effect.kernel.Temporal
-import com.github.ppotseluev.algorate.{Bar, BarInfo, TradingAsset}
-import com.github.ppotseluev.algorate.broker.Broker
-import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
+import com.github.ppotseluev.algorate.Bar
+import com.github.ppotseluev.algorate.BarInfo
+import com.github.ppotseluev.algorate.TradingAsset
 import fs2.Stream
-
 import scala.concurrent.duration.FiniteDuration
 
 /**
