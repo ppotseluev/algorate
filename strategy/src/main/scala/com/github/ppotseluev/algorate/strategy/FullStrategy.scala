@@ -3,13 +3,13 @@ package com.github.ppotseluev.algorate.strategy
 import cats.implicits._
 import com.github.ppotseluev.algorate.ExitBounds
 import com.github.ppotseluev.algorate.OperationType
+import com.github.ppotseluev.algorate.strategy.indicator.ChannelIndicator.Channel
 import org.ta4j.core.Indicator
 import org.ta4j.core.Strategy
-import org.ta4j.core.num.Num
-import FullStrategy.{IndicatorInfo, TradeIdea}
-import com.github.ppotseluev.algorate.strategy.indicator.ChannelIndicator
-import com.github.ppotseluev.algorate.strategy.indicator.ChannelIndicator.Channel
 import org.ta4j.core.indicators.AbstractIndicator
+import org.ta4j.core.num.Num
+
+import FullStrategy.{IndicatorInfo, TradeIdea}
 
 class FullStrategy(
     longStrategy: Strategy,

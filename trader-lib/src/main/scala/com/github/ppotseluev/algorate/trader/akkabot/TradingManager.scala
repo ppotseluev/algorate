@@ -22,9 +22,7 @@ import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.Trader
 import com.github.ppotseluev.algorate.trader.feature.FeatureToggles
 import com.github.ppotseluev.algorate.trader.policy.Policy
 import com.typesafe.scalalogging.LazyLogging
-
 import scala.collection.parallel.CollectionConverters._
-
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration._

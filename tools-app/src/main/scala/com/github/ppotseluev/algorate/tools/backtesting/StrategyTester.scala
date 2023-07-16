@@ -93,7 +93,9 @@ private[backtesting] object StrategyTester {
       val strategy = strategyBuilder(assetData)
       val lots: Function[Bar, Num] = bar => {
         series.numOf {
-          tradingPolicy.apply(TradeRequest(asset, bar.getClosePrice.doubleValue, manualTrade = false)).lots
+          tradingPolicy
+            .apply(TradeRequest(asset, bar.getClosePrice.doubleValue, manualTrade = false))
+            .lots
         }
       }
       val seriesManager = new BarSeriesManager(series, transactionCostModel, holdingCostModel)

@@ -26,7 +26,6 @@ import com.github.ppotseluev.algorate.trader.policy.Policy
 import com.github.ppotseluev.algorate.trader.policy.Policy.Decision
 import com.github.ppotseluev.algorate.trader.policy.Policy.TradeRequest
 import io.prometheus.client.Gauge
-
 import java.time.OffsetDateTime
 import java.time.ZonedDateTime
 import org.ta4j.core.BarSeries
@@ -35,7 +34,6 @@ import org.ta4j.core.BaseTradingRecord
 import org.ta4j.core.Trade.TradeType
 import org.ta4j.core.TradingRecord
 import org.ta4j.core.cost.ZeroCostModel
-
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.concurrent.duration._

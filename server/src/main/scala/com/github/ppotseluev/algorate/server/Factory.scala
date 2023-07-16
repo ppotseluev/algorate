@@ -32,12 +32,12 @@ import com.github.ppotseluev.algorate.trader.feature.FeatureToggles
 import com.github.ppotseluev.algorate.trader.telegram.HttpTelegramClient
 import com.github.ppotseluev.algorate.trader.telegram.TelegramClient
 import com.github.ppotseluev.algorate.trader.telegram.TelegramWebhook
-import dev.profunktor.redis4cats.{Redis, RedisCommands}
+import dev.profunktor.redis4cats.Redis
+import dev.profunktor.redis4cats.RedisCommands
 import dev.profunktor.redis4cats.connection.RedisClient
 import dev.profunktor.redis4cats.effect.Log.Stdout.instance
 import io.github.paoloboni.binance.BinanceClient
 import io.github.paoloboni.binance.spot.SpotApi
-
 import java.io.File
 import java.time.ZoneOffset
 import pureconfig.ConfigSource
