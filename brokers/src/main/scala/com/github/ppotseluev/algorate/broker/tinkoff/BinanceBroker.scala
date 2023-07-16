@@ -45,8 +45,7 @@ import scala.util.Success
 class BinanceBroker[F[_]: Concurrent: Async](
     spotApi: SpotApi[F],
     spotClient: BinanceApiAsyncRestClient,
-    marginClient: BinanceApiAsyncMarginRestClient,
-    fee: BigDecimal = 0.001 //0.1%
+    marginClient: BinanceApiAsyncMarginRestClient
 ) extends Broker[F]
     with LazyLogging {
   def getBalance(nonZero: Boolean): F[SpotAccountInfoResponse] = {
@@ -122,9 +121,8 @@ class BinanceBroker[F[_]: Concurrent: Async](
             if (toRepay == 0) {
               logger.warn(s"Repay amount is zero, requested order $order")
             }
-            //TODO use BNB balance to pay fee & interest rate?
-            val toBuy = (toRepay / (1 - fee)).setScale(order.asset.quantityScale, RoundingMode.UP)
-            toBuy -> toRepay.some
+            val toBuy = toRepay.setScale(order.asset.quantityScale, RoundingMode.UP)
+            toBuy -> toRepay.some //fee is payed in BNB
           }
         } else {
           (order.lots -> none).pure[F]
@@ -221,10 +219,9 @@ object BinanceBroker {
       spotClient: BinanceApiAsyncRestClient,
       marginClient: BinanceApiAsyncMarginRestClient,
       barsCache: Either[(String, Path), RedisCommands[F, String, List[Bar]]],
-      fee: BigDecimal = 0.001 //0.1
   ): BinanceBroker[F] = {
-    val binanceBroker = new BinanceBroker[F](spotApi, spotClient, marginClient, fee)
-    new BinanceBroker[F](spotApi, spotClient, marginClient, fee) {
+    val binanceBroker = new BinanceBroker[F](spotApi, spotClient, marginClient)
+    new BinanceBroker[F](spotApi, spotClient, marginClient) {
       private val cachedBroker = barsCache match {
         case Left(token -> archiveDir) =>
           val archive = new Archive[F](token, archiveDir)
