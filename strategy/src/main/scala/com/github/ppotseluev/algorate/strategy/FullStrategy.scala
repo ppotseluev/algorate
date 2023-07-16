@@ -8,8 +8,7 @@ import org.ta4j.core.Indicator
 import org.ta4j.core.Strategy
 import org.ta4j.core.indicators.AbstractIndicator
 import org.ta4j.core.num.Num
-
-import FullStrategy.{IndicatorInfo, TradeIdea}
+import FullStrategy.{IndicatorInfo, StrategyIndicators, TradeIdea}
 
 class FullStrategy(
     longStrategy: Strategy,
@@ -17,7 +16,7 @@ class FullStrategy(
     getPriceIndicators: () => Map[String, IndicatorInfo],
     val oscillators: Map[String, IndicatorInfo],
     stopIndicator: Indicator[(Num, Num)],
-    val channelIndicator: AbstractIndicator[Option[Channel]] //TODO
+    val strategyIndicators: StrategyIndicators
 ) {
   lazy val priceIndicators: Map[String, IndicatorInfo] = getPriceIndicators()
 
@@ -65,5 +64,10 @@ object FullStrategy {
   case class IndicatorInfo(
       indicator: Indicator[Num],
       representation: Representation = Representation.Line
+  )
+
+  case class StrategyIndicators(
+      channelIndicator: AbstractIndicator[Option[Channel]],
+      channelIsWideEnough: AbstractIndicator[Boolean]
   )
 }

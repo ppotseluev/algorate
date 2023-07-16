@@ -260,8 +260,11 @@ object RequestHandlerImpl {
   sealed trait AssetsFilter extends EnumEntry
   object AssetsFilter extends Enum[AssetsFilter] {
     sealed trait TraderFilter extends AssetsFilter
-    case object All extends AssetsFilter
-    case object HasChannel extends TraderFilter
+    case object AllAssets extends AssetsFilter
+    case object AnyChannel extends TraderFilter
+    case object SuitableChannel extends TraderFilter
+    case object NonEmptyState extends TraderFilter
+    case object WithLag extends TraderFilter
     override val values: IndexedSeq[AssetsFilter] = findValues
   }
 

@@ -140,7 +140,7 @@ object TradingManager extends LazyLogging {
             traders.values.par.foreach { trader =>
               trader ! Trader.Event.Check(traderFilter, ctx.self)
             }
-          case AssetsFilter.All =>
+          case AssetsFilter.AllAssets =>
             cb(assets.values.toList)
         }
         Behaviors.same

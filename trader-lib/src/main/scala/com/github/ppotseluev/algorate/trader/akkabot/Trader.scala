@@ -417,9 +417,20 @@ object Trader extends LoggingSupport {
         snapshotSink ! TraderSnapshotEvent(snapshot)
       }
 
-      def checkFilter(filter: TraderFilter): Boolean = filter match {
-        case AssetsFilter.HasChannel =>
-          strategy.channelIndicator.getValue(barSeries.getEndIndex).isDefined
+      def checkFilter(filter: TraderFilter): Boolean = {
+        val indicators = strategy.strategyIndicators
+        filter match {
+          case AssetsFilter.AnyChannel =>
+            indicators.channelIndicator.getValue(barSeries.getEndIndex).isDefined
+          case AssetsFilter.SuitableChannel =>
+            indicators.channelIndicator.getValue(barSeries.getEndIndex).isDefined &&
+              indicators.channelIsWideEnough.getValue(barSeries.getEndIndex)
+          case AssetsFilter.NonEmptyState =>
+            state != TraderState.Empty
+          case AssetsFilter.WithLag =>
+            val max = maxLag.getOrElse(Duration.Inf)
+            currentBar.map(lag).forall(_ > max)
+        }
       }
 
       Behaviors.receive { (ctx, event) =>
