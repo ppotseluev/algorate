@@ -49,7 +49,8 @@ object TelegramClient {
       text: String,
       @transient photo: Option[Array[Byte]] = None,
       replyMarkup: Option[ReplyMarkup] = None,
-      parseMode: Option[String] = None //Some("MarkdownV2")
+      parseMode: Option[String] = None, //Some("MarkdownV2")
+      disableWebPagePreview: Option[Boolean] = None
   )
 
   object Message {
