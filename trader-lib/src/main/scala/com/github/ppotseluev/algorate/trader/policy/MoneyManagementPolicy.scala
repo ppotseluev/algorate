@@ -11,13 +11,16 @@ import com.github.ppotseluev.algorate.trader.policy.Policy.TradeRequest
 class MoneyManagementPolicy(money: () => Option[Money])(
     maxPercentage: Double,
     maxAbsolute: Map[Currency, () => Double],
+    manualMaxAbsolute: Map[Currency, () => Double],
     allowFractionalLots: TradingAsset.Type => Boolean = MoneyManagementPolicy.fractionalLots
 ) extends Policy {
   override def apply(request: TradeRequest): Decision = {
     val currency = request.asset.currency
     val availableMoney = money().orEmpty.getOrElse(currency, BigDecimal(0))
     val moneyForTrade = math.min(
-      maxAbsolute.getOrElse(currency, () => 0d).apply(),
+      (if (request.manualTrade) manualMaxAbsolute else maxAbsolute)
+        .getOrElse(currency, () => 0d)
+        .apply(),
       (maxPercentage * availableMoney).toDouble
     )
     val lots: Double = {

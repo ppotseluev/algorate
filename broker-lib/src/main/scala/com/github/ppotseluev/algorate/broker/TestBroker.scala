@@ -2,7 +2,7 @@ package com.github.ppotseluev.algorate.broker
 
 import cats.effect.Sync
 import cats.implicits._
-import com.github.ppotseluev.algorate.ClosePositionOrder.Type
+import com.github.ppotseluev.algorate.ClosePositionOrder.StopType
 import com.github.ppotseluev.algorate._
 import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import com.github.ppotseluev.algorate.broker.Broker.OrderExecutionStatus
@@ -55,10 +55,11 @@ class TestBroker[F[_]: Sync] private (realBroker: Broker[F]) extends Broker[F] {
           Some(newValue)
         },
         successCount =
-          state.successCount + (if (order.info.closingOrderType.contains(Type.TakeProfit)) 1
+          state.successCount + (if (order.info.closingOrderType.contains(StopType.TakeProfit)) 1
                                 else 0),
         failureCount =
-          state.failureCount + (if (order.info.closingOrderType.contains(Type.StopLoss)) 1 else 0),
+          state.failureCount + (if (order.info.closingOrderType.contains(StopType.StopLoss)) 1
+                                else 0),
         ordersHistory = ordersHistory
       )
       newState

@@ -3,18 +3,20 @@ package com.github.ppotseluev.algorate.strategy
 import cats.implicits._
 import com.github.ppotseluev.algorate.ExitBounds
 import com.github.ppotseluev.algorate.OperationType
+import com.github.ppotseluev.algorate.strategy.indicator.ChannelIndicator.Channel
 import org.ta4j.core.Indicator
 import org.ta4j.core.Strategy
+import org.ta4j.core.indicators.AbstractIndicator
 import org.ta4j.core.num.Num
-
-import FullStrategy.{IndicatorInfo, TradeIdea}
+import FullStrategy.{IndicatorInfo, StrategyIndicators, TradeIdea}
 
 class FullStrategy(
     longStrategy: Strategy,
     shortStrategy: Strategy,
     getPriceIndicators: () => Map[String, IndicatorInfo],
     val oscillators: Map[String, IndicatorInfo],
-    stopIndicator: Indicator[(Num, Num)]
+    stopIndicator: Indicator[(Num, Num)],
+    val strategyIndicators: StrategyIndicators
 ) {
   lazy val priceIndicators: Map[String, IndicatorInfo] = getPriceIndicators()
 
@@ -62,5 +64,10 @@ object FullStrategy {
   case class IndicatorInfo(
       indicator: Indicator[Num],
       representation: Representation = Representation.Line
+  )
+
+  case class StrategyIndicators(
+      channelIndicator: AbstractIndicator[Option[Channel]],
+      channelIsWideEnough: AbstractIndicator[Boolean]
   )
 }

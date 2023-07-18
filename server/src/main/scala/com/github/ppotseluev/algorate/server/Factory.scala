@@ -17,6 +17,7 @@ import com.github.ppotseluev.algorate.broker.Archive
 import com.github.ppotseluev.algorate.broker.tinkoff.BinanceBroker
 import com.github.ppotseluev.algorate.broker.tinkoff.TinkoffApi
 import com.github.ppotseluev.algorate.broker.tinkoff.TinkoffBroker
+import com.github.ppotseluev.algorate.cats.CatsUtils.FireAndForget
 import com.github.ppotseluev.algorate.redis.RedisCodecs
 import com.github.ppotseluev.algorate.redis.codec._
 import com.github.ppotseluev.algorate.server.Codecs._
@@ -31,12 +32,12 @@ import com.github.ppotseluev.algorate.trader.feature.FeatureToggles
 import com.github.ppotseluev.algorate.trader.telegram.HttpTelegramClient
 import com.github.ppotseluev.algorate.trader.telegram.TelegramClient
 import com.github.ppotseluev.algorate.trader.telegram.TelegramWebhook
-import dev.profunktor.redis4cats.{Redis, RedisCommands}
+import dev.profunktor.redis4cats.Redis
+import dev.profunktor.redis4cats.RedisCommands
 import dev.profunktor.redis4cats.connection.RedisClient
 import dev.profunktor.redis4cats.effect.Log.Stdout.instance
 import io.github.paoloboni.binance.BinanceClient
 import io.github.paoloboni.binance.spot.SpotApi
-
 import java.io.File
 import java.time.ZoneOffset
 import pureconfig.ConfigSource
@@ -47,7 +48,7 @@ import sttp.client3.httpclient.fs2.HttpClientFs2Backend
 import sttp.tapir.server.metrics.prometheus.PrometheusMetrics
 import upperbound.Limiter
 
-class Factory[F[_]: Async: Parallel] {
+class Factory[F[_]: Async: Parallel: FireAndForget] {
 
   val config: Config = ConfigSource
     .resources("application.local.conf")
@@ -162,14 +163,12 @@ class Factory[F[_]: Async: Parallel] {
   def traderRequestHandler(
       actorSystem: ActorSystem[TradingManager.Event],
       assets: Map[Ticker, InstrumentId],
-      eventsSink: EventsSink[F],
       broker: BinanceBroker[F]
   ): F[RequestHandler[F]] =
     Ref.of[F, State](State.Empty).map { state =>
       new RequestHandlerImpl[F](
         actorSystem = actorSystem,
         assets = assets,
-        eventsSink = eventsSink,
         state = state,
         broker = broker
       )
@@ -209,5 +208,8 @@ class Factory[F[_]: Async: Parallel] {
 }
 
 object Factory {
-  implicit val io = new Factory[IO]
+  implicit val io = {
+    import cats.effect.unsafe.implicits.global
+    new Factory[IO]
+  }
 }

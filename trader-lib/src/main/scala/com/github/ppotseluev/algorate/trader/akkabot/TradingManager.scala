@@ -4,8 +4,10 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import cats.implicits._
 import com.github.ppotseluev.algorate.BarInfo
+import com.github.ppotseluev.algorate.ClosePositionOrder.StopType
 import com.github.ppotseluev.algorate.EnrichedPosition
 import com.github.ppotseluev.algorate.InstrumentId
+import com.github.ppotseluev.algorate.Price
 import com.github.ppotseluev.algorate.Stats
 import com.github.ppotseluev.algorate.TradingAsset
 import com.github.ppotseluev.algorate.TradingStats
@@ -13,11 +15,14 @@ import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.broker.MoneyTracker
 import com.github.ppotseluev.algorate.strategy.FullStrategy.TradeIdea
 import com.github.ppotseluev.algorate.strategy.StrategyBuilder
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.AssetsFilter
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.CandleData
+import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.TraderResponse.Payload
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager.Event.TraderSnapshotRequested
 import com.github.ppotseluev.algorate.trader.feature.FeatureToggles
 import com.github.ppotseluev.algorate.trader.policy.Policy
 import com.typesafe.scalalogging.LazyLogging
+import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration._
@@ -34,6 +39,15 @@ object TradingManager extends LazyLogging {
         instrumentId: InstrumentId,
         operationType: TradeIdea
     ) extends Event
+    case class SetStop(instrumentId: InstrumentId, stopType: StopType, value: Price) extends Event
+    case class FindAssets(filter: AssetsFilter, callback: List[TradingAsset] => Unit) extends Event
+    case class TraderResponse(asset: TradingAsset, payload: Payload) extends Event
+    object TraderResponse {
+      sealed trait Payload
+      object Payload {
+        case class Check(result: Boolean) extends Payload
+      }
+    }
   }
 
   def apply[F[_]](
@@ -45,7 +59,8 @@ object TradingManager extends LazyLogging {
       keepLastBars: Int,
       eventsSink: EventsSink[Future],
       checkOrdersStatusEvery: FiniteDuration = 3.seconds,
-      maxLag: Option[FiniteDuration]
+      maxLag: Option[FiniteDuration],
+      enableTrading: Boolean
   )(implicit featureToggles: FeatureToggles): Behavior[Event] = Behaviors.setup { ctx =>
     val ordersWatcher = ctx.spawn(
       OrdersWatcher(checkOrdersStatusEvery, broker),
@@ -62,7 +77,8 @@ object TradingManager extends LazyLogging {
         keepLastBars = keepLastBars,
         ordersWatcher = ordersWatcher,
         snapshotSink = ctx.self,
-        maxLag = maxLag
+        maxLag = maxLag,
+        enableTrading = enableTrading
       )
     }
 
@@ -83,6 +99,10 @@ object TradingManager extends LazyLogging {
       long = Stats(longTrades.toSeq.sortBy(_.entryTime)),
       short = Stats(shortTrades.toSeq.sortBy(_.entryTime))
     )
+
+    var foundAssets: List[TradingAsset] = Nil
+    var waitingForTraders = 0
+    var callback: List[TradingAsset] => Unit = _ => ()
 
     Behaviors.receiveMessage {
       case CandleData(data) =>
@@ -107,6 +127,34 @@ object TradingManager extends LazyLogging {
         Behaviors.same
       case Event.ExitRequested(instrumentId) =>
         useTrader(instrumentId)(_ ! Trader.Event.ExitRequested)
+        Behaviors.same
+      case Event.SetStop(instrumentId, stopType, value) =>
+        useTrader(instrumentId)(_ ! Trader.Event.SetStop(stopType, value))
+        Behaviors.same
+      case Event.FindAssets(assetsFilter, cb) =>
+        assetsFilter match {
+          case traderFilter: AssetsFilter.TraderFilter =>
+            foundAssets = Nil
+            callback = cb
+            waitingForTraders = traders.size
+            traders.values.par.foreach { trader =>
+              trader ! Trader.Event.Check(traderFilter, ctx.self)
+            }
+          case AssetsFilter.AllAssets =>
+            cb(assets.values.toList)
+        }
+        Behaviors.same
+      case Event.TraderResponse(asset, payload) =>
+        waitingForTraders -= 1
+        payload match {
+          case Payload.Check(fits) =>
+            if (fits) {
+              foundAssets = asset :: foundAssets
+            }
+        }
+        if (waitingForTraders == 0) {
+          callback(foundAssets)
+        }
         Behaviors.same
     }
   }

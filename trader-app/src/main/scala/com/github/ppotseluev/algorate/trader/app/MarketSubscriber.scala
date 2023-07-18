@@ -5,17 +5,13 @@ import cats.effect.kernel.Concurrent
 import cats.effect.kernel.Sync
 import cats.effect.kernel.Temporal
 import com.github.ppotseluev.algorate._
-import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
-import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
-import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import com.github.ppotseluev.algorate.broker.tinkoff.BinanceConverters
 import com.github.ppotseluev.algorate.broker.tinkoff.TinkoffConverters
 import com.github.ppotseluev.algorate.trader.HistoryStream
 import com.github.ppotseluev.algorate.trader.akkabot.TradingManager
 import com.typesafe.scalalogging.LazyLogging
 import io.github.paoloboni.binance.spot.SpotApi
-import java.time.LocalDate
 import java.util.function.Consumer
 import ru.tinkoff.piapi.contract.v1.MarketDataResponse
 import ru.tinkoff.piapi.core.InvestApi
@@ -94,19 +90,13 @@ object MarketSubscriber extends LazyLogging {
         }
 
     def stub[F[_]: Temporal: Sync](
-        broker: Broker[F],
-        streamFrom: LocalDate,
-        streamTo: LocalDate,
+        getData: (TradingAsset, CandleResolution) => F[List[Bar]],
         rate: FiniteDuration
     ): MarketSubscriber[F, Id] = (asset: TradingAsset) =>
       HistoryStream
         .make[F](
           asset = asset,
-          broker = broker,
-          candlesInterval = CandlesInterval(
-            interval = DaysInterval(streamFrom, streamTo),
-            resolution = candleResolution
-          ),
+          getData = getData(asset, candleResolution),
           rate = rate
         )
         .foreach { barInfo =>

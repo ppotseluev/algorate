@@ -32,7 +32,9 @@ object EventsSink extends LoggingSupport {
               profit.calculate(snapshot.unsafe.barSeries, snapshot.unsafe.longHistory)
             val shortProfit =
               profit.calculate(snapshot.unsafe.barSeries, snapshot.unsafe.shortHistory)
+            val assetId = snapshot.asset.symbol + "_USDT"
             val msg = s"""
+             |binance.com/en/trade/$assetId
              |asset: ${snapshot.asset}
              |price: ${snapshot.currentPrice}
              |state: ${snapshot.state}
@@ -54,7 +56,8 @@ object EventsSink extends LoggingSupport {
         TelegramClient.Message(
           chatId = chatId,
           text = text,
-          photo = image.some
+          photo = image.some,
+          disableWebPagePreview = true.some
         )
       }
       .flatMap { messageSource => client.send(botToken)(messageSource) }

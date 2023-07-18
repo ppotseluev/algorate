@@ -1,10 +1,9 @@
 package com.github.ppotseluev.algorate.trader
 
 import cats.effect.kernel.Temporal
+import com.github.ppotseluev.algorate.Bar
 import com.github.ppotseluev.algorate.BarInfo
 import com.github.ppotseluev.algorate.TradingAsset
-import com.github.ppotseluev.algorate.broker.Broker
-import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
 import fs2.Stream
 import scala.concurrent.duration.FiniteDuration
 
@@ -15,12 +14,11 @@ object HistoryStream {
 
   def make[F[_]: Temporal](
       asset: TradingAsset,
-      broker: Broker[F],
-      candlesInterval: CandlesInterval,
+      getData: F[List[Bar]],
       rate: FiniteDuration
   ): Stream[F, BarInfo] =
     Stream
-      .eval(broker.getData(asset, candlesInterval))
+      .eval(getData)
       .flatMap(Stream.emits(_))
       .map(BarInfo(asset.instrumentId, _))
       .meteredStartImmediately(rate)

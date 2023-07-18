@@ -17,6 +17,8 @@ object Dependency {
 
   val kittens = "org.typelevel" %% "kittens" % "3.0.0"
 
+  val parCollections = "org.scala-lang.modules" %% "scala-parallel-collections" % "1.0.4"
+
   val apacheMath = "org.apache.commons" % "commons-math3" % "3.6.1"
 
   val munit = "org.scalameta" %% "munit" % "0.7.29" % Test

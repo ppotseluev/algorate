@@ -4,13 +4,18 @@ import akka.actor.typed.ActorSystem
 import cats.effect.Ref
 import cats.effect.kernel.Sync
 import cats.implicits._
+import com.github.ppotseluev.algorate.ClosePositionOrder.StopType
 import com.github.ppotseluev.algorate.ExitBounds
 import com.github.ppotseluev.algorate._
 import com.github.ppotseluev.algorate.broker.tinkoff.BinanceBroker
+import com.github.ppotseluev.algorate.cats.CatsUtils.FireAndForget
+import com.github.ppotseluev.algorate.cats.CatsUtils.FireAndForget._
 import com.github.ppotseluev.algorate.strategy.FullStrategy.TradeIdea
 import com.github.ppotseluev.algorate.trader.Request
 import com.github.ppotseluev.algorate.trader.RequestHandler
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.AssetsFilter
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingAssetsFilter
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingCancelOrdersTicker
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingExitTicker
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingFeatureAction
@@ -19,6 +24,9 @@ import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.Wa
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingOrdersTicker
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingShowTicker
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingStopLoss
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingStopTicker
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingStopType
+import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingStopValue
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingTakeProfit
 import com.github.ppotseluev.algorate.trader.akkabot.RequestHandlerImpl.State.WaitingTradingTicker
 import com.github.ppotseluev.algorate.trader.feature.FeatureToggles
@@ -26,13 +34,14 @@ import com.github.ppotseluev.algorate.trader.telegram.TelegramClient.KeyboardBut
 import com.github.ppotseluev.algorate.trader.telegram.TelegramClient.MessageSource
 import com.github.ppotseluev.algorate.trader.telegram.TelegramClient.ReplyMarkup
 import com.typesafe.scalalogging.LazyLogging
+import enumeratum.Enum
+import enumeratum.EnumEntry
 import scala.jdk.CollectionConverters._
 import scala.util.control.NonFatal
 
-class RequestHandlerImpl[F[_]: Sync](
+class RequestHandlerImpl[F[_]: Sync: FireAndForget](
     actorSystem: ActorSystem[TradingManager.Event],
     assets: Map[Ticker, InstrumentId],
-    eventsSink: EventsSink[F],
     state: Ref[F, State],
     broker: BinanceBroker[F]
 )(implicit featureToggles: FeatureToggles)
@@ -43,12 +52,16 @@ class RequestHandlerImpl[F[_]: Sync](
     def -->(newState: State): F[Unit] = f >> state.set(newState)
   }
 
-  private def notifyTraders(ticker: Ticker, event: InstrumentId => TradingManager.Event) =
+  private def notifyTraders(
+      ticker: Ticker,
+      event: InstrumentId => TradingManager.Event,
+      flushState: Boolean = true
+  ) =
     Sync[F].delay {
       assets.get(ticker).foreach { instrumentId =>
         actorSystem ! event(instrumentId)
       }
-    } --> State.Empty
+    } >> state.set(State.Empty).whenA(flushState)
 
   override def handle(request: Request, reply: MessageSource => F[Unit]): F[Unit] = Sync[F]
     .defer {
@@ -80,6 +93,15 @@ class RequestHandlerImpl[F[_]: Sync](
             .map(_.getUserAssets.asScala.filter(_.getNetAsset != "0"))
             .map(_.toString)
             .flatMap(replyT(_))
+        case Request.Debt =>
+          broker.getMarginAccount
+            .map {
+              _.getUserAssets.asScala.filter { asset =>
+                asset.getBorrowed != "0" || asset.getInterest != "0"
+              }
+            }
+            .map(_.toString)
+            .flatMap(replyT(_))
         case Request.CancelOrders  => requestTicker(WaitingCancelOrdersTicker)
         case Request.GetOpenOrders => requestTicker(WaitingOrdersTicker(onlyOpen = true))
         case Request.GetAllOrders  => requestTicker(WaitingOrdersTicker(onlyOpen = false))
@@ -87,6 +109,26 @@ class RequestHandlerImpl[F[_]: Sync](
         case Request.Sell          => requestTicker(WaitingTradingTicker(OperationType.Sell))
         case Request.Buy           => requestTicker(WaitingTradingTicker(OperationType.Buy))
         case Request.Exit          => requestTicker(WaitingExitTicker)
+        case Request.SetStop =>
+          val msg = MessageSource(
+            text = s"Select stop type",
+            replyMarkup = ReplyMarkup
+              .make(
+                StopType.values.map(_.entryName).map(KeyboardButton.apply)
+              )
+              .some
+          )
+          reply(msg) --> WaitingStopType
+        case Request.Find =>
+          val msg = MessageSource(
+            text = s"Select filter",
+            replyMarkup = ReplyMarkup
+              .make(
+                AssetsFilter.values.map(_.entryName).map(KeyboardButton.apply)
+              )
+              .some
+          )
+          reply(msg) --> WaitingAssetsFilter
         case Request.GeneralInput(input) =>
           val ticker =
             s"${input.toUpperCase.stripSuffix("USDT")}USDT" //TODO can be non-crypto asset
@@ -116,7 +158,11 @@ class RequestHandlerImpl[F[_]: Sync](
                   notifyTraders(ticker, TradingManager.Event.TradeRequested(_, trade))
                 }
               case WaitingShowTicker =>
-                notifyTraders(ticker, TradingManager.Event.TraderSnapshotRequested)
+                notifyTraders(
+                  ticker,
+                  TradingManager.Event.TraderSnapshotRequested,
+                  flushState = false
+                )
               case WaitingExitTicker =>
                 notifyTraders(ticker, TradingManager.Event.ExitRequested)
               case WaitingOrdersTicker(onlyOpen) =>
@@ -133,11 +179,11 @@ class RequestHandlerImpl[F[_]: Sync](
                   case Some(feature) =>
                     val msg = MessageSource(
                       text = s"Current value: ${feature.apply()}",
-                      replyMarkup = ReplyMarkup(
-                        Seq(
+                      replyMarkup = ReplyMarkup
+                        .make(
                           Seq(KeyboardButton("Ok"), KeyboardButton("Update"))
-                        ).some
-                      ).some
+                        )
+                        .some
                     )
                     reply(msg) --> WaitingFeatureAction(name)
                   case None =>
@@ -157,17 +203,50 @@ class RequestHandlerImpl[F[_]: Sync](
                   case Right(()) =>
                     replyT("Updated successfully") --> State.Empty
                 }
+              case WaitingStopTicker(stopType) =>
+                replyT("Enter value") --> State.WaitingStopValue(stopType, ticker)
+              case WaitingStopValue(stopType, ticker) =>
+                parse(_.toDouble).flatMap { value =>
+                  notifyTraders(ticker, TradingManager.Event.SetStop(_, stopType, value))
+                }
+              case WaitingStopType =>
+                StopType.withNameOption(input) match {
+                  case Some(stopType) =>
+                    requestTicker(WaitingStopTicker(stopType))
+                  case None =>
+                    replyT("Incorrect stop type", removeKeyboard = none)
+                }
+              case WaitingAssetsFilter =>
+                def onResult(assets: List[TradingAsset]): Unit = {
+                  val msg = MessageSource(
+                    text = s"Found ${assets.size} assets",
+                    replyMarkup = ReplyMarkup
+                      .make(
+                        assets
+                          .map(_.symbol)
+                          .map(KeyboardButton.apply)
+                      )
+                      .some
+                      .filter(_ => assets.nonEmpty)
+                  )
+                  reply(msg) --> WaitingShowTicker
+                }.fireAndForget()
+                AssetsFilter.withNameOption(input) match {
+                  case Some(assetsFilter) =>
+                    replyT("Searching...") >> Sync[F].delay {
+                      actorSystem ! TradingManager.Event.FindAssets(assetsFilter, onResult)
+                    } --> State.Empty
+                  case None =>
+                    replyT("Incorrect assets filter", removeKeyboard = none)
+                }
             }
         case Request.ShowActiveTrades => ???
         case Request.Features =>
           val features = featureToggles.list
-          val buttons = features
-            .map(_.name)
-            .map(KeyboardButton.apply)
-            .map(Seq(_))
+          val buttons = features.map(_.name).map(KeyboardButton.apply)
           val msg = MessageSource(
             text = "Select feature",
-            replyMarkup = ReplyMarkup(buttons.some).some
+            replyMarkup = ReplyMarkup.make(buttons).some
           )
           reply(msg) --> State.WaitingFeatureName
       }
@@ -178,6 +257,17 @@ class RequestHandlerImpl[F[_]: Sync](
 }
 
 object RequestHandlerImpl {
+  sealed trait AssetsFilter extends EnumEntry
+  object AssetsFilter extends Enum[AssetsFilter] {
+    sealed trait TraderFilter extends AssetsFilter
+    case object AllAssets extends AssetsFilter
+    case object AnyChannel extends TraderFilter
+    case object SuitableChannel extends TraderFilter
+    case object NonEmptyState extends TraderFilter
+    case object WithLag extends TraderFilter
+    override val values: IndexedSeq[AssetsFilter] = findValues
+  }
+
   sealed trait State
   object State {
     case object Empty extends State
@@ -192,5 +282,9 @@ object RequestHandlerImpl {
     case class WaitingStopLoss(operationType: OperationType, ticker: Ticker) extends State
     case class WaitingTakeProfit(operationType: OperationType, ticker: Ticker, stopLoss: Price)
         extends State
+    case object WaitingStopType extends State
+    case class WaitingStopTicker(stopType: StopType) extends State
+    case class WaitingStopValue(stopType: StopType, ticker: Ticker) extends State
+    case object WaitingAssetsFilter extends State
   }
 }

@@ -10,6 +10,8 @@ import cats.~>
 import com.github.ppotseluev.algorate._
 import com.github.ppotseluev.algorate.broker.Broker
 import com.github.ppotseluev.algorate.broker.Broker.CandleResolution
+import com.github.ppotseluev.algorate.broker.Broker.CandlesInterval
+import com.github.ppotseluev.algorate.broker.Broker.DaysInterval
 import com.github.ppotseluev.algorate.broker.Broker.OrderPlacementInfo
 import com.github.ppotseluev.algorate.cats.Provider
 import com.github.ppotseluev.algorate.server.Factory
@@ -88,17 +90,22 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         IO.never[Money],
         Map("usdt" -> BigDecimal(100_000)).some
       )
-      val tradeAmount = featureToggles.register("trade-amount", 20d)
+      val botTradeAmount = featureToggles.register("bot-trade-amount", 100d)
+      val manualTradeAmount = featureToggles.register("manual-trade-amount", 20d)
       val policy = new MoneyManagementPolicy(() => moneyTracker.get)(
         maxPercentage = 1, //100%
         maxAbsolute = Map(
-          "usd" -> tradeAmount,
-          "usdt" -> tradeAmount
+          "usd" -> botTradeAmount,
+          "usdt" -> botTradeAmount
+        ),
+        manualMaxAbsolute = Map(
+          "usd" -> manualTradeAmount,
+          "usdt" -> manualTradeAmount
         )
       )
       val assets = enrichAssets(broker.getExchangeInfo) {
-        Assets.allCryptocurrencies.distinctBy(_.instrumentId)
-//        Assets.testnetAssets :+ TradingAsset.crypto("SOL")
+        if (config.localEnv) Assets.testnetAssets :+ TradingAsset.crypto("SOL")
+        else Assets.allCryptocurrencies.distinctBy(_.instrumentId)
       }
       val assetsMap = assets.map(a => a.instrumentId -> a).toMap
       val tradingManager = TradingManager(
@@ -107,11 +114,12 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         strategy = Strategies.default,
         moneyTracker = moneyTracker,
         policy = policy,
-        keepLastBars = 1000,
+        keepLastBars = config.keepLastBars,
         eventsSink = eventsSinkFuture,
         maxLag = Option.when(useHistoricalData.isEmpty)(
           (candleResolution.duration * 1.5).asInstanceOf[FiniteDuration]
-        )
+        ),
+        enableTrading = config.enableTrading
       )
       for {
 //        shares <- broker.getSharesById(Assets.sharesIds.toSet)
@@ -128,7 +136,6 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         requestHandler <- factory.traderRequestHandler(
           actorSystem = actorSystem,
           assets = assetsMap.map { case (id, asset) => asset.ticker -> id },
-          eventsSink = eventsSink,
           broker = broker
         )
         api = factory.traderApi(requestHandler, telegramClient)
@@ -137,10 +144,9 @@ object AkkaTradingApp extends IOApp with LazyLogging {
         exitCode <- useHistoricalData.fold {
           {
             val subscriber = subscription.stub[IO](
-              broker,
-              rate = if (config.localEnv) 10.millis else 0.millis,
-              streamFrom = LocalDate.now.minusDays(2), //TODO
-              streamTo = LocalDate.now
+              getData =
+                (asset, resolution) => broker.getData(asset, resolution, config.keepLastBars),
+              rate = if (config.localEnv) 10.millis else 0.millis
             )
             assets.parTraverse(subscriber.subscribe).void
           } *> IO {
@@ -150,10 +156,12 @@ object AkkaTradingApp extends IOApp with LazyLogging {
             .subscribe(assets)
         } { case StubSettings(assets, streamFrom, streamTo, rate) =>
           val subscriber = subscription.stub[IO](
-            broker,
-            rate = rate,
-            streamFrom = streamFrom,
-            streamTo = streamTo
+            getData = (asset, resolution) =>
+              broker.getData(
+                asset,
+                CandlesInterval(DaysInterval(streamFrom, streamTo), resolution)
+              ),
+            rate = rate
           )
           assets.parTraverse(subscriber.subscribe).void
         } &>

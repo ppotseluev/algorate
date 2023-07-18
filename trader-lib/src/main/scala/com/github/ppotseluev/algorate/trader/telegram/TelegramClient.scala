@@ -27,6 +27,19 @@ object TelegramClient {
   )
 
   object ReplyMarkup {
+    def make(
+        buttons: Seq[KeyboardButton],
+        removeKeyboard: Option[Boolean] = None,
+        groupBy: Int = 5,
+        sortButtons: Boolean = true
+    ): ReplyMarkup = {
+      val keyboard = if (sortButtons) buttons.sortBy(_.text) else buttons
+      ReplyMarkup(
+        keyboard = Some(keyboard.grouped(groupBy).toSeq),
+        removeKeyboard = None
+      )
+    }
+
     implicit val keyboardCodec: Codec[ReplyMarkup] = deriveCodec
   }
 
@@ -36,7 +49,8 @@ object TelegramClient {
       text: String,
       @transient photo: Option[Array[Byte]] = None,
       replyMarkup: Option[ReplyMarkup] = None,
-      parseMode: Option[String] = None //Some("MarkdownV2")
+      parseMode: Option[String] = None, //Some("MarkdownV2")
+      disableWebPagePreview: Option[Boolean] = None
   )
 
   object Message {

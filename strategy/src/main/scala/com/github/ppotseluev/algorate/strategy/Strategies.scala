@@ -2,8 +2,11 @@ package com.github.ppotseluev.algorate.strategy
 
 import cats.implicits._
 import com.github.ppotseluev.algorate.math.Approximator
-import com.github.ppotseluev.algorate.strategy.FullStrategy.IndicatorInfo
-import com.github.ppotseluev.algorate.strategy.FullStrategy.Representation
+import com.github.ppotseluev.algorate.strategy.FullStrategy.{
+  IndicatorInfo,
+  Representation,
+  StrategyIndicators
+}
 import com.github.ppotseluev.algorate.strategy.FullStrategy.Representation.Points
 import com.github.ppotseluev.algorate.strategy.indicator.ChannelIndicator
 import com.github.ppotseluev.algorate.strategy.indicator.ChannelIndicator.Channel
@@ -248,7 +251,8 @@ object Strategies {
 //        "macdEma" -> IndicatorInfo(macdEma),
         "trades" -> IndicatorInfo(tradesCountIndicator)
       ),
-      stopIndicator = stopIndicator
+      stopIndicator = stopIndicator,
+      strategyIndicators = StrategyIndicators(channel, channelIsWideEnough)
     )
   }
 
