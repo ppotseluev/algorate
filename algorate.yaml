@@ -11,6 +11,16 @@ envs:
   scope: RUN_AND_BUILD_TIME
   type: SECRET
   value: EV[1:gXEzY7PP/PccyeAif5q+Ynb866ZRuTqb:zPgaKA4q5WY78rp+SPFymE8ryTRW/Btwhwnul4NvJ/z6CLqTVGdeIya7+3JVjn939MKy5tAkiP8dnVC78aI=]
+- key: LOG_LEVEL
+  scope: RUN_AND_BUILD_TIME
+  value: info
+ingress:
+  rules:
+  - component:
+      name: algorate-trader-app
+    match:
+      path:
+        prefix: /algorate
 name: algorate
 region: fra
 services:
@@ -22,7 +32,7 @@ services:
     value: EV[1:bsWtRsQZZkz9jqqE7HeQsfSPENQF64Y/:Ids/AammQ58b4utC84AnbWGxihHB/RW0xG0R1o7eKRk9DwcKcZI0kJmRHBqj+se140x1g/peiIdCLbXWeWLDriWi8NhPLiJWWfjZfWe1Cxhbn92ia63lIekumYJMifG/qVQLsDtJArY=]
   - key: JAVA_OPTS
     scope: RUN_AND_BUILD_TIME
-    value: -Xms800m -Xmx800m
+    value: -Xmx1200m
   - key: TELEGRAM_WEBHOOK_SECRET
     scope: RUN_AND_BUILD_TIME
     type: SECRET
@@ -30,17 +40,38 @@ services:
   - key: ACCOUNT_ID
     scope: RUN_AND_BUILD_TIME
     value: f6377137-36a9-4262-a2a4-fb8f36ed18fe
+  - key: TESTNET
+    scope: RUN_AND_BUILD_TIME
+    value: "false"
+  - key: BINANCE_API_KEY
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:PMCnLpjVPHeiPHQN1EFqtH61CzJ0Ysob:n/KMU0U6/rtV7we+WZDrPdgnqvcBL58xuNAe3j+fLLk/tqyadxvNuNcd8XfkTM+kTzCvQ2EshYJ59D+wwR5XJJ5NlXcYjmz8fIVdkNnALGc=]
+  - key: BINANCE_API_SECRET
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:9QCh7mfQLO5LANMmsuW3osN+U8otRu2S:4puRL1qNyV0K+Pzk5H87wChTPe/j/U31L288A6+kBD3nDhse3TWeSV66Dzf4xzZVHpi4oWPDwSopCGWZgq0dmy7ykI9/Sj20AcCvdAskGEk=]
+  - key: PROD_BINANCE_API_KEY
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:Los8dc4joyq5weQfL/+8mgnlk6OM1Lw9:YdMVXB/+KzH6eKHvgfyY/915/NuK7iYhW/dmDdnrjU73VsgqEFRInI5e+GrF+L1P7bkt4C/LXBf72fwb9I1B7qm07lrwqAnEecVAcJ3adqo=]
+  - key: PROD_BINANCE_API_SECRET
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:xVbggSuIXi+OHNRegwvTY66QLAdX9SP5:oLQ7MslzCjr9HdGWpHop49g5DmnFDGL/GJaUo77J2RC2yriPfeYMxckeb/Htk0iyZgZB7RR4VOKOFRJLR+rivQJU89Dc87gyvR4Is+Sk6B8=]
   github:
     branch: master
     repo: ppotseluev/algorate
   health_check:
-    failure_threshold: 3
+    failure_threshold: 6
     http_path: /healthcheck
+    initial_delay_seconds: 10
     period_seconds: 5
     port: 54611
+    timeout_seconds: 5
   http_port: 8080
   instance_count: 1
-  instance_size_slug: basic-xs
+  instance_size_slug: basic-s
   internal_ports:
   - 54611
   log_destinations:
@@ -48,6 +79,4 @@ services:
       token: sZsrUtAscxJsfk55NQ2LpTMs
     name: Logtail
   name: algorate-trader-app
-  routes:
-  - path: /algorate
   source_dir: /
